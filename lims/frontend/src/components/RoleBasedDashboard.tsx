@@ -3,10 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import BaseDashboard from './dashboards/BaseDashboard';
 import DoctorDashboard from './dashboards/DoctorDashboard';
 import PatientDashboard from './dashboards/PatientDashboard';
-import SuperAdminDashboard from './dashboards/SuperAdminDashboard';
 import SupportDashboard from './dashboards/SupportDashboard';
 import TechnicianDashboard from './dashboards/TechnicianDashboard';
 import TenantAdminDashboard from './dashboards/TenantAdminDashboard';
+import SuperAdminRouter from './superadmin/SuperAdminRouter';
 
 const RoleBasedDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -16,7 +16,7 @@ const RoleBasedDashboard: React.FC = () => {
   // Route to appropriate dashboard based on user role
   switch (user.role) {
     case 'superadmin':
-      return <SuperAdminDashboard />;
+      return <SuperAdminRouter />;
     
     case 'tenant-admin':
       return <TenantAdminDashboard />;

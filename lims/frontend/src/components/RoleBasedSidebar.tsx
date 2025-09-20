@@ -37,6 +37,7 @@ import {
   Wrench
 } from 'lucide-react';
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLE_NAVIGATION } from '../types/auth';
 
@@ -87,17 +88,20 @@ const iconMap: Record<string, React.ComponentType<any>> = {
 
 const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({ isOpen }) => {
   const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   if (!user) return null;
 
   const navigation = ROLE_NAVIGATION[user.role] || [];
 
   return (
-    <div className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-40 ${
+    <div className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-40 flex flex-col ${
       isOpen ? 'w-64' : 'w-16'
     }`}>
-      <div className="p-6">
-        <div className="flex items-center space-x-3 mb-8">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 p-6 border-b border-gray-200">
+        <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">+</span>
           </div>
@@ -108,8 +112,11 @@ const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({ isOpen }) => {
             </div>
           )}
         </div>
+      </div>
 
-        <nav className="space-y-6">
+      {/* Navigation - Scrollable */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+        <nav className="p-6 pb-8 space-y-6">
           {navigation.map((section, sectionIndex) => (
             <div key={sectionIndex}>
               <div className="flex items-center justify-between mb-3">
@@ -129,7 +136,7 @@ const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({ isOpen }) => {
                   }
 
                   const IconComponent = iconMap[item.icon] || LayoutDashboard;
-                  const isActive = window.location.pathname === item.path;
+                  const isActive = location.pathname === item.path;
 
                   return (
                     <li key={itemIndex}>
@@ -140,8 +147,7 @@ const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({ isOpen }) => {
                             : 'text-gray-600 hover:bg-gray-100'
                         }`}
                         onClick={() => {
-                          // In a real app, you'd use React Router here
-                          console.log(`Navigate to ${item.path}`);
+                          navigate(item.path);
                         }}
                       >
                         <IconComponent className="w-5 h-5" />
@@ -156,7 +162,6 @@ const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({ isOpen }) => {
             </div>
           ))}
         </nav>
-
       </div>
     </div>
   );

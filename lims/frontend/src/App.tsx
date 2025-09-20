@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
 import Header from './components/Header';
 import Login from './components/Login';
 import RoleBasedDashboard from './components/RoleBasedDashboard';
@@ -29,23 +30,25 @@ function AppContent() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Role-based Sidebar */}
-      <RoleBasedSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-      
-      {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarOpen ? 'ml-64' : 'ml-16'
-      }`}>
-        {/* Header */}
-        <Header onMenuToggle={toggleSidebar} />
+    <Router>
+      <div className="flex h-screen bg-gray-50">
+        {/* Role-based Sidebar */}
+        <RoleBasedSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <RoleBasedDashboard />
-        </main>
+        {/* Main Content */}
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${
+          sidebarOpen ? 'ml-64' : 'ml-16'
+        }`}>
+          {/* Header */}
+          <Header onMenuToggle={toggleSidebar} />
+          
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto p-6">
+            <RoleBasedDashboard />
+          </main>
+        </div>
       </div>
-    </div>
+    </Router>
   );
 }
 
