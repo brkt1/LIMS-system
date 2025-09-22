@@ -1,440 +1,349 @@
-import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Download,
-  Eye,
-  FileText,
-  Search,
-  XCircle
-} from 'lucide-react';
-import React, { useState } from 'react';
-import BaseDashboard from '../dashboards/BaseDashboard';
-
-interface TestReport {
-  id: string;
-  patient_name: string;
-  patient_id: string;
-  test_name: string;
-  test_type: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  priority: 'routine' | 'urgent' | 'stat';
-  technician: string;
-  doctor: string;
-  created_date: string;
-  completed_date: string;
-  result: string;
-  normal_range: string;
-  units: string;
-  notes: string;
-}
+import { Download, FileText, Plus, Search, TrendingUp } from "lucide-react";
+import React, { useState } from "react";
 
 const TestReports: React.FC = () => {
-  const [reports, setReports] = useState<TestReport[]>([
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterDate, setFilterDate] = useState("all");
+
+  const reports = [
     {
-      id: '1',
-      patient_name: 'John Smith',
-      patient_id: 'P001',
-      test_name: 'Complete Blood Count',
-      test_type: 'Hematology',
-      status: 'completed',
-      priority: 'routine',
-      technician: 'Mike Chen',
-      doctor: 'Dr. Sarah Johnson',
-      created_date: '2025-01-20',
-      completed_date: '2025-01-20',
-      result: 'Normal',
-      normal_range: '4.5-11.0 x10³/μL',
-      units: 'x10³/μL',
-      notes: 'All parameters within normal limits'
+      id: "RPT001",
+      patientName: "John Smith",
+      patientId: "P001",
+      testName: "Complete Blood Count",
+      doctor: "Dr. Sarah Johnson",
+      status: "completed",
+      generatedDate: "2025-01-22",
+      generatedTime: "10:30 AM",
+      fileSize: "2.3 MB",
+      format: "PDF",
+      downloadCount: 3,
+      priority: "normal",
     },
     {
-      id: '2',
-      patient_name: 'Sarah Johnson',
-      patient_id: 'P002',
-      test_name: 'Lipid Panel',
-      test_type: 'Biochemistry',
-      status: 'in_progress',
-      priority: 'urgent',
-      technician: 'Lisa Rodriguez',
-      doctor: 'Dr. Michael Chen',
-      created_date: '2025-01-20',
-      completed_date: '',
-      result: '',
-      normal_range: '',
-      units: '',
-      notes: 'Sample processing in progress'
+      id: "RPT002",
+      patientName: "Sarah Johnson",
+      patientId: "P002",
+      testName: "X-Ray Chest",
+      doctor: "Dr. Mike Davis",
+      status: "completed",
+      generatedDate: "2025-01-21",
+      generatedTime: "2:15 PM",
+      fileSize: "5.7 MB",
+      format: "PDF",
+      downloadCount: 1,
+      priority: "high",
     },
     {
-      id: '3',
-      patient_name: 'Robert Brown',
-      patient_id: 'P003',
-      test_name: 'Thyroid Function Test',
-      test_type: 'Endocrinology',
-      status: 'pending',
-      priority: 'routine',
-      technician: '',
-      doctor: 'Dr. Emily Rodriguez',
-      created_date: '2025-01-19',
-      completed_date: '',
-      result: '',
-      normal_range: '',
-      units: '',
-      notes: 'Awaiting sample collection'
-    }
-  ]);
+      id: "RPT003",
+      patientName: "Mike Davis",
+      patientId: "P003",
+      testName: "MRI Brain",
+      doctor: "Dr. Lisa Wilson",
+      status: "pending",
+      generatedDate: "2025-01-20",
+      generatedTime: "4:45 PM",
+      fileSize: "0 MB",
+      format: "PDF",
+      downloadCount: 0,
+      priority: "urgent",
+    },
+    {
+      id: "RPT004",
+      patientName: "Lisa Wilson",
+      patientId: "P004",
+      testName: "Urine Analysis",
+      doctor: "Dr. Robert Brown",
+      status: "completed",
+      generatedDate: "2025-01-19",
+      generatedTime: "9:20 AM",
+      fileSize: "1.8 MB",
+      format: "PDF",
+      downloadCount: 2,
+      priority: "normal",
+    },
+    {
+      id: "RPT005",
+      patientName: "Robert Brown",
+      patientId: "P005",
+      testName: "ECG",
+      doctor: "Dr. Sarah Johnson",
+      status: "reviewed",
+      generatedDate: "2025-01-18",
+      generatedTime: "11:10 AM",
+      fileSize: "3.2 MB",
+      format: "PDF",
+      downloadCount: 5,
+      priority: "normal",
+    },
+  ];
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [filterTestType, setFilterTestType] = useState('all');
-
-  const statuses = ['all', 'pending', 'in_progress', 'completed', 'cancelled'];
-  const priorities = ['all', 'routine', 'urgent', 'stat'];
-  const testTypes = ['all', 'Hematology', 'Biochemistry', 'Endocrinology', 'Microbiology', 'Immunology'];
-
-  const filteredReports = reports.filter(report => {
-    const matchesSearch = report.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.test_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.patient_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || report.status === filterStatus;
-    const matchesPriority = filterPriority === 'all' || report.priority === filterPriority;
-    const matchesTestType = filterTestType === 'all' || report.test_type === filterTestType;
-    return matchesSearch && matchesStatus && matchesPriority && matchesTestType;
+  const filteredReports = reports.filter((report) => {
+    const matchesSearch =
+      report.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.testName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      filterStatus === "all" || report.status === filterStatus;
+    return matchesSearch && matchesStatus;
   });
 
-  const completedReports = reports.filter(report => report.status === 'completed').length;
-  const pendingReports = reports.filter(report => report.status === 'pending').length;
-  const inProgressReports = reports.filter(report => report.status === 'in_progress').length;
-  const urgentReports = reports.filter(report => report.priority === 'urgent' || report.priority === 'stat').length;
-
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "reviewed":
+        return "bg-blue-100 text-blue-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'stat':
-        return 'bg-red-100 text-red-800';
-      case 'urgent':
-        return 'bg-orange-100 text-orange-800';
-      case 'routine':
-        return 'bg-green-100 text-green-800';
+    switch (priority.toLowerCase()) {
+      case "urgent":
+        return "bg-red-100 text-red-800";
+      case "high":
+        return "bg-orange-100 text-orange-800";
+      case "normal":
+        return "bg-green-100 text-green-800";
+      case "low":
+        return "bg-gray-100 text-gray-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'in_progress':
-        return <Clock className="w-4 h-4" />;
-      case 'pending':
-        return <AlertCircle className="w-4 h-4" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <AlertCircle className="w-4 h-4" />;
-    }
-  };
+  const totalReports = reports.length;
+  const completedReports = reports.filter(
+    (r) => r.status === "completed"
+  ).length;
+  const pendingReports = reports.filter((r) => r.status === "pending").length;
+  const totalDownloads = reports.reduce((sum, r) => sum + r.downloadCount, 0);
 
   return (
-    <BaseDashboard>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-indigo-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Test Reports</h1>
-              <p className="text-gray-600">View and manage laboratory test reports</p>
-            </div>
-          </div>
-          <button className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Test Reports</h1>
+          <p className="text-gray-600">
+            Manage and track laboratory test reports
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
             <Download className="w-4 h-4" />
-            <span>Export Reports</span>
+            <span>Export All</span>
+          </button>
+          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+            <Plus className="w-4 h-4" />
+            <span>Generate Report</span>
           </button>
         </div>
+      </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <FileText className="w-6 h-6 text-indigo-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                <p className="text-2xl font-bold text-gray-900">{reports.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{completedReports}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold text-gray-900">{inProgressReports}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Urgent</p>
-                <p className="text-2xl font-bold text-gray-900">{urgentReports}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center space-x-4">
-          <div className="relative flex-1 max-w-md">
+      {/* Filters */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search reports..."
+              placeholder="Search by patient name, test name, or report ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
+        </div>
+        <div className="flex gap-4">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            {statuses.map(status => (
-              <option key={status} value={status}>
-                {status === 'all' ? 'All Status' : status.replace('_', ' ')}
-              </option>
-            ))}
+            <option value="all">All Status</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
           <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            {priorities.map(priority => (
-              <option key={priority} value={priority}>
-                {priority === 'all' ? 'All Priority' : priority.toUpperCase()}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterTestType}
-            onChange={(e) => setFilterTestType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
-            {testTypes.map(type => (
-              <option key={type} value={type}>
-                {type === 'all' ? 'All Types' : type}
-              </option>
-            ))}
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
           </select>
         </div>
+      </div>
 
-        {/* Reports Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Test
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Technician
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredReports.map((report) => (
-                  <tr key={report.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{report.patient_name}</div>
-                        <div className="text-sm text-gray-500">ID: {report.patient_id}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{report.test_name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {report.test_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getStatusIcon(report.status)}
-                        <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
-                          {report.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
-                        {report.priority.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {report.technician || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {report.created_date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button className="text-indigo-600 hover:text-indigo-900">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900">
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Reports</p>
+              <p className="text-2xl font-bold text-gray-900">{totalReports}</p>
+            </div>
+            <FileText className="w-8 h-8 text-primary-600" />
           </div>
         </div>
-
-        {/* Report Details Modal */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Report Details</h3>
-              <button className="text-gray-400 hover:text-gray-600">
-                <XCircle className="w-5 h-5" />
-              </button>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Completed</p>
+              <p className="text-2xl font-bold text-green-600">
+                {completedReports}
+              </p>
             </div>
-            
-            <div className="space-y-6">
-              {/* Patient Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Patient Information</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-500">Patient Name</label>
-                    <p className="text-sm font-medium">John Smith</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Patient ID</label>
-                    <p className="text-sm font-medium">P001</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Test Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Test Information</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-500">Test Name</label>
-                    <p className="text-sm font-medium">Complete Blood Count</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Test Type</label>
-                    <p className="text-sm font-medium">Hematology</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Technician</label>
-                    <p className="text-sm font-medium">Mike Chen</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Doctor</label>
-                    <p className="text-sm font-medium">Dr. Sarah Johnson</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Results */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Test Results</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">White Blood Cell Count</span>
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-green-600">7.2</span>
-                      <span className="text-xs text-gray-500 ml-2">x10³/μL</span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500">Normal Range: 4.5-11.0 x10³/μL</div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Red Blood Cell Count</span>
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-green-600">4.8</span>
-                      <span className="text-xs text-gray-500 ml-2">x10⁶/μL</span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500">Normal Range: 4.0-5.5 x10⁶/μL</div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Notes</h4>
-                <p className="text-sm text-gray-700">All parameters within normal limits. No abnormalities detected.</p>
-              </div>
+            <TrendingUp className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Pending</p>
+              <p className="text-2xl font-bold text-yellow-600">
+                {pendingReports}
+              </p>
             </div>
+            <FileText className="w-8 h-8 text-yellow-600" />
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Downloads</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {totalDownloads}
+              </p>
+            </div>
+            <Download className="w-8 h-8 text-blue-600" />
           </div>
         </div>
       </div>
-    </BaseDashboard>
+
+      {/* Reports Table */}
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Report
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Patient
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Test
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Doctor
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Generated
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredReports.map((report) => (
+                <tr key={report.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {report.id}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {report.fileSize} • {report.format}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {report.downloadCount} downloads
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {report.patientName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        ID: {report.patientId}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {report.testName}
+                      </div>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                          report.priority
+                        )}`}
+                      >
+                        {report.priority.charAt(0).toUpperCase() +
+                          report.priority.slice(1)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {report.doctor}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        report.status
+                      )}`}
+                    >
+                      {report.status.charAt(0).toUpperCase() +
+                        report.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div>
+                      <div>{report.generatedDate}</div>
+                      <div className="text-xs text-gray-500">
+                        {report.generatedTime}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button className="text-primary-600 hover:text-primary-900">
+                        View
+                      </button>
+                      <button className="text-green-600 hover:text-green-900">
+                        Download
+                      </button>
+                      <button className="text-blue-600 hover:text-blue-900">
+                        Share
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1,6 +1,5 @@
 import { BarChart3, Check, CreditCard, DollarSign, Download, Edit, Plus, TrendingUp } from 'lucide-react';
 import React, { useState } from 'react';
-import BaseDashboard from '../dashboards/BaseDashboard';
 
 const BillingPlans: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -124,8 +123,7 @@ const BillingPlans: React.FC = () => {
   const selectedPlanData = plans.find(plan => plan.id === selectedPlan);
 
   return (
-    <BaseDashboard>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -453,7 +451,7 @@ const BillingPlans: React.FC = () => {
           </div>
         )}
       </div>
-    </BaseDashboard>
+    
   );
 };
 

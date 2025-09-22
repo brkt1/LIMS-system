@@ -1,6 +1,5 @@
 import { Activity, Clock, Globe, MapPin, Monitor, RefreshCw, Search, Shield, User, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import BaseDashboard from '../dashboards/BaseDashboard';
 
 const MonitorUsers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -132,8 +131,7 @@ const MonitorUsers: React.FC = () => {
   const totalAway = onlineUsers.filter(user => user.status === 'away').length;
 
   return (
-    <BaseDashboard>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -383,7 +381,7 @@ const MonitorUsers: React.FC = () => {
           </div>
         </div>
       </div>
-    </BaseDashboard>
+  
   );
 };
 

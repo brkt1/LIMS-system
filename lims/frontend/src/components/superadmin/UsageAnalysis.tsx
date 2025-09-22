@@ -1,6 +1,5 @@
 import { BarChart3, Calendar, Download, Filter, TrendingUp, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import BaseDashboard from '../dashboards/BaseDashboard';
 
 const UsageAnalysis: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
@@ -56,8 +55,7 @@ const UsageAnalysis: React.FC = () => {
   };
 
   return (
-    <BaseDashboard>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -277,7 +275,7 @@ const UsageAnalysis: React.FC = () => {
           </div>
         </div>
       </div>
-    </BaseDashboard>
+   
   );
 };
 

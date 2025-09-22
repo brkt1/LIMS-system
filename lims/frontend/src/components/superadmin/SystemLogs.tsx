@@ -1,6 +1,5 @@
 import { Activity, AlertTriangle, CheckCircle, Download, Filter, RefreshCw, Search, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import BaseDashboard from '../dashboards/BaseDashboard';
 
 const SystemLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,8 +183,7 @@ const SystemLogs: React.FC = () => {
   };
 
   return (
-    <BaseDashboard>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -319,7 +317,7 @@ const SystemLogs: React.FC = () => {
           <p className="text-gray-500">Click on any log entry to view detailed information</p>
         </div>
       </div>
-    </BaseDashboard>
+
   );
 };
 

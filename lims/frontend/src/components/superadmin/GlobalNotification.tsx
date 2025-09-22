@@ -1,6 +1,5 @@
 import { Bell, Calendar, Check, Edit, Eye, Plus, Send, Trash2, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import BaseDashboard from '../dashboards/BaseDashboard';
 
 const GlobalNotification: React.FC = () => {
   const [activeTab, setActiveTab] = useState('compose');
@@ -124,8 +123,7 @@ const GlobalNotification: React.FC = () => {
   };
 
   return (
-    <BaseDashboard>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -458,7 +456,7 @@ const GlobalNotification: React.FC = () => {
           </div>
         )}
       </div>
-    </BaseDashboard>
+   
   );
 };
 

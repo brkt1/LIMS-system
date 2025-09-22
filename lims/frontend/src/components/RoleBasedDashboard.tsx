@@ -1,12 +1,17 @@
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import BaseDashboard from './dashboards/BaseDashboard';
-import DoctorDashboard from './dashboards/DoctorDashboard';
-import PatientDashboard from './dashboards/PatientDashboard';
-import SupportDashboard from './dashboards/SupportDashboard';
-import TechnicianDashboard from './dashboards/TechnicianDashboard';
-import TenantAdminDashboard from './dashboards/TenantAdminDashboard';
-import SuperAdminRouter from './superadmin/SuperAdminRouter';
+import React from "react";
+import { useAuth } from "../contexts/AuthContext";
+import BaseDashboard from "./dashboards/BaseDashboard";
+import DoctorDashboard from "./dashboards/DoctorDashboard";
+import PatientDashboard from "./dashboards/PatientDashboard";
+import SupportDashboard from "./dashboards/SupportDashboard";
+import TechnicianDashboard from "./dashboards/TechnicianDashboard";
+import TenantAdminDashboard from "./dashboards/TenantAdminDashboard";
+import SuperAdminRouter from "./superadmin/SuperAdminRouter";
+import DoctorRouter from "./doctor/DoctorRouter";
+import PatientRouter from "./patient/PatientRouter";
+import SupportRouter from "./support/SupportRouter";
+import TechnicianRouter from "./technician/TechnicianRouter";
+import TenantAdminRouter from "./tenantadmin/TenantAdminRouter";
 
 const RoleBasedDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -15,24 +20,24 @@ const RoleBasedDashboard: React.FC = () => {
 
   // Route to appropriate dashboard based on user role
   switch (user.role) {
-    case 'superadmin':
+    case "superadmin":
       return <SuperAdminRouter />;
-    
-    case 'tenant-admin':
-      return <TenantAdminDashboard />;
-    
-    case 'doctor':
-      return <DoctorDashboard />;
-    
-    case 'technician':
-      return <TechnicianDashboard />;
-    
-    case 'support':
-      return <SupportDashboard />;
-    
-    case 'patient':
-      return <PatientDashboard />;
-    
+
+    case "tenant-admin":
+      return <TenantAdminRouter />;
+
+    case "doctor":
+      return <DoctorRouter />;
+
+    case "technician":
+      return <TechnicianRouter />;
+
+    case "support":
+      return <SupportRouter />;
+
+    case "patient":
+      return <PatientRouter />;
+
     default:
       return <BaseDashboard />;
   }
