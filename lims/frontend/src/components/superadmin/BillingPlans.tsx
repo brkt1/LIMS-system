@@ -132,428 +132,464 @@ const BillingPlans: React.FC = () => {
   const selectedPlanData = plans.find((plan) => plan.id === selectedPlan);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Billing & Plans</h2>
-          <p className="text-gray-600">
-            Manage subscription plans, billing, and revenue analytics
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            <Download className="w-4 h-4" />
-            <span>Export Report</span>
-          </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Plus className="w-4 h-4" />
-            <span>Create Plan</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {[
-            { id: "overview", name: "Overview" },
-            { id: "plans", name: "Plans" },
-            { id: "transactions", name: "Transactions" },
-            { id: "analytics", name: "Analytics" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab.id
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              {tab.name}
+      <div className="bg-white shadow-sm border-b border-gray-200 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              Billing & Plans
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600">
+              Manage subscription plans, billing, and revenue analytics
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base w-full sm:w-auto">
+              <Download className="w-4 h-4" />
+              <span>Export Report</span>
             </button>
-          ))}
-        </nav>
+            <button className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+              <Plus className="w-4 h-4" />
+              <span>Create Plan</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Overview Tab */}
-      {activeTab === "overview" && (
-        <div className="space-y-6">
-          {/* Revenue Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Revenue
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ${billingData.totalRevenue.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-green-600 flex items-center">
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                    +12.5% from last month
-                  </p>
-                </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Monthly Recurring
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ${billingData.monthlyRecurring.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-500">MRR</p>
-                </div>
-                <CreditCard className="w-8 h-8 text-blue-600" />
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Churn Rate
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {billingData.churnRate}%
-                  </p>
-                  <p className="text-sm text-green-600">
-                    -0.3% from last month
-                  </p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-red-600" />
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">ARPU</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ${billingData.averageRevenuePerUser}
-                  </p>
-                  <p className="text-sm text-gray-500">Average per user</p>
-                </div>
-                <BarChart3 className="w-8 h-8 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Revenue Chart */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Revenue Trends
-              </h3>
-              <div className="flex items-center space-x-2">
-                <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option value="6m">Last 6 months</option>
-                  <option value="1y">Last year</option>
-                  <option value="2y">Last 2 years</option>
-                </select>
-              </div>
-            </div>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <div className="text-center">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2" />
-                <p>Revenue trends chart would go here</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Plans Tab */}
-      {activeTab === "plans" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className={`card cursor-pointer transition-all ${
-                  selectedPlan === plan.id
-                    ? "ring-2 ring-blue-500"
-                    : "hover:shadow-lg"
-                }`}
-                onClick={() => setSelectedPlan(plan.id)}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {plan.name}
-                  </h3>
-                  {selectedPlan === plan.id && (
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-gray-900">
-                    ${plan.price}
-                  </span>
-                  <span className="text-gray-500">/{plan.billing}</span>
-                </div>
-
-                <div className="space-y-2 mb-6">
-                  {plan.features.map((feature, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-gray-600">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
-                    <span>Tenants</span>
-                    <span className="font-medium text-gray-900">
-                      {plan.tenants}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm text-gray-500">
-                    <span>Revenue</span>
-                    <span className="font-medium text-gray-900">
-                      ${plan.revenue.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex space-x-2">
-                  <button className="flex-1 px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Edit className="w-4 h-4 inline mr-1" />
-                    Edit
-                  </button>
-                  <button className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    View Details
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Plan Details */}
-          {selectedPlanData && (
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {selectedPlanData.name} Plan Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    Pricing Information
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Monthly Price:</span>
-                      <span className="font-medium">
-                        ${selectedPlanData.price}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Billing Cycle:</span>
-                      <span className="font-medium capitalize">
-                        {selectedPlanData.billing}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Max Users:</span>
-                      <span className="font-medium">
-                        {selectedPlanData.users}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    Usage Statistics
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Active Tenants:</span>
-                      <span className="font-medium">
-                        {selectedPlanData.tenants}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Monthly Revenue:</span>
-                      <span className="font-medium">
-                        ${selectedPlanData.revenue.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Growth Rate:</span>
-                      <span className="font-medium text-green-600">+8.5%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Transactions Tab */}
-      {activeTab === "transactions" && (
-        <div className="space-y-6">
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Recent Transactions
-              </h3>
-              <div className="flex items-center space-x-3">
-                <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option value="all">All Status</option>
-                  <option value="paid">Paid</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                </select>
-                <button className="flex items-center space-x-2 px-3 py-1 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Download className="w-4 h-4" />
-                  <span>Export</span>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex flex-wrap space-x-2 sm:space-x-8 px-4 sm:px-6">
+              {[
+                { id: "overview", name: "Overview" },
+                { id: "plans", name: "Plans" },
+                { id: "transactions", name: "Transactions" },
+                { id: "analytics", name: "Analytics" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {tab.name}
                 </button>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Transaction ID
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Tenant
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Plan
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Amount
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Date
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                      Method
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {recentTransactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                        #{transaction.id}
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-900">
-                        {transaction.tenant}
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-900">
-                        {transaction.plan}
-                      </td>
-                      <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                        ${transaction.amount}
-                      </td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                            transaction.status
-                          )}`}
-                        >
-                          {transaction.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-900">
-                        {transaction.date}
-                      </td>
-                      <td className="py-4 px-4 text-sm text-gray-900">
-                        {transaction.method}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              ))}
+            </nav>
           </div>
         </div>
-      )}
 
-      {/* Analytics Tab */}
-      {activeTab === "analytics" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Revenue by Plan
-              </h3>
-              <div className="space-y-4">
-                {plans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {plan.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {plan.tenants} tenants
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{
-                            width: `${
-                              (plan.revenue /
-                                Math.max(...plans.map((p) => p.revenue))) *
-                              100
-                            }%`,
-                          }}
-                        />
+        {/* Overview Tab */}
+        {activeTab === "overview" && (
+          <div className="space-y-4 sm:space-y-6">
+            {/* Revenue Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                      Total Revenue
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      ${billingData.totalRevenue.toLocaleString()}
+                    </p>
+                    <p className="text-xs sm:text-sm text-green-600 flex items-center">
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      +12.5% from last month
+                    </p>
+                  </div>
+                  <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
+                </div>
+              </div>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                      Monthly Recurring
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      ${billingData.monthlyRecurring.toLocaleString()}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-500">MRR</p>
+                  </div>
+                  <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
+                </div>
+              </div>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                      Churn Rate
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      {billingData.churnRate}%
+                    </p>
+                    <p className="text-xs sm:text-sm text-green-600">
+                      -0.3% from last month
+                    </p>
+                  </div>
+                  <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
+                </div>
+              </div>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                      ARPU
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                      ${billingData.averageRevenuePerUser}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Average per user
+                    </p>
+                  </div>
+                  <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
+                </div>
+              </div>
+            </div>
+
+            {/* Revenue Chart */}
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                  Revenue Trends
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto">
+                    <option value="6m">Last 6 months</option>
+                    <option value="1y">Last year</option>
+                    <option value="2y">Last 2 years</option>
+                  </select>
+                </div>
+              </div>
+              <div className="h-48 sm:h-64 flex items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <BarChart3 className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2" />
+                  <p className="text-sm sm:text-base">
+                    Revenue trends chart would go here
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Plans Tab */}
+        {activeTab === "plans" && (
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`bg-white p-4 sm:p-6 rounded-lg shadow-sm border cursor-pointer transition-all ${
+                    selectedPlan === plan.id
+                      ? "ring-2 ring-blue-500"
+                      : "hover:shadow-lg"
+                  }`}
+                  onClick={() => setSelectedPlan(plan.id)}
+                >
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                      {plan.name}
+                    </h3>
+                    {selectedPlan === plan.id && (
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       </div>
-                      <span className="text-sm font-medium text-gray-900">
+                    )}
+                  </div>
+
+                  <div className="mb-3 sm:mb-4">
+                    <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                      ${plan.price}
+                    </span>
+                    <span className="text-sm sm:text-base text-gray-500">
+                      /{plan.billing}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mb-4 sm:mb-6">
+                    {plan.features.map((feature, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {feature}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 sm:pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 mb-2">
+                      <span>Tenants</span>
+                      <span className="font-medium text-gray-900">
+                        {plan.tenants}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500">
+                      <span>Revenue</span>
+                      <span className="font-medium text-gray-900">
                         ${plan.revenue.toLocaleString()}
                       </span>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <button className="flex-1 px-3 py-2 text-xs sm:text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                      Edit
+                    </button>
+                    <button className="flex-1 px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Payment Methods
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Credit Card</span>
-                  <span className="text-sm font-medium text-gray-900">68%</span>
+            {/* Plan Details */}
+            {selectedPlanData && (
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+                  {selectedPlanData.name} Plan Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">
+                      Pricing Information
+                    </h4>
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Monthly Price:</span>
+                        <span className="font-medium">
+                          ${selectedPlanData.price}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Billing Cycle:</span>
+                        <span className="font-medium capitalize">
+                          {selectedPlanData.billing}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Max Users:</span>
+                        <span className="font-medium">
+                          {selectedPlanData.users}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">
+                      Usage Statistics
+                    </h4>
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Active Tenants:</span>
+                        <span className="font-medium">
+                          {selectedPlanData.tenants}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Monthly Revenue:</span>
+                        <span className="font-medium">
+                          ${selectedPlanData.revenue.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Growth Rate:</span>
+                        <span className="font-medium text-green-600">
+                          +8.5%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Bank Transfer</span>
-                  <span className="text-sm font-medium text-gray-900">22%</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Transactions Tab */}
+        {activeTab === "transactions" && (
+          <div className="space-y-4 sm:space-y-6">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                  Recent Transactions
+                </h3>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto">
+                    <option value="all">All Status</option>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                  <button className="flex items-center justify-center space-x-2 px-3 py-1 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto">
+                    <Download className="w-4 h-4" />
+                    <span>Export</span>
+                  </button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">PayPal</span>
-                  <span className="text-sm font-medium text-gray-900">8%</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Transaction ID
+                      </th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Tenant
+                      </th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Plan
+                      </th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Amount
+                      </th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Date
+                      </th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                        Method
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {recentTransactions.map((transaction) => (
+                      <tr key={transaction.id} className="hover:bg-gray-50">
+                        <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-900">
+                          #{transaction.id}
+                        </td>
+                        <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900">
+                          {transaction.tenant}
+                        </td>
+                        <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900">
+                          {transaction.plan}
+                        </td>
+                        <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-900">
+                          ${transaction.amount}
+                        </td>
+                        <td className="py-3 sm:py-4 px-2 sm:px-4">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                              transaction.status
+                            )}`}
+                          >
+                            {transaction.status}
+                          </span>
+                        </td>
+                        <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900">
+                          {transaction.date}
+                        </td>
+                        <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900">
+                          {transaction.method}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+                  Revenue by Plan
+                </h3>
+                <div className="space-y-3 sm:space-y-4">
+                  {plans.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {plan.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {plan.tenants} tenants
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                (plan.revenue /
+                                  Math.max(...plans.map((p) => p.revenue))) *
+                                100
+                              }%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs sm:text-sm font-medium text-gray-900">
+                          ${plan.revenue.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Other</span>
-                  <span className="text-sm font-medium text-gray-900">2%</span>
+              </div>
+
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+                  Payment Methods
+                </h3>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      Credit Card
+                    </span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">
+                      68%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      Bank Transfer
+                    </span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">
+                      22%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      PayPal
+                    </span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">
+                      8%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      Other
+                    </span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">
+                      2%
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

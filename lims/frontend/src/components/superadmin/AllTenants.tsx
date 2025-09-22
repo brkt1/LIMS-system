@@ -1,9 +1,7 @@
 import {
   BarChart3,
   Building2,
-  Calendar,
   Download,
-  Filter,
   Search,
   Users,
 } from "lucide-react";
@@ -138,24 +136,24 @@ const AllTenants: React.FC = () => {
   const activeTenants = tenants.filter((t) => t.status === "Active").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">All Tenants</h2>
-          <p className="text-gray-600">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">All Tenants</h2>
+          <p className="text-sm sm:text-base text-gray-600">
             Complete overview of all tenant organizations
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+          <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base w-full sm:w-auto">
             <Download className="w-4 h-4" />
             <span>Export</span>
           </button>
-          <div className="flex border border-gray-300 rounded-lg">
+          <div className="flex border border-gray-300 rounded-lg w-full sm:w-auto">
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-3 py-2 text-sm ${
+              className={`flex-1 sm:flex-none px-3 py-2 text-sm ${
                 viewMode === "grid"
                   ? "bg-blue-600 text-white"
                   : "text-gray-600 hover:bg-gray-50"
@@ -165,7 +163,7 @@ const AllTenants: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-2 text-sm ${
+              className={`flex-1 sm:flex-none px-3 py-2 text-sm ${
                 viewMode === "list"
                   ? "bg-blue-600 text-white"
                   : "text-gray-600 hover:bg-gray-50"
@@ -178,111 +176,113 @@ const AllTenants: React.FC = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Tenants</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Tenants</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {tenants.length}
               </p>
             </div>
-            <Building2 className="w-8 h-8 text-blue-600" />
+            <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
                 Active Tenants
               </p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {activeTenants}
               </p>
             </div>
-            <Users className="w-8 h-8 text-green-600" />
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Users</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{totalUsers}</p>
             </div>
-            <Users className="w-8 h-8 text-purple-600" />
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Revenue</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 ${totalRevenue.toLocaleString()}
               </p>
             </div>
-            <BarChart3 className="w-8 h-8 text-emerald-600" />
+            <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600 flex-shrink-0" />
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search tenants..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="pending">Pending</option>
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="created">Sort by Created Date</option>
-            <option value="users">Sort by Users</option>
-            <option value="revenue">Sort by Revenue</option>
-          </select>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="pending">Pending</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="name">Sort by Name</option>
+              <option value="created">Sort by Created Date</option>
+              <option value="users">Sort by Users</option>
+              <option value="revenue">Sort by Revenue</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Tenants Display */}
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredTenants.map((tenant) => (
             <div
               key={tenant.id}
-              className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-lg transition-shadow"
+              className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border hover:shadow-lg transition-shadow"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-lg font-bold text-blue-600">
+                <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm sm:text-lg font-bold text-blue-600">
                       {tenant.logo}
                     </span>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
                       {tenant.name}
                     </h3>
-                    <p className="text-sm text-gray-500">{tenant.domain}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{tenant.domain}</p>
                   </div>
                 </div>
                 <span
-                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${getStatusColor(
                     tenant.status
                   )}`}
                 >
@@ -290,15 +290,15 @@ const AllTenants: React.FC = () => {
                 </span>
               </div>
 
-              <div className="space-y-3 mb-4">
+              <div className="space-y-2 sm:space-y-3 mb-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Users</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="text-xs sm:text-sm text-gray-600">Users</span>
+                  <span className="font-medium text-gray-900 text-sm sm:text-base">
                     {tenant.users}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Plan</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Plan</span>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
                       tenant.plan
@@ -308,15 +308,15 @@ const AllTenants: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Revenue</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="text-xs sm:text-sm text-gray-600">Revenue</span>
+                  <span className="font-medium text-gray-900 text-sm sm:text-base">
                     ${tenant.revenue.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Growth</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Growth</span>
                   <span
-                    className={`font-medium ${getGrowthColor(tenant.growth)}`}
+                    className={`font-medium text-sm sm:text-base ${getGrowthColor(tenant.growth)}`}
                   >
                     {tenant.growth > 0 ? "+" : ""}
                     {tenant.growth}%
@@ -325,7 +325,7 @@ const AllTenants: React.FC = () => {
               </div>
 
               <div className="pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center text-sm text-gray-500">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-500 space-y-1 sm:space-y-0">
                   <span>Created: {tenant.created}</span>
                   <span>Last active: {tenant.lastActive}</span>
                 </div>
@@ -336,7 +336,7 @@ const AllTenants: React.FC = () => {
       ) : (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">

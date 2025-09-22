@@ -1,8 +1,8 @@
-import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import ChartsSection from '../ChartsSection';
-import DashboardCards from '../DashboardCards';
-import RecentDataTable from '../RecentDataTable';
+import React from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import ChartsSection from "../ChartsSection";
+import DashboardCards from "../DashboardCards";
+import RecentDataTable from "../RecentDataTable";
 
 interface BaseDashboardProps {
   children?: React.ReactNode;
@@ -15,12 +15,12 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
 
   const getWelcomeMessage = () => {
     const roleNames = {
-      'superadmin': 'Super Administrator',
-      'tenant-admin': 'Tenant Administrator',
-      'doctor': 'Doctor',
-      'technician': 'Technician',
-      'support': 'Support Staff',
-      'patient': 'Patient'
+      superadmin: "Super Administrator",
+      "tenant-admin": "Tenant Administrator",
+      doctor: "Doctor",
+      technician: "Technician",
+      support: "Support Staff",
+      patient: "Patient",
     };
 
     return `Welcome ${roleNames[user.role]}!`;
@@ -28,38 +28,47 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
 
   const getDashboardDescription = () => {
     const descriptions = {
-      'superadmin': 'Manage the entire LIMS system, tenants, and global analytics',
-      'tenant-admin': 'Manage your tenant organization, users, and operations',
-      'doctor': 'Manage patient care, test requests, and appointments',
-      'technician': 'Process samples, manage equipment, and create test reports',
-      'support': 'Handle support tickets, manage inventory, and assist users',
-      'patient': 'View your appointments, test results, and manage your profile'
+      superadmin:
+        "Manage the entire LIMS system, tenants, and global analytics",
+      "tenant-admin": "Manage your tenant organization, users, and operations",
+      doctor: "Manage patient care, test requests, and appointments",
+      technician: "Process samples, manage equipment, and create test reports",
+      support: "Handle support tickets, manage inventory, and assist users",
+      patient: "View your appointments, test results, and manage your profile",
     };
 
     return descriptions[user.role];
   };
 
   return (
-    <div className="space-y-8">
+    <div className="w-full min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
       {/* Welcome Message */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{getWelcomeMessage()}</h1>
-        <p className="text-gray-600 mt-2">{getDashboardDescription()}</p>
+      <div className="bg-white shadow-sm border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 mb-4 sm:mb-6">
+        <div className="text-center sm:text-left">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
+            {getWelcomeMessage()}
+          </h1>
+          <p className="text-sm sm:text-base lg:text-lg text-gray-600 mt-2 max-w-4xl mx-auto sm:mx-0">
+            {getDashboardDescription()}
+          </p>
+        </div>
       </div>
 
-      {/* Role-specific content */}
-      {children || (
-        <>
-          {/* Default dashboard cards */}
-          <DashboardCards />
-          
-          {/* Charts section */}
-          <ChartsSection />
-          
-          {/* Recent data table */}
-          <RecentDataTable />
-        </>
-      )}
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        {/* Role-specific content */}
+        {children || (
+          <>
+            {/* Default dashboard cards */}
+            <DashboardCards />
+
+            {/* Charts section */}
+            <ChartsSection />
+
+            {/* Recent data table */}
+            <RecentDataTable />
+          </>
+        )}
+      </div>
     </div>
   );
 };

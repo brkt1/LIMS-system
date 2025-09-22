@@ -1,4 +1,4 @@
-import { Building2, Check, Plus, X } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import React, { useState } from "react";
 
 const CreateTenants: React.FC = () => {
@@ -97,30 +97,30 @@ const CreateTenants: React.FC = () => {
   const selectedPlan = plans.find((plan) => plan.id === formData.plan);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-          <Plus className="w-5 h-5 text-blue-600" />
+        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Create New Tenant
           </h2>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Set up a new tenant organization with admin access
           </p>
         </div>
       </div>
 
       {showSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
-          <Check className="w-5 h-5 text-green-600" />
-          <div>
-            <p className="text-green-800 font-medium">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3">
+          <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-green-800 font-medium text-sm sm:text-base">
               Tenant Created Successfully!
             </p>
-            <p className="text-green-600 text-sm">
+            <p className="text-green-600 text-xs sm:text-sm">
               The new tenant has been set up and admin credentials have been
               sent.
             </p>
@@ -128,16 +128,16 @@ const CreateTenants: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
         {/* Form */}
-        <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="xl:col-span-2">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Basic Information */}
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                 Basic Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tenant Name *
@@ -148,7 +148,7 @@ const CreateTenants: React.FC = () => {
                     value={formData.tenantName}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., MedLab Solutions"
                   />
                 </div>
@@ -156,30 +156,30 @@ const CreateTenants: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Domain *
                   </label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      name="domain"
-                      value={formData.domain}
-                      onChange={handleInputChange}
-                      required
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="medlab"
-                    />
-                    <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-gray-500">
-                      .lims.com
-                    </span>
-                  </div>
+                    <div className="flex">
+                      <input
+                        type="text"
+                        name="domain"
+                        value={formData.domain}
+                        onChange={handleInputChange}
+                        required
+                        className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="medlab"
+                      />
+                      <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-gray-500 text-sm sm:text-base">
+                        .lims.com
+                      </span>
+                    </div>
                 </div>
               </div>
             </div>
 
             {/* Admin Information */}
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                 Admin Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Admin Name *
@@ -190,7 +190,7 @@ const CreateTenants: React.FC = () => {
                     value={formData.adminName}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="John Doe"
                   />
                 </div>
@@ -204,7 +204,7 @@ const CreateTenants: React.FC = () => {
                     value={formData.adminEmail}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="admin@medlab.com"
                   />
                 </div>
@@ -212,15 +212,15 @@ const CreateTenants: React.FC = () => {
             </div>
 
             {/* Plan Selection */}
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                 Plan Selection
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {plans.map((plan) => (
                   <div
                     key={plan.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    className={`p-3 sm:p-4 border rounded-lg cursor-pointer transition-colors ${
                       formData.plan === plan.id
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200 hover:border-gray-300"
@@ -230,22 +230,22 @@ const CreateTenants: React.FC = () => {
                     }
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{plan.name}</h4>
+                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">{plan.name}</h4>
                       {formData.plan === plan.id && (
-                        <Check className="w-5 h-5 text-blue-600" />
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       )}
                     </div>
-                    <p className="text-2xl font-bold text-gray-900 mb-2">
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 mb-2">
                       {plan.price}
                     </p>
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
                       Up to {plan.maxUsers} users
                     </p>
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <ul className="text-xs sm:text-sm text-gray-600 space-y-1">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center space-x-2">
-                          <Check className="w-3 h-3 text-green-600" />
-                          <span>{feature}</span>
+                          <Check className="w-3 h-3 text-green-600 flex-shrink-0" />
+                          <span className="truncate">{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -255,11 +255,11 @@ const CreateTenants: React.FC = () => {
             </div>
 
             {/* Additional Features */}
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                 Additional Features
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {availableFeatures.map((feature) => (
                   <label
                     key={feature}
@@ -269,26 +269,26 @@ const CreateTenants: React.FC = () => {
                       type="checkbox"
                       checked={formData.features.includes(feature)}
                       onChange={() => handleFeatureToggle(feature)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
                     />
-                    <span className="text-sm text-gray-700">{feature}</span>
+                    <span className="text-xs sm:text-sm text-gray-700 truncate">{feature}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end space-x-4">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
               <button
                 type="button"
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
               >
                 {isSubmitting ? (
                   <>
@@ -307,44 +307,44 @@ const CreateTenants: React.FC = () => {
         </div>
 
         {/* Summary */}
-        <div className="lg:col-span-1">
-          <div className="card sticky top-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="xl:col-span-1">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border sticky top-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
               Summary
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Tenant Name</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-xs sm:text-sm text-gray-600">Tenant Name</p>
+                <p className="font-medium text-gray-900 text-sm sm:text-base truncate">
                   {formData.tenantName || "Not specified"}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Domain</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-xs sm:text-sm text-gray-600">Domain</p>
+                <p className="font-medium text-gray-900 text-sm sm:text-base truncate">
                   {formData.domain
                     ? `${formData.domain}.lims.com`
                     : "Not specified"}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Admin</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-xs sm:text-sm text-gray-600">Admin</p>
+                <p className="font-medium text-gray-900 text-sm sm:text-base truncate">
                   {formData.adminName || "Not specified"}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
                   {formData.adminEmail || "Not specified"}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Plan</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-xs sm:text-sm text-gray-600">Plan</p>
+                <p className="font-medium text-gray-900 text-sm sm:text-base">
                   {selectedPlan?.name}
                 </p>
-                <p className="text-sm text-gray-500">{selectedPlan?.price}</p>
+                <p className="text-xs sm:text-sm text-gray-500">{selectedPlan?.price}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Additional Features</p>
+                <p className="text-xs sm:text-sm text-gray-600">Additional Features</p>
                 <p className="text-sm text-gray-900">
                   {formData.features.length} selected
                 </p>

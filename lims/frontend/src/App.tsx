@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import Header from "./components/Header";
 import Login from "./components/Login";
@@ -8,10 +8,39 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  // Handle desktop sidebar behavior
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true); // Always open on desktop
+      } else {
+        setSidebarOpen(false); // Always closed on mobile
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Listen for resize events
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Override toggle behavior for mobile
+  const handleToggle = () => {
+    if (window.innerWidth < 1024) {
+      // On mobile, just toggle the sidebar
+      setSidebarOpen(!sidebarOpen);
+    } else {
+      // On desktop, keep it open
+      setSidebarOpen(true);
+    }
   };
 
   if (isLoading) {
@@ -42,20 +71,18 @@ function AppContent() {
     <Router>
       <div className="flex h-screen bg-gray-50">
         {/* Role-based Sidebar */}
-        <RoleBasedSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+        <RoleBasedSidebar isOpen={sidebarOpen} onToggle={handleToggle} />
 
         {/* Main Content */}
-        <div
-          className={`flex-1 flex flex-col transition-all duration-300 ${
-            sidebarOpen ? "ml-64" : "ml-16"
-          }`}
-        >
+        <div className="flex-1 flex flex-col w-full lg:ml-64">
           {/* Header */}
-          <Header onMenuToggle={toggleSidebar} />
+          <Header onMenuToggle={handleToggle} />
 
           {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto p-6">
-            <RoleBasedDashboard />
+          <main className="flex-1 overflow-y-auto">
+            <div className="min-h-full">
+              <RoleBasedDashboard />
+            </div>
           </main>
         </div>
       </div>
