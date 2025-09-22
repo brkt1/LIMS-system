@@ -1,10 +1,4 @@
-import {
-  BarChart3,
-  Building2,
-  Download,
-  Search,
-  Users,
-} from "lucide-react";
+import { BarChart3, Building2, Download, Search, Users } from "lucide-react";
 import React, { useState } from "react";
 
 const AllTenants: React.FC = () => {
@@ -140,7 +134,9 @@ const AllTenants: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">All Tenants</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            All Tenants
+          </h2>
           <p className="text-sm sm:text-base text-gray-600">
             Complete overview of all tenant organizations
           </p>
@@ -180,7 +176,9 @@ const AllTenants: React.FC = () => {
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Tenants</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                Total Tenants
+              </p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {tenants.length}
               </p>
@@ -204,8 +202,12 @@ const AllTenants: React.FC = () => {
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Users</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900">{totalUsers}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                Total Users
+              </p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                {totalUsers}
+              </p>
             </div>
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
           </div>
@@ -213,7 +215,9 @@ const AllTenants: React.FC = () => {
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Revenue</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                Total Revenue
+              </p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 ${totalRevenue.toLocaleString()}
               </p>
@@ -278,7 +282,9 @@ const AllTenants: React.FC = () => {
                     <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
                       {tenant.name}
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 truncate">{tenant.domain}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">
+                      {tenant.domain}
+                    </p>
                   </div>
                 </div>
                 <span
@@ -292,7 +298,9 @@ const AllTenants: React.FC = () => {
 
               <div className="space-y-2 sm:space-y-3 mb-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs sm:text-sm text-gray-600">Users</span>
+                  <span className="text-xs sm:text-sm text-gray-600">
+                    Users
+                  </span>
                   <span className="font-medium text-gray-900 text-sm sm:text-base">
                     {tenant.users}
                   </span>
@@ -308,15 +316,21 @@ const AllTenants: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs sm:text-sm text-gray-600">Revenue</span>
+                  <span className="text-xs sm:text-sm text-gray-600">
+                    Revenue
+                  </span>
                   <span className="font-medium text-gray-900 text-sm sm:text-base">
                     ${tenant.revenue.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs sm:text-sm text-gray-600">Growth</span>
+                  <span className="text-xs sm:text-sm text-gray-600">
+                    Growth
+                  </span>
                   <span
-                    className={`font-medium text-sm sm:text-base ${getGrowthColor(tenant.growth)}`}
+                    className={`font-medium text-sm sm:text-base ${getGrowthColor(
+                      tenant.growth
+                    )}`}
                   >
                     {tenant.growth > 0 ? "+" : ""}
                     {tenant.growth}%
