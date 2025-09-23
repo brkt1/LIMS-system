@@ -16,6 +16,7 @@ const Profile: React.FC = () => {
     updateProfile,
     uploadProfilePicture,
     deleteProfilePicture,
+    changePassword,
     clearError,
     resetProfile,
   } = useProfile();
@@ -41,7 +42,7 @@ const Profile: React.FC = () => {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
 
     if (name.startsWith("notifications.")) {
       const notificationType = name.split(".")[1];
@@ -53,9 +54,17 @@ const Profile: React.FC = () => {
         },
       }));
     } else if (name.startsWith("password")) {
+      // Map password field names to passwordData keys
+      const passwordKey = name.replace("password", "").toLowerCase();
+      const keyMap: { [key: string]: string } = {
+        oldpassword: "oldPassword",
+        newpassword: "newPassword",
+        confirmpassword: "confirmPassword",
+      };
+      const actualKey = keyMap[passwordKey] || passwordKey;
       setPasswordData((prev) => ({
         ...prev,
-        [name]: value,
+        [actualKey]: value,
       }));
     } else {
       setProfileData((prev: any) => ({
@@ -104,8 +113,7 @@ const Profile: React.FC = () => {
     }
 
     try {
-      // Simulate password change
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await changePassword(passwordData.oldPassword, passwordData.newPassword);
       setShowPasswordForm(false);
       setPasswordData({
         oldPassword: "",
