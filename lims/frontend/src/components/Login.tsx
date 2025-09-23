@@ -185,6 +185,21 @@ const Login: React.FC = () => {
                 "Sign in"
               )}
             </button>
+            
+            {/* Debug button */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log('Current localStorage:', {
+                  access_token: localStorage.getItem('access_token'),
+                  user_data: localStorage.getItem('user_data'),
+                  tenant_data: localStorage.getItem('tenant_data')
+                });
+              }}
+              className="w-full mt-2 py-2 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            >
+              Debug Auth State
+            </button>
           </form>
 
           <div className="mt-6">

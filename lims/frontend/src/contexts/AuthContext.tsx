@@ -1,7 +1,13 @@
-import type { ReactNode } from 'react';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authAPI } from '../services/api';
-import type { AuthContextType, AuthResponse, LoginCredentials, User, UserRole } from '../types/auth';
+import type { ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { authAPI } from "../services/api";
+import type {
+  AuthContextType,
+  AuthResponse,
+  LoginCredentials,
+  User,
+  UserRole,
+} from "../types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -17,24 +23,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check if user is authenticated on app load
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (token) {
         try {
           // Verify token and get user data
           // You might want to add a verify endpoint to your backend
-          const userData = localStorage.getItem('user_data');
-          const tenantData = localStorage.getItem('tenant_data');
+          const userData = localStorage.getItem("user_data");
+          const tenantData = localStorage.getItem("tenant_data");
           
           if (userData && tenantData) {
-            setUser(JSON.parse(userData));
-            setTenant(JSON.parse(tenantData));
+            const parsedUser = JSON.parse(userData);
+            const parsedTenant = JSON.parse(tenantData);
+            setUser(parsedUser);
+            setTenant(parsedTenant);
           }
         } catch (error) {
-          console.error('Auth initialization error:', error);
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user_data');
-          localStorage.removeItem('tenant_data');
+          console.error("Auth initialization error:", error);
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("user_data");
+          localStorage.removeItem("tenant_data");
         }
       }
       setIsLoading(false);
@@ -48,31 +56,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const response = await authAPI.login({
         email: credentials.email,
-        password: credentials.password
+        password: credentials.password,
       });
       const data: AuthResponse = response.data;
 
       // Store tokens and user data
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
-      localStorage.setItem('user_data', JSON.stringify(data.user));
-      localStorage.setItem('tenant_data', JSON.stringify(data.tenant));
+      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("refresh_token", data.refresh);
+      localStorage.setItem("user_data", JSON.stringify(data.user));
+      localStorage.setItem("tenant_data", JSON.stringify(data.tenant));
 
+      // Set user state
       setUser(data.user);
       setTenant(data.tenant);
     } catch (error: any) {
-      console.error('Login error:', error);
-      throw new Error(error.response?.data?.detail || 'Login failed');
+      console.error("Login error:", error);
+      throw new Error(error.response?.data?.detail || "Login failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = (): void => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('tenant_data');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user_data");
+    localStorage.removeItem("tenant_data");
     setUser(null);
     setTenant(null);
   };
@@ -109,7 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
