@@ -1,11 +1,27 @@
-import { Calendar, Download, FileText, Search, User } from "lucide-react";
+import {
+  Calendar,
+  Download,
+  FileText,
+  Search,
+  User,
+  Eye,
+  Share2,
+  FileDown,
+} from "lucide-react";
 import React, { useState } from "react";
 
 const TestResults: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const testResults = [
+  // State for modals and CRUD operations
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+
+  // Test results data with state management
+  const [testResults, setTestResults] = useState([
     {
       id: "TR001",
       patient: "John Smith",
@@ -54,7 +70,100 @@ const TestResults: React.FC = () => {
       status: "Completed",
       notes: "No abnormalities detected",
     },
-  ];
+  ]);
+
+  // CRUD operation functions
+  const handleViewResult = (result: any) => {
+    setSelectedResult(result);
+    setShowViewModal(true);
+  };
+
+  const handleDownloadResult = (result: any) => {
+    setSelectedResult(result);
+    setShowDownloadModal(true);
+  };
+
+  const handleShareResult = (result: any) => {
+    setSelectedResult(result);
+    setShowShareModal(true);
+  };
+
+  const handleExportResults = () => {
+    // Create CSV content
+    const csvContent = [
+      [
+        "Patient ID",
+        "Patient Name",
+        "Test Type",
+        "Result",
+        "Priority",
+        "Status",
+        "Completed Date",
+        "Doctor",
+        "Notes",
+      ],
+      ...testResults.map((result) => [
+        result.id,
+        result.patient,
+        result.testType,
+        result.result,
+        result.priority,
+        result.status,
+        result.completedDate,
+        result.doctor,
+        result.notes,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `test-results-${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadFile = (result: any, format: string) => {
+    // Simulate file download
+    const content = `Test Result Report\n\nPatient: ${result.patient}\nTest Type: ${result.testType}\nResult: ${result.result}\nPriority: ${result.priority}\nStatus: ${result.status}\nCompleted Date: ${result.completedDate}\nDoctor: ${result.doctor}\nNotes: ${result.notes}`;
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `test-result-${result.id}.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setShowDownloadModal(false);
+  };
+
+  const handleShareResultAction = (result: any, method: string) => {
+    if (method === "email") {
+      const subject = `Test Result - ${result.patient}`;
+      const body = `Please find the test result for ${result.patient}:\n\nTest Type: ${result.testType}\nResult: ${result.result}\nPriority: ${result.priority}\nCompleted Date: ${result.completedDate}\nDoctor: ${result.doctor}\nNotes: ${result.notes}`;
+      window.open(
+        `mailto:?subject=${encodeURIComponent(
+          subject
+        )}&body=${encodeURIComponent(body)}`
+      );
+    } else if (method === "copy") {
+      const text = `Test Result for ${result.patient}:\nTest Type: ${result.testType}\nResult: ${result.result}\nPriority: ${result.priority}\nCompleted Date: ${result.completedDate}\nDoctor: ${result.doctor}\nNotes: ${result.notes}`;
+      navigator.clipboard.writeText(text);
+      alert("Test result details copied to clipboard!");
+    }
+    setShowShareModal(false);
+  };
 
   const filteredResults = testResults.filter((result) => {
     const matchesSearch =
@@ -119,7 +228,10 @@ const TestResults: React.FC = () => {
               View and manage patient test results
             </p>
           </div>
-          <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+          <button
+            onClick={handleExportResults}
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+          >
             <Download className="w-4 h-4" />
             <span>Export Results</span>
           </button>
@@ -152,62 +264,6 @@ const TestResults: React.FC = () => {
               <option value="in progress">In Progress</option>
               <option value="pending">Pending</option>
             </select>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Total Results
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {testResults.length}
-                </p>
-              </div>
-              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Completed
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-green-600">
-                  {testResults.filter((r) => r.status === "Completed").length}
-                </p>
-              </div>
-              <User className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  In Progress
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-600">
-                  {testResults.filter((r) => r.status === "In Progress").length}
-                </p>
-              </div>
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Abnormal Results
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-red-600">
-                  {testResults.filter((r) => r.result === "Abnormal").length}
-                </p>
-              </div>
-              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
-            </div>
           </div>
         </div>
 
@@ -291,14 +347,26 @@ const TestResults: React.FC = () => {
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium">
                       <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                          View
+                        <button
+                          onClick={() => handleViewResult(result)}
+                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View</span>
                         </button>
-                        <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                          Download
+                        <button
+                          onClick={() => handleDownloadResult(result)}
+                          className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left transition-colors"
+                        >
+                          <FileDown className="w-3 h-3" />
+                          <span>Download</span>
                         </button>
-                        <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                          Share
+                        <button
+                          onClick={() => handleShareResult(result)}
+                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left transition-colors"
+                        >
+                          <Share2 className="w-3 h-3" />
+                          <span>Share</span>
                         </button>
                       </div>
                     </td>
@@ -309,6 +377,200 @@ const TestResults: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* View Result Modal */}
+      {showViewModal && selectedResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Test Result Details
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Result ID:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedResult.id}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Patient:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedResult.patient} (ID: {selectedResult.patientId})
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Test Type:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedResult.testType}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Result:
+                </span>
+                <span
+                  className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getResultColor(
+                    selectedResult.result
+                  )}`}
+                >
+                  {selectedResult.result}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Priority:
+                </span>
+                <span
+                  className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                    selectedResult.priority
+                  )}`}
+                >
+                  {selectedResult.priority}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Status:
+                </span>
+                <span
+                  className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                    selectedResult.status
+                  )}`}
+                >
+                  {selectedResult.status}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Completed Date:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedResult.completedDate}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Doctor:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedResult.doctor}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Notes:
+                </span>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                  {selectedResult.notes}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Result Modal */}
+      {showDownloadModal && selectedResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Download Test Result
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Choose format to download the test result for{" "}
+                <strong>{selectedResult.patient}</strong>
+              </p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleDownloadFile(selectedResult, "pdf")}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <FileDown className="w-4 h-4" />
+                <span>Download as PDF</span>
+              </button>
+              <button
+                onClick={() => handleDownloadFile(selectedResult, "txt")}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Download as Text</span>
+              </button>
+              <button
+                onClick={() => handleDownloadFile(selectedResult, "csv")}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download as CSV</span>
+              </button>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Result Modal */}
+      {showShareModal && selectedResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Share Test Result
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Share the test result for{" "}
+                <strong>{selectedResult.patient}</strong>
+              </p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleShareResultAction(selectedResult, "email")}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share via Email</span>
+              </button>
+              <button
+                onClick={() => handleShareResultAction(selectedResult, "copy")}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Copy to Clipboard</span>
+              </button>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

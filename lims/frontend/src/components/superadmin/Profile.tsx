@@ -10,6 +10,7 @@ const Profile: React.FC = () => {
   const { t } = useLanguage();
   const {
     profileData,
+    setProfileData,
     loading,
     error,
     updateProfile,
@@ -44,7 +45,7 @@ const Profile: React.FC = () => {
 
     if (name.startsWith("notifications.")) {
       const notificationType = name.split(".")[1];
-      setProfileData((prev) => ({
+      setProfileData((prev: any) => ({
         ...prev,
         notifications: {
           ...prev.notifications,
@@ -57,7 +58,7 @@ const Profile: React.FC = () => {
         [name]: value,
       }));
     } else {
-      setProfileData((prev) => ({
+      setProfileData((prev: any) => ({
         ...prev,
         [name]: value,
       }));

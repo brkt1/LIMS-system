@@ -1,11 +1,4 @@
-import {
-  ChevronDown,
-  LogOut,
-  Menu,
-  User,
-  Settings,
-  HelpCircle,
-} from "lucide-react";
+import { ChevronDown, LogOut, Menu, User } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -53,14 +46,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
       case "profile":
         navigate("/profile");
         break;
-      case "settings":
-        // Navigate to settings (you can add a settings route later)
-        console.log("Navigate to settings");
-        break;
-      case "help":
-        // Navigate to help (you can add a help route later)
-        console.log("Navigate to help");
-        break;
       default:
         break;
     }
@@ -73,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             onClick={onMenuToggle}
             className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors bg-gray-50 dark:bg-gray-700"
           >
-            <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
           </button>
         </div>
 
@@ -103,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                 </p>
               </div>
               <ChevronDown
-                className={`w-4 h-4 text-gray-400 dark:text-gray-500 hidden sm:block transition-transform ${
+                className={`w-4 h-4 sm:w-4 sm:h-4 text-gray-400 dark:text-gray-500 hidden sm:block transition-transform ${
                   isProfileDropdownOpen ? "rotate-180" : ""
                 }`}
               />
@@ -128,20 +113,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                   >
                     <User className="w-4 h-4 mr-3" />
                     {t("nav.profile")}
-                  </button>
-                  <button
-                    onClick={() => handleProfileAction("settings")}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <Settings className="w-4 h-4 mr-3" />
-                    {t("nav.settings")}
-                  </button>
-                  <button
-                    onClick={() => handleProfileAction("help")}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <HelpCircle className="w-4 h-4 mr-3" />
-                    {t("nav.help")}
                   </button>
                 </div>
 

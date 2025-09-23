@@ -1,4 +1,15 @@
-import { Calendar, Clock, Plus, Search, User, Users } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Plus,
+  Search,
+  User,
+  Users,
+  Eye,
+  Check,
+  X,
+  Edit,
+} from "lucide-react";
 import React, { useState } from "react";
 
 const Appointments: React.FC = () => {
@@ -8,7 +19,15 @@ const Appointments: React.FC = () => {
     new Date().toISOString().split("T")[0]
   );
 
-  const appointments = [
+  // State for modals and CRUD operations
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+
+  // Appointments data with state management
+  const [appointments, setAppointments] = useState([
     {
       id: "APT001",
       patient: "John Smith",
@@ -64,7 +83,54 @@ const Appointments: React.FC = () => {
       date: "2025-01-22",
       notes: "Patient cancelled",
     },
-  ];
+  ]);
+
+  // CRUD operation functions
+  const handleNewAppointment = () => {
+    setShowNewAppointmentModal(true);
+  };
+
+  const handleViewAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowViewModal(true);
+  };
+
+  const handleConfirmAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowConfirmModal(true);
+  };
+
+  const handleCancelAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowCancelModal(true);
+  };
+
+  const handleCreateAppointment = (newAppointment: any) => {
+    const appointment = {
+      id: `APT${String(appointments.length + 1).padStart(3, "0")}`,
+      ...newAppointment,
+      status: "Pending",
+    };
+    // Add new appointment at the end (bottom) of the list
+    setAppointments([...appointments, appointment]);
+    setShowNewAppointmentModal(false);
+  };
+
+  const handleUpdateAppointmentStatus = (
+    appointmentId: string,
+    newStatus: string,
+    notes?: string
+  ) => {
+    setAppointments(
+      appointments.map((apt) =>
+        apt.id === appointmentId
+          ? { ...apt, status: newStatus, notes: notes || apt.notes }
+          : apt
+      )
+    );
+    setShowConfirmModal(false);
+    setShowCancelModal(false);
+  };
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
@@ -121,7 +187,10 @@ const Appointments: React.FC = () => {
               Manage your patient appointments and schedule
             </p>
           </div>
-          <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+          <button
+            onClick={handleNewAppointment}
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4" />
             <span>New Appointment</span>
           </button>
@@ -162,62 +231,6 @@ const Appointments: React.FC = () => {
                 <option value="cancelled">Cancelled</option>
                 <option value="completed">Completed</option>
               </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Today's Appointments
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {appointments.length}
-                </p>
-              </div>
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Confirmed
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-green-600">
-                  {appointments.filter((a) => a.status === "Confirmed").length}
-                </p>
-              </div>
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Pending
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-yellow-600">
-                  {appointments.filter((a) => a.status === "Pending").length}
-                </p>
-              </div>
-              <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Cancelled
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-red-600">
-                  {appointments.filter((a) => a.status === "Cancelled").length}
-                </p>
-              </div>
-              <User className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
             </div>
           </div>
         </div>
@@ -291,15 +304,36 @@ const Appointments: React.FC = () => {
                         {appointment.status}
                       </span>
                       <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left">
-                          View
+                        <button
+                          onClick={() => handleViewAppointment(appointment)}
+                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View</span>
                         </button>
-                        <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left">
-                          Confirm
-                        </button>
-                        <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs sm:text-sm font-medium text-left">
-                          Cancel
-                        </button>
+                        {appointment.status === "Pending" && (
+                          <button
+                            onClick={() =>
+                              handleConfirmAppointment(appointment)
+                            }
+                            className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Confirm</span>
+                          </button>
+                        )}
+                        {appointment.status !== "Cancelled" &&
+                          appointment.status !== "Completed" && (
+                            <button
+                              onClick={() =>
+                                handleCancelAppointment(appointment)
+                              }
+                              className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Cancel</span>
+                            </button>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -309,6 +343,344 @@ const Appointments: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* New Appointment Modal */}
+      {showNewAppointmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              New Appointment
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleCreateAppointment({
+                  patient: formData.get("patient"),
+                  patientId: formData.get("patientId"),
+                  time: formData.get("time"),
+                  duration: formData.get("duration"),
+                  type: formData.get("type"),
+                  date: formData.get("date"),
+                  notes: formData.get("notes"),
+                });
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <input
+                    type="text"
+                    name="patient"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <input
+                    type="text"
+                    name="patientId"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      defaultValue={selectedDate}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      name="time"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Duration
+                    </label>
+                    <select
+                      name="duration"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="15 min">15 min</option>
+                      <option value="30 min">30 min</option>
+                      <option value="45 min">45 min</option>
+                      <option value="60 min">60 min</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type
+                    </label>
+                    <select
+                      name="type"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="New Patient">New Patient</option>
+                      <option value="Follow-up">Follow-up</option>
+                      <option value="Consultation">Consultation</option>
+                      <option value="Test Review">Test Review</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Additional notes or instructions..."
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowNewAppointmentModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+                >
+                  Create Appointment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Appointment Modal */}
+      {showViewModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Appointment Details
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Appointment ID:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedAppointment.id}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Patient:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedAppointment.patient}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Patient ID:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedAppointment.patientId}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Date & Time:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedAppointment.date} at {selectedAppointment.time}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Duration:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedAppointment.duration}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Type:
+                </span>
+                <span
+                  className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                    selectedAppointment.type
+                  )}`}
+                >
+                  {selectedAppointment.type}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Status:
+                </span>
+                <span
+                  className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                    selectedAppointment.status
+                  )}`}
+                >
+                  {selectedAppointment.status}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Notes:
+                </span>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                  {selectedAppointment.notes || "No notes available"}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Appointment Modal */}
+      {showConfirmModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Confirm Appointment
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Are you sure you want to confirm this appointment for{" "}
+                <strong>{selectedAppointment.patient}</strong>?
+              </p>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleUpdateAppointmentStatus(
+                  selectedAppointment.id,
+                  "Confirmed",
+                  formData.get("confirmationNotes") as string
+                );
+              }}
+            >
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Confirmation Notes (Optional)
+                </label>
+                <textarea
+                  name="confirmationNotes"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Add any additional notes for the confirmation..."
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                >
+                  Confirm Appointment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Appointment Modal */}
+      {showCancelModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Cancel Appointment
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Are you sure you want to cancel this appointment for{" "}
+                <strong>{selectedAppointment.patient}</strong>?
+              </p>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleUpdateAppointmentStatus(
+                  selectedAppointment.id,
+                  "Cancelled",
+                  formData.get("cancellationReason") as string
+                );
+              }}
+            >
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Cancellation Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="cancellationReason"
+                  rows={3}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Please provide a reason for cancellation..."
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                >
+                  Cancel Appointment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

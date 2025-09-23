@@ -216,6 +216,7 @@ export const useProfile = () => {
 
   return {
     profileData,
+    setProfileData,
     loading,
     error,
     updateProfile,

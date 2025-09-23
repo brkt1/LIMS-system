@@ -43,7 +43,7 @@ const LanguageSwitcher: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
-        <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400" />
+        <Globe className="w-4 h-4 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400" />
         <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           <span className="hidden xs:inline">
             {currentLanguage?.flag} {currentLanguage?.code.toUpperCase()}

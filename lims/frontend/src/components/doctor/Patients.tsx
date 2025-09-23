@@ -1,11 +1,29 @@
-import { Calendar, FileText, Plus, Search, User, Users } from "lucide-react";
+import {
+  Calendar,
+  FileText,
+  Plus,
+  Search,
+  User,
+  Users,
+  Eye,
+  Edit,
+  Clock,
+} from "lucide-react";
 import React, { useState } from "react";
 
 const Patients: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const patients = [
+  // State for modals and CRUD operations
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+
+  // Patients data with state management
+  const [patients, setPatients] = useState([
     {
       id: "P001",
       name: "John Smith",
@@ -71,7 +89,65 @@ const Patients: React.FC = () => {
       lastTest: "ECG",
       nextAppointment: "2025-01-30",
     },
-  ];
+  ]);
+
+  // CRUD operation functions
+  const handleAddPatient = () => {
+    setShowAddPatientModal(true);
+  };
+
+  const handleViewPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowViewModal(true);
+  };
+
+  const handleEditPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowEditModal(true);
+  };
+
+  const handleSchedulePatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowScheduleModal(true);
+  };
+
+  const handleCreatePatient = (newPatient: any) => {
+    const patient = {
+      id: `P${String(patients.length + 1).padStart(3, "0")}`,
+      ...newPatient,
+      status: "Active",
+      totalAppointments: 0,
+      lastVisit: new Date().toISOString().split("T")[0],
+      nextAppointment: null,
+    };
+    setPatients([...patients, patient]);
+    setShowAddPatientModal(false);
+  };
+
+  const handleUpdatePatient = (patientId: string, updatedData: any) => {
+    setPatients(
+      patients.map((p) => (p.id === patientId ? { ...p, ...updatedData } : p))
+    );
+    setShowEditModal(false);
+  };
+
+  const handleScheduleAppointment = (
+    patientId: string,
+    appointmentData: any
+  ) => {
+    setPatients(
+      patients.map((p) =>
+        p.id === patientId
+          ? {
+              ...p,
+              nextAppointment: appointmentData.date,
+              totalAppointments: p.totalAppointments + 1,
+            }
+          : p
+      )
+    );
+    setShowScheduleModal(false);
+  };
 
   const filteredPatients = patients.filter((patient) => {
     const matchesSearch =
@@ -110,7 +186,10 @@ const Patients: React.FC = () => {
               Manage your patient records and information
             </p>
           </div>
-          <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+          <button
+            onClick={handleAddPatient}
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4" />
             <span>Add Patient</span>
           </button>
@@ -143,65 +222,6 @@ const Patients: React.FC = () => {
               <option value="inactive">Inactive</option>
               <option value="pending">Pending</option>
             </select>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Total Patients
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {patients.length}
-                </p>
-              </div>
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Active Patients
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-green-600">
-                  {patients.filter((p) => p.status === "Active").length}
-                </p>
-              </div>
-              <User className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Inactive Patients
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-600">
-                  {patients.filter((p) => p.status === "Inactive").length}
-                </p>
-              </div>
-              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Avg. Appointments
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-600">
-                  {Math.round(
-                    patients.reduce((sum, p) => sum + p.totalAppointments, 0) /
-                      patients.length
-                  )}
-                </p>
-              </div>
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-            </div>
           </div>
         </div>
 
@@ -286,14 +306,26 @@ const Patients: React.FC = () => {
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium">
                       <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                          View
+                        <button
+                          onClick={() => handleViewPatient(patient)}
+                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View</span>
                         </button>
-                        <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                          Edit
+                        <button
+                          onClick={() => handleEditPatient(patient)}
+                          className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left transition-colors"
+                        >
+                          <Edit className="w-3 h-3" />
+                          <span>Edit</span>
                         </button>
-                        <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                          Schedule
+                        <button
+                          onClick={() => handleSchedulePatient(patient)}
+                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left transition-colors"
+                        >
+                          <Clock className="w-3 h-3" />
+                          <span>Schedule</span>
                         </button>
                       </div>
                     </td>
@@ -304,6 +336,430 @@ const Patients: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Patient Modal */}
+      {showAddPatientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Add New Patient
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleCreatePatient({
+                  name: formData.get("name"),
+                  age: parseInt(formData.get("age") as string),
+                  gender: formData.get("gender"),
+                  phone: formData.get("phone"),
+                  email: formData.get("email"),
+                });
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Age
+                    </label>
+                    <input
+                      type="number"
+                      name="age"
+                      required
+                      min="0"
+                      max="120"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Gender
+                    </label>
+                    <select
+                      name="gender"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPatientModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+                >
+                  Add Patient
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Patient Modal */}
+      {showViewModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Patient Details
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Patient ID:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.id}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Name:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.name}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Age & Gender:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.age} years, {selectedPatient.gender}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Phone:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.phone}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.email}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Status:
+                </span>
+                <span
+                  className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                    selectedPatient.status
+                  )}`}
+                >
+                  {selectedPatient.status}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Last Visit:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.lastVisit}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Total Appointments:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.totalAppointments}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Next Appointment:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedPatient.nextAppointment || "None scheduled"}
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Patient Modal */}
+      {showEditModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Edit Patient
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleUpdatePatient(selectedPatient.id, {
+                  name: formData.get("name"),
+                  age: parseInt(formData.get("age") as string),
+                  gender: formData.get("gender"),
+                  phone: formData.get("phone"),
+                  email: formData.get("email"),
+                  status: formData.get("status"),
+                });
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={selectedPatient.name}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Age
+                    </label>
+                    <input
+                      type="number"
+                      name="age"
+                      defaultValue={selectedPatient.age}
+                      required
+                      min="0"
+                      max="120"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Gender
+                    </label>
+                    <select
+                      name="gender"
+                      defaultValue={selectedPatient.gender}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    defaultValue={selectedPatient.phone}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    defaultValue={selectedPatient.email}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    defaultValue={selectedPatient.status}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                >
+                  Update Patient
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Appointment Modal */}
+      {showScheduleModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Schedule Appointment
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Schedule an appointment for{" "}
+                <strong>{selectedPatient.name}</strong>
+              </p>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleScheduleAppointment(selectedPatient.id, {
+                  date: formData.get("date"),
+                  time: formData.get("time"),
+                  type: formData.get("type"),
+                  notes: formData.get("notes"),
+                });
+              }}
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      name="time"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Appointment Type
+                  </label>
+                  <select
+                    name="type"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="New Patient">New Patient</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Consultation">Consultation</option>
+                    <option value="Test Review">Test Review</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Additional notes or instructions..."
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  Schedule Appointment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

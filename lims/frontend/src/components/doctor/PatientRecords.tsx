@@ -1,11 +1,28 @@
-import { Calendar, FileText, Plus, Search, User, Users } from "lucide-react";
+import {
+  Calendar,
+  FileText,
+  Plus,
+  Search,
+  User,
+  Users,
+  Eye,
+  Edit,
+  Printer,
+} from "lucide-react";
 import React, { useState } from "react";
 
 const PatientRecords: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
 
-  const patients = [
+  // State for modals and CRUD operations
+  const [showAddRecordModal, setShowAddRecordModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+
+  // Patients data with state management
+  const [patients, setPatients] = useState([
     {
       id: "P001",
       name: "John Smith",
@@ -36,9 +53,10 @@ const PatientRecords: React.FC = () => {
       lastVisit: "2025-01-10",
       totalRecords: 12,
     },
-  ];
+  ]);
 
-  const medicalRecords = [
+  // Medical records data with state management
+  const [medicalRecords, setMedicalRecords] = useState([
     {
       id: "MR001",
       patientId: "P001",
@@ -69,7 +87,96 @@ const PatientRecords: React.FC = () => {
       treatment: "Further testing recommended",
       notes: "Patient experiencing chest pain, ordered X-ray",
     },
-  ];
+  ]);
+
+  // CRUD operation functions
+  const handleAddRecord = () => {
+    setShowAddRecordModal(true);
+  };
+
+  const handleViewRecord = (record: any) => {
+    setSelectedRecord(record);
+    setShowViewModal(true);
+  };
+
+  const handleEditRecord = (record: any) => {
+    setSelectedRecord(record);
+    setShowEditModal(true);
+  };
+
+  const handlePrintRecord = (record: any) => {
+    // Create printable content
+    const printContent = `
+      <html>
+        <head>
+          <title>Medical Record - ${record.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .section { margin-bottom: 20px; }
+            .label { font-weight: bold; }
+            .value { margin-left: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Medical Record</h1>
+            <p>Record ID: ${record.id}</p>
+          </div>
+          <div class="section">
+            <span class="label">Date:</span>
+            <span class="value">${record.date}</span>
+          </div>
+          <div class="section">
+            <span class="label">Type:</span>
+            <span class="value">${record.type}</span>
+          </div>
+          <div class="section">
+            <span class="label">Doctor:</span>
+            <span class="value">${record.doctor}</span>
+          </div>
+          <div class="section">
+            <span class="label">Diagnosis:</span>
+            <span class="value">${record.diagnosis}</span>
+          </div>
+          <div class="section">
+            <span class="label">Treatment:</span>
+            <span class="value">${record.treatment}</span>
+          </div>
+          <div class="section">
+            <span class="label">Notes:</span>
+            <span class="value">${record.notes}</span>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Open print window
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleCreateRecord = (newRecord: any) => {
+    const record = {
+      id: `MR${String(medicalRecords.length + 1).padStart(3, "0")}`,
+      ...newRecord,
+    };
+    setMedicalRecords([...medicalRecords, record]);
+    setShowAddRecordModal(false);
+  };
+
+  const handleUpdateRecord = (recordId: string, updatedData: any) => {
+    setMedicalRecords(
+      medicalRecords.map((r) =>
+        r.id === recordId ? { ...r, ...updatedData } : r
+      )
+    );
+    setShowEditModal(false);
+  };
 
   const filteredPatients = patients.filter(
     (patient) =>
@@ -95,7 +202,10 @@ const PatientRecords: React.FC = () => {
               Manage and view patient medical records
             </p>
           </div>
-          <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+          <button
+            onClick={handleAddRecord}
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4" />
             <span>Add Record</span>
           </button>
@@ -233,14 +343,26 @@ const PatientRecords: React.FC = () => {
                           )}
                         </div>
                         <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2 sm:ml-4">
-                          <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left">
-                            View
+                          <button
+                            onClick={() => handleViewRecord(record)}
+                            className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>View</span>
                           </button>
-                          <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left">
-                            Edit
+                          <button
+                            onClick={() => handleEditRecord(record)}
+                            className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
                           </button>
-                          <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-xs sm:text-sm font-medium text-left">
-                            Print
+                          <button
+                            onClick={() => handlePrintRecord(record)}
+                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                          >
+                            <Printer className="w-3 h-3" />
+                            <span>Print</span>
                           </button>
                         </div>
                       </div>
@@ -251,68 +373,368 @@ const PatientRecords: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Total Patients
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {patients.length}
-                </p>
+      {/* Add Record Modal */}
+      {showAddRecordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Add Medical Record
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleCreateRecord({
+                  patientId: formData.get("patientId"),
+                  date: formData.get("date"),
+                  type: formData.get("type"),
+                  doctor: formData.get("doctor"),
+                  diagnosis: formData.get("diagnosis"),
+                  treatment: formData.get("treatment"),
+                  notes: formData.get("notes"),
+                });
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient
+                  </label>
+                  <select
+                    name="patientId"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Select Patient</option>
+                    {patients.map((patient) => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.name} (ID: {patient.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    required
+                    defaultValue={new Date().toISOString().split("T")[0]}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Record Type
+                  </label>
+                  <select
+                    name="type"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Consultation">Consultation</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Initial Consultation">
+                      Initial Consultation
+                    </option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Routine Check">Routine Check</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Doctor
+                  </label>
+                  <input
+                    type="text"
+                    name="doctor"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Diagnosis
+                  </label>
+                  <input
+                    type="text"
+                    name="diagnosis"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Treatment
+                  </label>
+                  <textarea
+                    name="treatment"
+                    rows={3}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Additional notes..."
+                  />
+                </div>
               </div>
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
-            </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddRecordModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+                >
+                  Add Record
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
+        </div>
+      )}
+
+      {/* View Record Modal */}
+      {showViewModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Medical Record Details
+            </h3>
+            <div className="space-y-3">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Total Records
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {medicalRecords.length}
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Record ID:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.id}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Patient ID:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.patientId}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Date:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.date}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Type:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.type}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Doctor:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.doctor}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Diagnosis:
+                </span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.diagnosis}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Treatment:
+                </span>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.treatment}
                 </p>
               </div>
-              <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Notes:
+                </span>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                  {selectedRecord.notes || "No notes available"}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  This Month
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-600">
-                  {
-                    medicalRecords.filter(
-                      (r) =>
-                        new Date(r.date).getMonth() === new Date().getMonth()
-                    ).length
-                  }
-                </p>
-              </div>
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                  Avg. Records/Patient
-                </p>
-                <p className="text-lg sm:text-2xl font-bold text-purple-600">
-                  {Math.round(medicalRecords.length / patients.length)}
-                </p>
-              </div>
-              <User className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Edit Record Modal */}
+      {showEditModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Edit Medical Record
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                handleUpdateRecord(selectedRecord.id, {
+                  patientId: formData.get("patientId"),
+                  date: formData.get("date"),
+                  type: formData.get("type"),
+                  doctor: formData.get("doctor"),
+                  diagnosis: formData.get("diagnosis"),
+                  treatment: formData.get("treatment"),
+                  notes: formData.get("notes"),
+                });
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient
+                  </label>
+                  <select
+                    name="patientId"
+                    defaultValue={selectedRecord.patientId}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    {patients.map((patient) => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.name} (ID: {patient.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    defaultValue={selectedRecord.date}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Record Type
+                  </label>
+                  <select
+                    name="type"
+                    defaultValue={selectedRecord.type}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="Consultation">Consultation</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Initial Consultation">
+                      Initial Consultation
+                    </option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Routine Check">Routine Check</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Doctor
+                  </label>
+                  <input
+                    type="text"
+                    name="doctor"
+                    defaultValue={selectedRecord.doctor}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Diagnosis
+                  </label>
+                  <input
+                    type="text"
+                    name="diagnosis"
+                    defaultValue={selectedRecord.diagnosis}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Treatment
+                  </label>
+                  <textarea
+                    name="treatment"
+                    rows={3}
+                    defaultValue={selectedRecord.treatment}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    defaultValue={selectedRecord.notes}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Additional notes..."
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                >
+                  Update Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
