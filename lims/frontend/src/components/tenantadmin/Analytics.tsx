@@ -38,21 +38,21 @@ const Analytics: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">
             Analytics Dashboard
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Comprehensive insights into your laboratory performance
           </p>
         </div>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
@@ -116,7 +116,7 @@ const Analytics: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Top Performing Tests */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="p-6 border-b border-gray-200">
@@ -206,7 +206,7 @@ const Analytics: React.FC = () => {
       </div>
 
       {/* Patient Demographics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Age Groups */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="p-6 border-b border-gray-200">

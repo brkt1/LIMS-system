@@ -142,21 +142,23 @@ const InventoryManagement: React.FC = () => {
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">
             Inventory Management
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Manage your laboratory supplies, equipment, and test kits
           </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-          <Plus className="w-4 h-4" />
-          <span>Add Item</span>
-        </button>
+        <div className="flex-shrink-0">
+          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+            <Plus className="w-4 h-4" />
+            <span>Add Item</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -173,7 +175,7 @@ const InventoryManagement: React.FC = () => {
             />
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -199,7 +201,7 @@ const InventoryManagement: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
@@ -252,28 +254,28 @@ const InventoryManagement: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Item
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                   Category
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                   Unit Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                   Supplier
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                   Expiry Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -281,7 +283,7 @@ const InventoryManagement: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredItems.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
                         {item.name}
@@ -289,26 +291,34 @@ const InventoryManagement: React.FC = () => {
                       <div className="text-sm text-gray-500">
                         SKU: {item.sku}
                       </div>
-                      <div className="text-xs text-gray-400">ID: {item.id}</div>
+                      <div className="text-xs text-gray-400 sm:hidden">
+                        {item.category} • ${item.unitPrice.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-400 hidden sm:block">
+                        ID: {item.id}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                     {item.category}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
                       {getStockIcon(item.currentStock, item.minStock)}
                       <div>
                         <div className="text-sm font-medium text-gray-900">
                           {item.currentStock} {item.unit}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 hidden sm:block">
                           Min: {item.minStock} | Max: {item.maxStock}
+                        </div>
+                        <div className="text-xs text-gray-500 sm:hidden">
+                          Min: {item.minStock}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
                         getStockStatus(item.currentStock, item.minStock)
@@ -319,24 +329,24 @@ const InventoryManagement: React.FC = () => {
                       {getStockStatus(item.currentStock, item.minStock)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                     ${item.unitPrice.toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
                     {item.supplier}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
                     {item.expiryDate}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                      <button className="text-primary-600 hover:text-primary-900 text-left">
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900">
+                      <button className="text-green-600 hover:text-green-900 text-left">
                         Restock
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900">
+                      <button className="text-blue-600 hover:text-blue-900 text-left">
                         Edit
                       </button>
                     </div>

@@ -152,21 +152,21 @@ const Reports: React.FC = () => {
     reports.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Generate and manage support reports and analytics
           </p>
         </div>
-        <div className="flex space-x-2">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto justify-center">
             <Download className="w-4 h-4" />
             <span>Export All</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
             <Plus className="w-4 h-4" />
             <span>Generate Report</span>
           </button>
@@ -187,7 +187,7 @@ const Reports: React.FC = () => {
             />
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -215,7 +215,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
@@ -264,7 +264,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredReports.map((report) => (
           <div
             key={report.id}

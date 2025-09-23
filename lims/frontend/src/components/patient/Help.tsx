@@ -163,19 +163,19 @@ const Help: React.FC = () => {
   const totalViews = helpResources.reduce((sum, r) => sum + r.views, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">Help Center</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Find tutorials, guides, and resources to help you use our services
           </p>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -188,7 +188,7 @@ const Help: React.FC = () => {
             />
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -204,7 +204,7 @@ const Help: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
@@ -248,7 +248,7 @@ const Help: React.FC = () => {
       </div>
 
       {/* Help Resources Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredResources.map((resource) => {
           const TypeIcon = getTypeIcon(resource.type);
           return (
@@ -329,7 +329,7 @@ const Help: React.FC = () => {
       {/* Quick Help Section */}
       <div className="bg-primary-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Help</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Popular Topics</h4>
             <ul className="space-y-1 text-sm text-gray-600">

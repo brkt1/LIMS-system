@@ -125,21 +125,21 @@ const FAQ: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">
             Frequently Asked Questions
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Find answers to common questions about our services
           </p>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -152,7 +152,7 @@ const FAQ: React.FC = () => {
             />
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}

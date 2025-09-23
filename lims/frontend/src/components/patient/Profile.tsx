@@ -84,27 +84,27 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Manage your personal information and preferences
           </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           {isEditing ? (
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
               >
                 <Save className="w-4 h-4" />
                 <span>Save Changes</span>
@@ -113,7 +113,7 @@ const Profile: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
             >
               <Edit className="w-4 h-4" />
               <span>Edit Profile</span>
@@ -122,9 +122,9 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Profile Picture and Basic Info */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="text-center">
               <div className="relative inline-block">
@@ -148,7 +148,7 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* Personal Information */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="px-6 py-4 border-b border-gray-200">

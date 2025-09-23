@@ -74,27 +74,29 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Configure support system settings and preferences
           </p>
         </div>
-        <button
-          onClick={handleSave}
-          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          <Save className="w-4 h-4" />
-          <span>Save Changes</span>
-        </button>
+        <div className="flex-shrink-0">
+          <button
+            onClick={handleSave}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Changes</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex flex-wrap space-x-2 sm:space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -108,7 +110,8 @@ const Settings: React.FC = () => {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
               </button>
             );
           })}
@@ -118,7 +121,7 @@ const Settings: React.FC = () => {
       {/* Tab Content */}
       <div className="bg-white rounded-lg shadow-sm border">
         {activeTab === "support" && (
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <h3 className="text-lg font-semibold text-gray-900">
               Support Settings
             </h3>
@@ -184,7 +187,7 @@ const Settings: React.FC = () => {
         )}
 
         {activeTab === "system" && (
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <h3 className="text-lg font-semibold text-gray-900">
               System Settings
             </h3>
@@ -248,7 +251,7 @@ const Settings: React.FC = () => {
         )}
 
         {activeTab === "security" && (
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <h3 className="text-lg font-semibold text-gray-900">
               Security Settings
             </h3>
@@ -311,7 +314,7 @@ const Settings: React.FC = () => {
         )}
 
         {activeTab === "notifications" && (
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <h3 className="text-lg font-semibold text-gray-900">
               Notification Settings
             </h3>
