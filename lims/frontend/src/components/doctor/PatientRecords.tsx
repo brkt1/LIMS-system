@@ -83,15 +83,15 @@ const PatientRecords: React.FC = () => {
     : medicalRecords;
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               Patient Records
             </h1>
-            <p className="text-sm sm:text-base text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
               Manage and view patient medical records
             </p>
           </div>
@@ -104,15 +104,15 @@ const PatientRecords: React.FC = () => {
 
       <div className="py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Search */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search by patient name, email, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
             />
           </div>
         </div>
@@ -120,37 +120,37 @@ const PatientRecords: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Patient List */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-3 sm:p-4 border-b border-gray-200">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
+              <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                   Patients
                 </h3>
               </div>
-              <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
                 {filteredPatients.map((patient) => (
                   <div
                     key={patient.id}
                     onClick={() => setSelectedPatient(patient.id)}
-                    className={`p-3 sm:p-4 cursor-pointer hover:bg-gray-50 ${
+                    className={`p-3 sm:p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
                       selectedPatient === patient.id
-                        ? "bg-primary-50 border-r-2 border-primary-600"
+                        ? "bg-primary-50 dark:bg-primary-900 border-r-2 border-primary-600 dark:border-primary-400"
                         : ""
                     }`}
                   >
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900">
+                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                           {patient.name}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500">
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           ID: {patient.id} • {patient.age} years
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-400 dark:text-gray-500">
                           {patient.totalRecords} records
                         </div>
                       </div>
@@ -163,9 +163,9 @@ const PatientRecords: React.FC = () => {
 
           {/* Medical Records */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-3 sm:p-4 border-b border-gray-200">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
+              <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                   {selectedPatient
                     ? `Medical Records - ${
                         patients.find((p) => p.id === selectedPatient)?.name
@@ -173,9 +173,9 @@ const PatientRecords: React.FC = () => {
                     : "All Medical Records"}
                 </h3>
               </div>
-              <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
                 {patientRecords.length === 0 ? (
-                  <div className="p-4 sm:p-6 text-center text-gray-500 text-sm sm:text-base">
+                  <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
                     {selectedPatient
                       ? "No records found for this patient."
                       : "Select a patient to view their records."}
@@ -184,62 +184,62 @@ const PatientRecords: React.FC = () => {
                   patientRecords.map((record) => (
                     <div
                       key={record.id}
-                      className="p-4 sm:p-6 hover:bg-gray-50"
+                      className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-2">
-                            <span className="text-xs sm:text-sm font-medium text-gray-900">
+                            <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                               {record.type}
                             </span>
-                            <span className="hidden sm:inline text-xs sm:text-sm text-gray-500">
+                            <span className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               •
                             </span>
-                            <span className="text-xs sm:text-sm text-gray-500">
+                            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               {record.date}
                             </span>
-                            <span className="hidden sm:inline text-xs sm:text-sm text-gray-500">
+                            <span className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               •
                             </span>
-                            <span className="text-xs sm:text-sm text-gray-500">
+                            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               {record.doctor}
                             </span>
                           </div>
                           <div className="mb-2">
-                            <span className="text-xs sm:text-sm font-medium text-gray-700">
+                            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                               Diagnosis:{" "}
                             </span>
-                            <span className="text-xs sm:text-sm text-gray-900">
+                            <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
                               {record.diagnosis}
                             </span>
                           </div>
                           <div className="mb-2">
-                            <span className="text-xs sm:text-sm font-medium text-gray-700">
+                            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                               Treatment:{" "}
                             </span>
-                            <span className="text-xs sm:text-sm text-gray-900">
+                            <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
                               {record.treatment}
                             </span>
                           </div>
                           {record.notes && (
                             <div className="mb-2">
-                              <span className="text-xs sm:text-sm font-medium text-gray-700">
+                              <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Notes:{" "}
                               </span>
-                              <span className="text-xs sm:text-sm text-gray-900">
+                              <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
                                 {record.notes}
                               </span>
                             </div>
                           )}
                         </div>
                         <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2 sm:ml-4">
-                          <button className="text-primary-600 hover:text-primary-900 text-xs sm:text-sm font-medium text-left">
+                          <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left">
                             View
                           </button>
-                          <button className="text-green-600 hover:text-green-900 text-xs sm:text-sm font-medium text-left">
+                          <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left">
                             Edit
                           </button>
-                          <button className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm font-medium text-left">
+                          <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-xs sm:text-sm font-medium text-left">
                             Print
                           </button>
                         </div>
@@ -254,36 +254,38 @@ const PatientRecords: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                   Total Patients
                 </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {patients.length}
                 </p>
               </div>
               <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                   Total Records
                 </p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {medicalRecords.length}
                 </p>
               </div>
               <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600">This Month</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                  This Month
+                </p>
                 <p className="text-lg sm:text-2xl font-bold text-blue-600">
                   {
                     medicalRecords.filter(
@@ -296,10 +298,10 @@ const PatientRecords: React.FC = () => {
               <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             </div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                   Avg. Records/Patient
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-purple-600">

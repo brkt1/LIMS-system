@@ -1,15 +1,17 @@
-import { Plus, Search, Settings } from "lucide-react";
-import React, { useState } from "react";
+import { Plus, Settings } from "lucide-react";
+import React from "react";
 
 const Calibrations: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Calibrations</h1>
-          <p className="text-gray-600 mt-1">Manage equipment calibrations</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Calibrations
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
+            Manage equipment calibrations
+          </p>
         </div>
         <div className="flex-shrink-0">
           <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
@@ -19,9 +21,9 @@ const Calibrations: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="text-center text-gray-500">
-          <Settings className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <Settings className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
           <p>Equipment calibrations coming soon...</p>
         </div>
       </div>
