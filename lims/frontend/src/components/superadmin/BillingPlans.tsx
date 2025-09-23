@@ -125,27 +125,27 @@ const BillingPlans: React.FC = () => {
       case "Failed":
         return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
     }
   };
 
   const selectedPlanData = plans.find((plan) => plan.id === selectedPlan);
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               Billing & Plans
             </h2>
-            <p className="text-sm sm:text-base text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
               Manage subscription plans, billing, and revenue analytics
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base w-full sm:w-auto">
+            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
               <Download className="w-4 h-4" />
               <span>Export Report</span>
             </button>
@@ -159,8 +159,8 @@ const BillingPlans: React.FC = () => {
 
       <div className="space-y-4 sm:space-y-6">
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex flex-wrap space-x-2 sm:space-x-8 px-4 sm:px-6">
               {[
                 { id: "overview", name: "Overview" },
@@ -173,8 +173,8 @@ const BillingPlans: React.FC = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300"
                   }`}
                 >
                   {tab.name}
@@ -189,86 +189,88 @@ const BillingPlans: React.FC = () => {
           <div className="space-y-4 sm:space-y-6">
             {/* Revenue Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                       Total Revenue
                     </p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       ${billingData.totalRevenue.toLocaleString()}
                     </p>
-                    <p className="text-xs sm:text-sm text-green-600 flex items-center">
+                    <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">
                       <TrendingUp className="w-3 h-3 mr-1" />
                       +12.5% from last month
                     </p>
                   </div>
-                  <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
+                  <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
                 </div>
               </div>
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                       Monthly Recurring
                     </p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       ${billingData.monthlyRecurring.toLocaleString()}
                     </p>
-                    <p className="text-xs sm:text-sm text-gray-500">MRR</p>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      MRR
+                    </p>
                   </div>
-                  <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
+                  <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 </div>
               </div>
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                       Churn Rate
                     </p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {billingData.churnRate}%
                     </p>
-                    <p className="text-xs sm:text-sm text-green-600">
+                    <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
                       -0.3% from last month
                     </p>
                   </div>
-                  <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
+                  <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 dark:text-red-400 flex-shrink-0" />
                 </div>
               </div>
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                       ARPU
                     </p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       ${billingData.averageRevenuePerUser}
                     </p>
-                    <p className="text-xs sm:text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Average per user
                     </p>
                   </div>
-                  <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
+                  <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                 </div>
               </div>
             </div>
 
             {/* Revenue Chart */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                   Revenue Trends
                 </h3>
                 <div className="flex items-center space-x-2">
-                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto">
+                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto">
                     <option value="6m">Last 6 months</option>
                     <option value="1y">Last year</option>
                     <option value="2y">Last 2 years</option>
                   </select>
                 </div>
               </div>
-              <div className="h-48 sm:h-64 flex items-center justify-center text-gray-500">
+              <div className="h-48 sm:h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 <div className="text-center">
                   <BarChart3 className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2" />
                   <p className="text-sm sm:text-base">
@@ -309,7 +311,7 @@ const BillingPlans: React.FC = () => {
                     <span className="text-2xl sm:text-3xl font-bold text-gray-900">
                       ${plan.price}
                     </span>
-                    <span className="text-sm sm:text-base text-gray-500">
+                    <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
                       /{plan.billing}
                     </span>
                   </div>
@@ -317,7 +319,7 @@ const BillingPlans: React.FC = () => {
                   <div className="space-y-2 mb-4 sm:mb-6">
                     {plan.features.map((feature, index) => (
                       <div key={index} className="flex items-center space-x-2">
-                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                         <span className="text-xs sm:text-sm text-gray-600">
                           {feature}
                         </span>
@@ -326,13 +328,13 @@ const BillingPlans: React.FC = () => {
                   </div>
 
                   <div className="pt-3 sm:pt-4 border-t border-gray-200">
-                    <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 mb-2">
+                    <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2">
                       <span>Tenants</span>
                       <span className="font-medium text-gray-900">
                         {plan.tenants}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500">
+                    <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       <span>Revenue</span>
                       <span className="font-medium text-gray-900">
                         ${plan.revenue.toLocaleString()}
@@ -341,7 +343,7 @@ const BillingPlans: React.FC = () => {
                   </div>
 
                   <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <button className="flex-1 px-3 py-2 text-xs sm:text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
+                    <button className="flex-1 px-3 py-2 text-xs sm:text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors flex items-center justify-center">
                       <Edit className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Edit
                     </button>
@@ -355,7 +357,7 @@ const BillingPlans: React.FC = () => {
 
             {/* Plan Details */}
             {selectedPlanData && (
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                   {selectedPlanData.name} Plan Details
                 </h3>
@@ -404,7 +406,7 @@ const BillingPlans: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Growth Rate:</span>
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-green-600 dark:text-green-400">
                           +8.5%
                         </span>
                       </div>
@@ -419,19 +421,19 @@ const BillingPlans: React.FC = () => {
         {/* Transactions Tab */}
         {activeTab === "transactions" && (
           <div className="space-y-4 sm:space-y-6">
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                   Recent Transactions
                 </h3>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto">
+                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto">
                     <option value="all">All Status</option>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
                     <option value="failed">Failed</option>
                   </select>
-                  <button className="flex items-center justify-center space-x-2 px-3 py-1 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto">
+                  <button className="flex items-center justify-center space-x-2 px-3 py-1 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors w-full sm:w-auto">
                     <Download className="w-4 h-4" />
                     <span>Export</span>
                   </button>
@@ -441,32 +443,35 @@ const BillingPlans: React.FC = () => {
                 <table className="w-full min-w-[600px]">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Transaction ID
                       </th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Tenant
                       </th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Plan
                       </th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Amount
                       </th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Status
                       </th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Date
                       </th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                      <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                         Method
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {recentTransactions.map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50">
+                      <tr
+                        key={transaction.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
+                      >
                         <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-900">
                           #{transaction.id}
                         </td>
@@ -507,7 +512,7 @@ const BillingPlans: React.FC = () => {
         {activeTab === "analytics" && (
           <div className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                   Revenue by Plan
                 </h3>
@@ -521,7 +526,7 @@ const BillingPlans: React.FC = () => {
                         <p className="text-sm font-medium text-gray-900 truncate">
                           {plan.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {plan.tenants} tenants
                         </p>
                       </div>
@@ -547,7 +552,7 @@ const BillingPlans: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                   Payment Methods
                 </h3>

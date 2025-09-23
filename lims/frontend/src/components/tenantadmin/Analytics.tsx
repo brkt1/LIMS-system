@@ -42,10 +42,10 @@ const Analytics: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
             Analytics Dashboard
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Comprehensive insights into your laboratory performance
           </p>
         </div>
@@ -53,11 +53,11 @@ const Analytics: React.FC = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Revenue</p>
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total Revenue</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 ${analyticsData.totalRevenue.toLocaleString()}
               </p>
               <p className="text-sm text-green-600 flex items-center mt-1">
@@ -69,11 +69,11 @@ const Analytics: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Patients</p>
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total Patients</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {analyticsData.totalPatients.toLocaleString()}
               </p>
               <p className="text-sm text-blue-600 flex items-center mt-1">
@@ -85,11 +85,11 @@ const Analytics: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Tests</p>
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total Tests</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {analyticsData.totalTests.toLocaleString()}
               </p>
               <p className="text-sm text-purple-600 flex items-center mt-1">
@@ -101,11 +101,11 @@ const Analytics: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Avg. Test Price</p>
-              <p className="text-3xl font-bold text-gray-900">$36.20</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Avg. Test Price</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">$36.20</p>
               <p className="text-sm text-orange-600 flex items-center mt-1">
                 <TrendingUp className="w-4 h-4 mr-1" />
                 +2.3% this month
@@ -118,9 +118,9 @@ const Analytics: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Top Performing Tests */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
               Top Performing Tests
             </h3>
           </div>
@@ -130,15 +130,15 @@ const Analytics: React.FC = () => {
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {test.name}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         {test.count} tests
                       </p>
                     </div>
                     <div className="mt-1">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         <span>Revenue: ${test.revenue.toLocaleString()}</span>
                         <span>
                           {(
@@ -167,9 +167,9 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Monthly Revenue Chart */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
               Monthly Revenue Trend
             </h3>
           </div>
@@ -183,12 +183,12 @@ const Analytics: React.FC = () => {
                         {month.month}
                       </span>
                     </div>
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
                       {month.month} 2025
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
                       ${month.revenue.toLocaleString()}
                     </span>
                     <div className="w-20 bg-gray-200 rounded-full h-2">
@@ -208,9 +208,9 @@ const Analytics: React.FC = () => {
       {/* Patient Demographics */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Age Groups */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
               Patient Age Distribution
             </h3>
           </div>
@@ -229,16 +229,16 @@ const Analytics: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {group.range} years
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                           {group.count} patients
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {group.percentage}%
                       </p>
                       <div className="w-20 bg-gray-200 rounded-full h-2 mt-1">
@@ -256,9 +256,9 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Gender Distribution */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
               Gender Distribution
             </h3>
           </div>
@@ -289,16 +289,16 @@ const Analytics: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {gender.gender}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                           {gender.count} patients
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {gender.percentage}%
                       </p>
                       <div className="w-20 bg-gray-200 rounded-full h-2 mt-1">

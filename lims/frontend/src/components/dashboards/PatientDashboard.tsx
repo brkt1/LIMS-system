@@ -41,7 +41,7 @@ const PatientDashboard: React.FC = () => {
         {patientCards.map((card, index) => (
           <div key={index} className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 dark:text-gray-400 dark:text-gray-500">{card.title}</h3>
               <div className={`w-8 h-8 ${card.color} rounded-lg flex items-center justify-center`}>
                 {index === 0 && <Calendar className="w-4 h-4 text-white" />}
                 {index === 1 && <FileText className="w-4 h-4 text-white" />}
@@ -51,7 +51,7 @@ const PatientDashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-between mb-4">
-              <span className="text-2xl font-bold text-gray-900">{card.value}</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">{card.value}</span>
               <div className="flex items-center space-x-1 text-green-600">
                 <span className="text-sm font-medium">{card.change}</span>
               </div>
@@ -77,8 +77,8 @@ const PatientDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Upcoming Appointments</h3>
-            <Calendar className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Upcoming Appointments</h3>
+            <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
             {[
@@ -92,9 +92,9 @@ const PatientDashboard: React.FC = () => {
                     <Clock className="w-5 h-5 text-primary-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{appointment.date}</p>
-                    <p className="text-sm text-gray-600">{appointment.time} - {appointment.doctor}</p>
-                    <p className="text-xs text-gray-500">{appointment.type}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{appointment.date}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{appointment.time} - {appointment.doctor}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{appointment.type}</p>
                   </div>
                 </div>
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -111,8 +111,8 @@ const PatientDashboard: React.FC = () => {
 
         <div className="card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Test Results</h3>
-            <FileText className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Test Results</h3>
+            <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
             {[
@@ -131,8 +131,8 @@ const PatientDashboard: React.FC = () => {
                     }`} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{test.test}</p>
-                    <p className="text-xs text-gray-500">{test.date}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{test.test}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{test.date}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -153,12 +153,12 @@ const PatientDashboard: React.FC = () => {
       {/* Messages from Healthcare Team */}
       <div className="card">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Messages from Healthcare Team</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Messages from Healthcare Team</h3>
           <div className="flex items-center space-x-2">
             <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700">
               New Message
             </button>
-            <MessageSquare className="w-5 h-5 text-gray-400" />
+            <MessageSquare className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
         </div>
         <div className="space-y-4">
@@ -195,14 +195,14 @@ const PatientDashboard: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-gray-900">{message.from}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{message.from}</p>
                       {message.unread && (
                         <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       )}
                     </div>
                     <p className="text-sm font-semibold text-gray-700 mt-1">{message.subject}</p>
-                    <p className="text-sm text-gray-600 mt-1">{message.message}</p>
-                    <p className="text-xs text-gray-500 mt-2">{message.time}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{message.message}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">{message.time}</p>
                   </div>
                 </div>
                 <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
@@ -220,8 +220,8 @@ const PatientDashboard: React.FC = () => {
           <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-6 h-6 text-blue-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Book Appointment</h3>
-          <p className="text-sm text-gray-600 mb-4">Schedule your next visit with our healthcare team</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Book Appointment</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Schedule your next visit with our healthcare team</p>
           <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
             Book Now
           </button>
@@ -231,8 +231,8 @@ const PatientDashboard: React.FC = () => {
           <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <FileText className="w-6 h-6 text-green-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">View Test Results</h3>
-          <p className="text-sm text-gray-600 mb-4">Access your latest test results and reports</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">View Test Results</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Access your latest test results and reports</p>
           <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">
             View Results
           </button>
@@ -242,8 +242,8 @@ const PatientDashboard: React.FC = () => {
           <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <HelpCircle className="w-6 h-6 text-purple-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Get Help</h3>
-          <p className="text-sm text-gray-600 mb-4">Find answers to common questions and get support</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Get Help</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Find answers to common questions and get support</p>
           <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700">
             Get Help
           </button>

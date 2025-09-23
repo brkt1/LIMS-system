@@ -41,7 +41,7 @@ const DoctorDashboard: React.FC = () => {
         {doctorCards.map((card, index) => (
           <div key={index} className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">{card.title}</h3>
               <div className={`w-8 h-8 ${card.color} rounded-lg flex items-center justify-center`}>
                 {index === 0 && <Calendar className="w-4 h-4 text-white" />}
                 {index === 1 && <FileText className="w-4 h-4 text-white" />}
@@ -51,7 +51,7 @@ const DoctorDashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-between mb-4">
-              <span className="text-2xl font-bold text-gray-900">{card.value}</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</span>
               <div className="flex items-center space-x-1 text-green-600">
                 <span className="text-sm font-medium">{card.change}</span>
               </div>
@@ -77,8 +77,8 @@ const DoctorDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Today's Schedule</h3>
-            <Calendar className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Today's Schedule</h3>
+            <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
             {[
@@ -94,9 +94,9 @@ const DoctorDashboard: React.FC = () => {
                     <Clock className="w-5 h-5 text-primary-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{appointment.time}</p>
-                    <p className="text-sm text-gray-600">{appointment.patient}</p>
-                    <p className="text-xs text-gray-500">{appointment.type}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{appointment.time}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{appointment.patient}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{appointment.type}</p>
                   </div>
                 </div>
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -113,8 +113,8 @@ const DoctorDashboard: React.FC = () => {
 
         <div className="card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Test Results</h3>
-            <ClipboardList className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Test Results</h3>
+            <ClipboardList className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
             {[
@@ -135,8 +135,8 @@ const DoctorDashboard: React.FC = () => {
                     }`} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{test.patient}</p>
-                    <p className="text-sm text-gray-600">{test.test}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{test.patient}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{test.test}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -157,36 +157,36 @@ const DoctorDashboard: React.FC = () => {
       {/* Test Requests Queue */}
       <div className="card">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Test Requests Queue</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Test Requests Queue</h3>
           <div className="flex items-center space-x-2">
             <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700">
               New Request
             </button>
-            <FileText className="w-5 h-5 text-gray-400" />
+            <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Patient</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Test Type</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Priority</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Requested Date</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Actions</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Patient</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Test Type</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Priority</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Requested Date</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               <tr>
-                <td className="py-4 px-4 text-sm font-medium text-gray-900">John Smith</td>
-                <td className="py-4 px-4 text-sm text-gray-900">Blood Panel Complete</td>
+                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">John Smith</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">Blood Panel Complete</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                     High
                   </span>
                 </td>
-                <td className="py-4 px-4 text-sm text-gray-900">2025-01-20</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">2025-01-20</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                     Pending
@@ -199,14 +199,14 @@ const DoctorDashboard: React.FC = () => {
                 </td>
               </tr>
               <tr>
-                <td className="py-4 px-4 text-sm font-medium text-gray-900">Sarah Johnson</td>
-                <td className="py-4 px-4 text-sm text-gray-900">X-Ray Chest</td>
+                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">Sarah Johnson</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">X-Ray Chest</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                     Medium
                   </span>
                 </td>
-                <td className="py-4 px-4 text-sm text-gray-900">2025-01-19</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">2025-01-19</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                     Approved
@@ -219,14 +219,14 @@ const DoctorDashboard: React.FC = () => {
                 </td>
               </tr>
               <tr>
-                <td className="py-4 px-4 text-sm font-medium text-gray-900">Mike Davis</td>
-                <td className="py-4 px-4 text-sm text-gray-900">MRI Brain</td>
+                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">Mike Davis</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">MRI Brain</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                     Low
                   </span>
                 </td>
-                <td className="py-4 px-4 text-sm text-gray-900">2025-01-18</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">2025-01-18</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                     In Progress

@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
 import RoleBasedSidebar from "./components/RoleBasedSidebar";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -45,10 +46,10 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading LIMS...</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading LIMS...</p>
           <button
             onClick={() => {
               localStorage.clear();
@@ -69,7 +70,7 @@ function AppContent() {
 
   return (
     <Router>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         {/* Role-based Sidebar */}
         <RoleBasedSidebar isOpen={sidebarOpen} onToggle={handleToggle} />
 
@@ -79,7 +80,7 @@ function AppContent() {
           <Header onMenuToggle={handleToggle} />
 
           {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
             <div className="min-h-full">
               <RoleBasedDashboard />
             </div>
@@ -92,9 +93,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

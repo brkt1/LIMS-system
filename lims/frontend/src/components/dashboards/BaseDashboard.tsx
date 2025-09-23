@@ -41,14 +41,14 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Welcome Message */}
-      <div className="bg-white shadow-sm border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 mb-4 sm:mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 mb-4 sm:mb-6">
         <div className="text-center sm:text-left">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-tight">
             {getWelcomeMessage()}
           </h1>
-          <p className="text-sm sm:text-base lg:text-lg text-gray-600 mt-2 max-w-4xl mx-auto sm:mx-0">
+          <p className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-300 mt-2 max-w-4xl mx-auto sm:mx-0">
             {getDashboardDescription()}
           </p>
         </div>

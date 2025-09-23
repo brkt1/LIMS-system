@@ -41,7 +41,7 @@ const TechnicianDashboard: React.FC = () => {
         {technicianCards.map((card, index) => (
           <div key={index} className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">{card.title}</h3>
               <div className={`w-8 h-8 ${card.color} rounded-lg flex items-center justify-center`}>
                 {index === 0 && <TestTube className="w-4 h-4 text-white" />}
                 {index === 1 && <Wrench className="w-4 h-4 text-white" />}
@@ -51,7 +51,7 @@ const TechnicianDashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-between mb-4">
-              <span className="text-2xl font-bold text-gray-900">{card.value}</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</span>
               <div className="flex items-center space-x-1 text-green-600">
                 <span className="text-sm font-medium">{card.change}</span>
               </div>
@@ -77,7 +77,7 @@ const TechnicianDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Sample Processing Queue</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sample Processing Queue</h3>
             <ClipboardCheck className="w-5 h-5 text-gray-400" />
           </div>
           <div className="space-y-4">
@@ -100,8 +100,8 @@ const TechnicianDashboard: React.FC = () => {
                     }`} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{sample.id}</p>
-                    <p className="text-sm text-gray-600">{sample.type}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{sample.id}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{sample.type}</p>
                     <p className="text-xs text-gray-500">Est. time: {sample.time}</p>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ const TechnicianDashboard: React.FC = () => {
 
         <div className="card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Equipment Status</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Equipment Status</h3>
             <Wrench className="w-5 h-5 text-gray-400" />
           </div>
           <div className="space-y-4">
@@ -143,7 +143,7 @@ const TechnicianDashboard: React.FC = () => {
                     }`} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{equipment.name}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{equipment.name}</p>
                     <p className="text-xs text-gray-500">Last cal: {equipment.lastCalibration}</p>
                   </div>
                 </div>
@@ -165,7 +165,7 @@ const TechnicianDashboard: React.FC = () => {
       {/* Recent Test Reports */}
       <div className="card">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Test Reports</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Test Reports</h3>
           <div className="flex items-center space-x-2">
             <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700">
               New Report
@@ -187,15 +187,15 @@ const TechnicianDashboard: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               <tr>
-                <td className="py-4 px-4 text-sm font-medium text-gray-900">TR-2025-001</td>
-                <td className="py-4 px-4 text-sm text-gray-900">John Smith</td>
-                <td className="py-4 px-4 text-sm text-gray-900">Blood Panel Complete</td>
+                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">TR-2025-001</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">John Smith</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">Blood Panel Complete</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                     Completed
                   </span>
                 </td>
-                <td className="py-4 px-4 text-sm text-gray-900">2025-01-20 14:30</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">2025-01-20 14:30</td>
                 <td className="py-4 px-4">
                   <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
                     View
@@ -203,15 +203,15 @@ const TechnicianDashboard: React.FC = () => {
                 </td>
               </tr>
               <tr>
-                <td className="py-4 px-4 text-sm font-medium text-gray-900">TR-2025-002</td>
-                <td className="py-4 px-4 text-sm text-gray-900">Sarah Johnson</td>
-                <td className="py-4 px-4 text-sm text-gray-900">X-Ray Chest</td>
+                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">TR-2025-002</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">Sarah Johnson</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">X-Ray Chest</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                     In Review
                   </span>
                 </td>
-                <td className="py-4 px-4 text-sm text-gray-900">2025-01-20 13:15</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">2025-01-20 13:15</td>
                 <td className="py-4 px-4">
                   <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
                     Edit
@@ -219,15 +219,15 @@ const TechnicianDashboard: React.FC = () => {
                 </td>
               </tr>
               <tr>
-                <td className="py-4 px-4 text-sm font-medium text-gray-900">TR-2025-003</td>
-                <td className="py-4 px-4 text-sm text-gray-900">Mike Davis</td>
-                <td className="py-4 px-4 text-sm text-gray-900">MRI Brain</td>
+                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">TR-2025-003</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">Mike Davis</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">MRI Brain</td>
                 <td className="py-4 px-4">
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                     Processing
                   </span>
                 </td>
-                <td className="py-4 px-4 text-sm text-gray-900">2025-01-20 12:45</td>
+                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">2025-01-20 12:45</td>
                 <td className="py-4 px-4">
                   <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
                     Track

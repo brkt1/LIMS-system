@@ -143,15 +143,15 @@ const SystemLogs: React.FC = () => {
   const getLevelIcon = (level: string) => {
     switch (level) {
       case "error":
-        return <XCircle className="w-4 h-4 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />;
       case "warning":
-        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />;
       case "info":
-        return <CheckCircle className="w-4 h-4 text-blue-600" />;
+        return <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case "debug":
-        return <Activity className="w-4 h-4 text-gray-600" />;
+        return <Activity className="w-4 h-4 text-gray-600 dark:text-gray-300" />;
       default:
-        return <Activity className="w-4 h-4 text-gray-600" />;
+        return <Activity className="w-4 h-4 text-gray-600 dark:text-gray-300" />;
     }
   };
 
@@ -164,9 +164,9 @@ const SystemLogs: React.FC = () => {
       case "info":
         return "bg-blue-100 text-blue-800";
       case "debug":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
     }
   };
 
@@ -179,11 +179,11 @@ const SystemLogs: React.FC = () => {
       case "api":
         return "bg-blue-100 text-blue-800";
       case "system":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
       case "security":
         return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
     }
   };
 
@@ -195,15 +195,15 @@ const SystemLogs: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               System Logs
             </h2>
-            <p className="text-sm sm:text-base text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
               Monitor system activity, errors, and security events
             </p>
           </div>
@@ -211,14 +211,14 @@ const SystemLogs: React.FC = () => {
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors text-sm sm:text-base w-full sm:w-auto"
+              className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 disabled:opacity-50 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               <RefreshCw
                 className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
               />
               <span>Refresh</span>
             </button>
-            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base w-full sm:w-auto">
+            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors text-sm sm:text-base w-full sm:w-auto">
               <Download className="w-4 h-4" />
               <span>Export Logs</span>
             </button>
@@ -232,7 +232,7 @@ const SystemLogs: React.FC = () => {
           {logLevels.map((level) => (
             <div
               key={level.id}
-              className={`bg-white p-3 sm:p-4 rounded-lg shadow-sm border cursor-pointer transition-all ${
+              className={`bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border cursor-pointer transition-all ${
                 filterLevel === level.id
                   ? "ring-2 ring-blue-500"
                   : "hover:shadow-md"
@@ -241,10 +241,10 @@ const SystemLogs: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
                     {level.name}
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {level.count}
                   </p>
                 </div>
@@ -257,7 +257,7 @@ const SystemLogs: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -266,14 +266,14 @@ const SystemLogs: React.FC = () => {
                 placeholder="Search logs by message, user, or tenant..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <select
                 value={filterLevel}
                 onChange={(e) => setFilterLevel(e.target.value)}
-                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               >
                 {logLevels.map((level) => (
                   <option key={level.id} value={level.id}>
@@ -284,7 +284,7 @@ const SystemLogs: React.FC = () => {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               >
                 {logCategories.map((category) => (
                   <option key={category.id} value={category.id}>
@@ -297,37 +297,37 @@ const SystemLogs: React.FC = () => {
         </div>
 
         {/* Logs Table */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     Level
                   </th>
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     Timestamp
                   </th>
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     Category
                   </th>
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     Message
                   </th>
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     User
                   </th>
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     Tenant
                   </th>
-                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500">
+                  <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                     IP
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
+                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900">
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex items-center space-x-1 sm:space-x-2">
                         <div className="flex-shrink-0">
@@ -342,7 +342,7 @@ const SystemLogs: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 font-mono">
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white font-mono">
                       {log.timestamp}
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
@@ -354,18 +354,18 @@ const SystemLogs: React.FC = () => {
                         {log.category}
                       </span>
                     </td>
-                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 max-w-xs sm:max-w-md">
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white max-w-xs sm:max-w-md">
                       <div className="truncate" title={log.message}>
                         {log.message}
                       </div>
                     </td>
-                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900">
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
                       {log.user}
                     </td>
-                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900">
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
                       {log.tenant}
                     </td>
-                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 font-mono">
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white font-mono">
                       {log.ip}
                     </td>
                   </tr>
@@ -377,7 +377,7 @@ const SystemLogs: React.FC = () => {
 
         {/* Log Details Modal (would be implemented) */}
         <div className="text-center py-6 sm:py-8">
-          <p className="text-xs sm:text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             Click on any log entry to view detailed information
           </p>
         </div>
