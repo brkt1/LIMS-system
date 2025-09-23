@@ -112,36 +112,36 @@ const Reports: React.FC = () => {
   const getTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
       case "analytics":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "performance":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "usage":
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200";
       case "error analysis":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "survey":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "security":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case "support":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "system":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "users":
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200";
       case "customer":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "security":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
@@ -156,13 +156,13 @@ const Reports: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Generate and manage support reports and analytics
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto justify-center">
+          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto justify-center">
             <Download className="w-4 h-4" />
             <span>Export All</span>
           </button>
@@ -177,13 +177,13 @@ const Reports: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search by title, description, or report ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -191,7 +191,7 @@ const Reports: React.FC = () => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Types</option>
             <option value="Analytics">Analytics</option>
@@ -204,7 +204,7 @@ const Reports: React.FC = () => {
           <select
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Dates</option>
             <option value="today">Today</option>
@@ -216,19 +216,19 @@ const Reports: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Reports</p>
-              <p className="text-2xl font-bold text-gray-900">{totalReports}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total Reports</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalReports}</p>
             </div>
             <FileText className="w-8 h-8 text-primary-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Downloads</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total Downloads</p>
               <p className="text-2xl font-bold text-green-600">
                 {totalDownloads}
               </p>
@@ -236,10 +236,10 @@ const Reports: React.FC = () => {
             <Download className="w-8 h-8 text-green-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Avg. File Size</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Avg. File Size</p>
               <p className="text-2xl font-bold text-blue-600">
                 {avgFileSize.toFixed(1)} MB
               </p>
@@ -247,10 +247,10 @@ const Reports: React.FC = () => {
             <BarChart3 className="w-8 h-8 text-blue-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">This Month</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">This Month</p>
               <p className="text-2xl font-bold text-purple-600">
                 {
                   reports.filter((r) => r.generatedDate.includes("2025-01"))
@@ -268,19 +268,19 @@ const Reports: React.FC = () => {
         {filteredReports.map((report) => (
           <div
             key={report.id}
-            className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
           >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     {report.title}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                     {report.description}
                   </p>
                 </div>
-                <FileText className="w-8 h-8 text-gray-400 flex-shrink-0 ml-2" />
+                <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2" />
               </div>
 
               <div className="flex items-center space-x-2 mb-4">
@@ -300,12 +300,12 @@ const Reports: React.FC = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                 <span>By {report.generatedBy}</span>
                 <span>{report.generatedDate}</span>
               </div>
 
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                 <span>
                   {report.fileSize} • {report.format}
                 </span>
@@ -317,7 +317,7 @@ const Reports: React.FC = () => {
                   <FileText className="w-4 h-4" />
                   <span>View</span>
                 </button>
-                <button className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <button className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                   <Download className="w-4 h-4" />
                 </button>
               </div>
@@ -328,8 +328,8 @@ const Reports: React.FC = () => {
 
       {filteredReports.length === 0 && (
         <div className="text-center py-12">
-          <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500">
+          <FileText className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">
             No reports found matching your search criteria.
           </p>
         </div>

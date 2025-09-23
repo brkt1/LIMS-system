@@ -91,15 +91,15 @@ const Support: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "open":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "in_progress":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "resolved":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "closed":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
@@ -121,13 +121,13 @@ const Support: React.FC = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "medium":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "low":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
@@ -160,8 +160,10 @@ const Support: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Support Center</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Support Center
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Get help with your account and services
           </p>
         </div>
@@ -178,53 +180,71 @@ const Support: React.FC = () => {
 
       {/* Quick Contact Options */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <button className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+        <button className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow">
           <Phone className="w-6 h-6 text-primary-600" />
           <div className="text-left">
-            <h3 className="font-medium text-gray-900">Call Us</h3>
-            <p className="text-sm text-gray-600">(555) 123-4567</p>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              Call Us
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              (555) 123-4567
+            </p>
           </div>
         </button>
-        <button className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+        <button className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow">
           <Mail className="w-6 h-6 text-primary-600" />
           <div className="text-left">
-            <h3 className="font-medium text-gray-900">Email Us</h3>
-            <p className="text-sm text-gray-600">support@clinic.com</p>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              Email Us
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              support@clinic.com
+            </p>
           </div>
         </button>
-        <button className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+        <button className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow">
           <MessageCircle className="w-6 h-6 text-primary-600" />
           <div className="text-left">
-            <h3 className="font-medium text-gray-900">Live Chat</h3>
-            <p className="text-sm text-gray-600">Available 24/7</p>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              Live Chat
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Available 24/7
+            </p>
           </div>
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Tickets</p>
-              <p className="text-2xl font-bold text-gray-900">{totalTickets}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Tickets
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {totalTickets}
+              </p>
             </div>
             <Ticket className="w-8 h-8 text-primary-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Open</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Open</p>
               <p className="text-2xl font-bold text-red-600">{openTickets}</p>
             </div>
             <Clock className="w-8 h-8 text-red-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">In Progress</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                In Progress
+              </p>
               <p className="text-2xl font-bold text-yellow-600">
                 {inProgressTickets}
               </p>
@@ -232,10 +252,12 @@ const Support: React.FC = () => {
             <Clock className="w-8 h-8 text-yellow-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Resolved</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Resolved
+              </p>
               <p className="text-2xl font-bold text-green-600">
                 {resolvedTickets}
               </p>
@@ -248,13 +270,13 @@ const Support: React.FC = () => {
       {/* New Ticket Form Modal */}
       {showNewTicketForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Create New Support Ticket
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Subject
                 </label>
                 <input
@@ -263,12 +285,12 @@ const Support: React.FC = () => {
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, subject: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Brief description of your issue"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Category
                 </label>
                 <select
@@ -276,7 +298,7 @@ const Support: React.FC = () => {
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, category: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="general">General</option>
                   <option value="technical">Technical</option>
@@ -286,7 +308,7 @@ const Support: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Priority
                 </label>
                 <select
@@ -294,7 +316,7 @@ const Support: React.FC = () => {
                   onChange={(e) =>
                     setNewTicket({ ...newTicket, priority: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -302,7 +324,7 @@ const Support: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Description
                 </label>
                 <textarea
@@ -311,7 +333,7 @@ const Support: React.FC = () => {
                     setNewTicket({ ...newTicket, description: e.target.value })
                   }
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Please provide detailed information about your issue"
                 />
               </div>
@@ -319,7 +341,7 @@ const Support: React.FC = () => {
             <div className="flex space-x-2 mt-6">
               <button
                 onClick={() => setShowNewTicketForm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
@@ -339,13 +361,13 @@ const Support: React.FC = () => {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search tickets..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -353,7 +375,7 @@ const Support: React.FC = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Status</option>
             <option value="open">Open</option>
@@ -369,15 +391,15 @@ const Support: React.FC = () => {
         {filteredTickets.map((ticket) => (
           <div
             key={ticket.id}
-            className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
           >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     {ticket.subject}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                     {ticket.description}
                   </p>
                   <div className="flex items-center space-x-2">
@@ -396,19 +418,19 @@ const Support: React.FC = () => {
                       {ticket.priority.charAt(0).toUpperCase() +
                         ticket.priority.slice(1)}
                     </span>
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                       {ticket.category}
                     </span>
                   </div>
                 </div>
-                <div className="text-right text-sm text-gray-500">
+                <div className="text-right text-sm text-gray-500 dark:text-gray-400">
                   <p>Created: {ticket.createdDate}</p>
                   <p>ID: {ticket.id}</p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
                   <span>Assigned to: {ticket.assignedTo}</span>
                   <span>Last updated: {ticket.lastUpdated}</span>
                 </div>
@@ -420,8 +442,8 @@ const Support: React.FC = () => {
 
       {filteredTickets.length === 0 && (
         <div className="text-center py-12">
-          <Headphones className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500">
+          <Headphones className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">
             No support tickets found matching your search criteria.
           </p>
         </div>

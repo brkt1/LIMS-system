@@ -129,10 +129,10 @@ const FAQ: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Frequently Asked Questions
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Find answers to common questions about our services
           </p>
         </div>
@@ -142,13 +142,13 @@ const FAQ: React.FC = () => {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search FAQ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -156,7 +156,7 @@ const FAQ: React.FC = () => {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             {categories.map((category) => (
               <option key={category} value={category}>
@@ -172,7 +172,7 @@ const FAQ: React.FC = () => {
         {filteredItems.map((item) => (
           <div
             key={item.id}
-            className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
           >
             <button
               onClick={() => toggleExpanded(item.id)}
@@ -180,18 +180,18 @@ const FAQ: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                     {item.question}
                   </h3>
                   <div className="flex items-center space-x-2">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                       {item.category}
                     </span>
                     <div className="flex space-x-1">
                       {item.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
+                          className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded"
                         >
                           #{tag}
                         </span>
@@ -201,17 +201,17 @@ const FAQ: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   {expandedItems.has(item.id) ? (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   )}
                 </div>
               </div>
             </button>
             {expandedItems.has(item.id) && (
               <div className="px-6 pb-6">
-                <div className="border-t border-gray-200 pt-4">
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                     {item.answer}
                   </p>
                 </div>
@@ -223,19 +223,19 @@ const FAQ: React.FC = () => {
 
       {filteredItems.length === 0 && (
         <div className="text-center py-12">
-          <HelpCircle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500">
+          <HelpCircle className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">
             No FAQ items found matching your search criteria.
           </p>
         </div>
       )}
 
       {/* Contact Support */}
-      <div className="bg-primary-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Still need help?
         </h3>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
           If you can't find the answer you're looking for, our support team is
           here to help.
         </p>
@@ -244,11 +244,11 @@ const FAQ: React.FC = () => {
             <Phone className="w-4 h-4" />
             <span>Call Support</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
             <Mail className="w-4 h-4" />
             <span>Email Support</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
             <MessageCircle className="w-4 h-4" />
             <span>Live Chat</span>
           </button>

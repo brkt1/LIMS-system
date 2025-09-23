@@ -111,28 +111,28 @@ const Messages: React.FC = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "medium":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "normal":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "low":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "active":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "resolved":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
@@ -141,8 +141,10 @@ const Messages: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Messages
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Communicate with users and provide support
           </p>
         </div>
@@ -157,52 +159,52 @@ const Messages: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-96">
         {/* Conversations List */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border h-full">
-            <div className="p-4 border-b border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 h-full">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Search conversations..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
-            <div className="divide-y divide-gray-200 overflow-y-auto h-80">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto h-80">
               {filteredConversations.map((conversation) => (
                 <div
                   key={conversation.id}
                   onClick={() => setSelectedConversation(conversation.id)}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                  className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
                     selectedConversation === conversation.id
-                      ? "bg-primary-50 border-r-2 border-primary-600"
+                      ? "bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600"
                       : ""
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
                         <User className="w-5 h-5 text-primary-600" />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {conversation.user}
                         </div>
                         {conversation.unreadCount > 0 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
                             {conversation.unreadCount}
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500 truncate">
+                      <div className="text-sm text-gray-500 dark:text-gray-300 truncate">
                         {conversation.lastMessage}
                       </div>
                       <div className="flex items-center justify-between mt-1">
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-400 dark:text-gray-500">
                           {conversation.lastMessageTime}
                         </div>
                         <div className="flex space-x-1">
@@ -232,20 +234,20 @@ const Messages: React.FC = () => {
 
         {/* Chat Area */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 h-full flex flex-col">
             {selectedConversationData ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
                       <User className="w-5 h-5 text-primary-600" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {selectedConversationData.user}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 dark:text-gray-300">
                         {selectedConversationData.userRole}
                       </div>
                     </div>
@@ -267,7 +269,7 @@ const Messages: React.FC = () => {
                         className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.sender === "support"
                             ? "bg-primary-600 text-white"
-                            : "bg-gray-100 text-gray-900"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
                         }`}
                       >
                         <div className="text-sm">{message.message}</div>
@@ -275,7 +277,7 @@ const Messages: React.FC = () => {
                           className={`text-xs mt-1 ${
                             message.sender === "support"
                               ? "text-primary-100"
-                              : "text-gray-500"
+                              : "text-gray-500 dark:text-gray-400"
                           }`}
                         >
                           {message.timestamp}
@@ -286,7 +288,7 @@ const Messages: React.FC = () => {
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex space-x-2">
                     <input
                       type="text"
@@ -296,7 +298,7 @@ const Messages: React.FC = () => {
                       onKeyPress={(e) =>
                         e.key === "Enter" && handleSendMessage()
                       }
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                     <button
                       onClick={handleSendMessage}
@@ -308,9 +310,9 @@ const Messages: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 <div className="text-center">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                   <p>Select a conversation to start messaging</p>
                 </div>
               </div>

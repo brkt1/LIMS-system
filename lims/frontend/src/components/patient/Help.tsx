@@ -135,20 +135,20 @@ const Help: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     return type === "Video"
-      ? "bg-red-100 text-red-800"
-      : "bg-blue-100 text-blue-800";
+      ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+      : "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
       case "beginner":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "intermediate":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "advanced":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
 
@@ -167,8 +167,10 @@ const Help: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Help Center</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Help Center
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Find tutorials, guides, and resources to help you use our services
           </p>
         </div>
@@ -178,13 +180,13 @@ const Help: React.FC = () => {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
               placeholder="Search help resources..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -192,7 +194,7 @@ const Help: React.FC = () => {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             {categories.map((category) => (
               <option key={category} value={category}>
@@ -205,39 +207,45 @@ const Help: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Resources</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Resources
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {totalResources}
               </p>
             </div>
             <BookOpen className="w-8 h-8 text-primary-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Videos</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Videos</p>
               <p className="text-2xl font-bold text-red-600">{videoCount}</p>
             </div>
             <Video className="w-8 h-8 text-red-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Articles</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Articles
+              </p>
               <p className="text-2xl font-bold text-blue-600">{articleCount}</p>
             </div>
             <FileText className="w-8 h-8 text-blue-600" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Views</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Views
+              </p>
               <p className="text-2xl font-bold text-green-600">
                 {totalViews.toLocaleString()}
               </p>
@@ -254,19 +262,19 @@ const Help: React.FC = () => {
           return (
             <div
               key={resource.id}
-              className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
             >
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       {resource.title}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                       {resource.description}
                     </p>
                   </div>
-                  <TypeIcon className="w-8 h-8 text-gray-400 flex-shrink-0 ml-2" />
+                  <TypeIcon className="w-8 h-8 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2" />
                 </div>
 
                 <div className="flex items-center space-x-2 mb-4">
@@ -284,17 +292,17 @@ const Help: React.FC = () => {
                   >
                     {resource.difficulty}
                   </span>
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                     {resource.category}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                   <span>{resource.duration}</span>
                   <span>{resource.views.toLocaleString()} views</span>
                 </div>
 
-                <div className="text-xs text-gray-400 mb-4">
+                <div className="text-xs text-gray-400 dark:text-gray-500 mb-4">
                   Updated: {resource.lastUpdated}
                 </div>
 
@@ -307,7 +315,7 @@ const Help: React.FC = () => {
                     )}
                     <span>{resource.type === "Video" ? "Watch" : "Read"}</span>
                   </button>
-                  <button className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                     <Download className="w-4 h-4" />
                   </button>
                 </div>
@@ -319,20 +327,24 @@ const Help: React.FC = () => {
 
       {filteredResources.length === 0 && (
         <div className="text-center py-12">
-          <HelpCircle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500">
+          <HelpCircle className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">
             No help resources found matching your search criteria.
           </p>
         </div>
       )}
 
       {/* Quick Help Section */}
-      <div className="bg-primary-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Help</h3>
+      <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Quick Help
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">Popular Topics</h4>
-            <ul className="space-y-1 text-sm text-gray-600">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+              Popular Topics
+            </h4>
+            <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
               <li>• How to book an appointment</li>
               <li>• Understanding test results</li>
               <li>• Video consultation setup</li>
@@ -340,8 +352,10 @@ const Help: React.FC = () => {
             </ul>
           </div>
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">Need More Help?</h4>
-            <p className="text-sm text-gray-600 mb-3">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+              Need More Help?
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
               Can't find what you're looking for? Our support team is here to
               help.
             </p>

@@ -78,8 +78,8 @@ const Settings: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             Configure support system settings and preferences
           </p>
         </div>
@@ -95,7 +95,7 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex flex-wrap space-x-2 sm:space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -105,8 +105,8 @@ const Settings: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
-                    ? "border-primary-500 text-primary-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -119,22 +119,22 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow-sm border">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
         {activeTab === "support" && (
           <div className="p-4 sm:p-6 space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Support Settings
             </h3>
             <div className="space-y-4">
               {Object.entries(settings.supportSettings).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
                       {key
                         .replace(/([A-Z])/g, " $1")
                         .replace(/^./, (str) => str.toUpperCase())}
                     </label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {key === "autoAssignTickets" &&
                         "Automatically assign tickets to available agents"}
                       {key === "ticketEscalationTime" &&
@@ -164,7 +164,7 @@ const Settings: React.FC = () => {
                         }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                     </label>
                   ) : (
                     <input
@@ -177,7 +177,7 @@ const Settings: React.FC = () => {
                           parseInt(e.target.value)
                         )
                       }
-                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   )}
                 </div>
@@ -188,19 +188,19 @@ const Settings: React.FC = () => {
 
         {activeTab === "system" && (
           <div className="p-4 sm:p-6 space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               System Settings
             </h3>
             <div className="space-y-4">
               {Object.entries(settings.systemSettings).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
                       {key
                         .replace(/([A-Z])/g, " $1")
                         .replace(/^./, (str) => str.toUpperCase())}
                     </label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {key === "maintenanceMode" &&
                         "Enable maintenance mode for system updates"}
                       {key === "systemBackup" &&
@@ -228,7 +228,7 @@ const Settings: React.FC = () => {
                         }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                     </label>
                   ) : (
                     <input
@@ -241,7 +241,7 @@ const Settings: React.FC = () => {
                           parseInt(e.target.value)
                         )
                       }
-                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   )}
                 </div>
@@ -252,19 +252,19 @@ const Settings: React.FC = () => {
 
         {activeTab === "security" && (
           <div className="p-4 sm:p-6 space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Security Settings
             </h3>
             <div className="space-y-4">
               {Object.entries(settings.securitySettings).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
                       {key
                         .replace(/([A-Z])/g, " $1")
                         .replace(/^./, (str) => str.toUpperCase())}
                     </label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {key === "twoFactorAuth" &&
                         "Require two-factor authentication"}
                       {key === "passwordExpiry" && "Password expiry in days"}
@@ -291,7 +291,7 @@ const Settings: React.FC = () => {
                         }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                     </label>
                   ) : (
                     <input
@@ -304,7 +304,7 @@ const Settings: React.FC = () => {
                           parseInt(e.target.value)
                         )
                       }
-                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   )}
                 </div>
@@ -315,7 +315,7 @@ const Settings: React.FC = () => {
 
         {activeTab === "notifications" && (
           <div className="p-4 sm:p-6 space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Notification Settings
             </h3>
             <div className="space-y-4">
@@ -323,12 +323,12 @@ const Settings: React.FC = () => {
                 ([key, value]) => (
                   <div key={key} className="flex items-center justify-between">
                     <div>
-                      <label className="text-sm font-medium text-gray-900">
+                      <label className="text-sm font-medium text-gray-900 dark:text-white">
                         {key
                           .replace(/([A-Z])/g, " $1")
                           .replace(/^./, (str) => str.toUpperCase())}
                       </label>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {key === "ticketCreated" &&
                           "Notify when new tickets are created"}
                         {key === "ticketUpdated" &&
@@ -355,7 +355,7 @@ const Settings: React.FC = () => {
                         }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                     </label>
                   </div>
                 )

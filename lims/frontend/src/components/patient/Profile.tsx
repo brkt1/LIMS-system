@@ -88,8 +88,10 @@ const Profile: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
+            My Profile
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 dark:text-gray-300 mt-1">
             Manage your personal information and preferences
           </p>
         </div>
@@ -98,7 +100,7 @@ const Profile: React.FC = () => {
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto"
               >
                 Cancel
               </button>
@@ -125,10 +127,10 @@ const Profile: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Profile Picture and Basic Info */}
         <div className="xl:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
             <div className="text-center">
               <div className="relative inline-block">
-                <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-24 h-24 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <User className="w-12 h-12 text-primary-600" />
                 </div>
                 {isEditing && (
@@ -137,12 +139,16 @@ const Profile: React.FC = () => {
                   </button>
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
                 {profileData.personalInfo.firstName}{" "}
                 {profileData.personalInfo.lastName}
               </h3>
-              <p className="text-sm text-gray-600">Patient ID: PAT001</p>
-              <p className="text-sm text-gray-600">Member since 2023</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">
+                Patient ID: PAT001
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">
+                Member since 2023
+              </p>
             </div>
           </div>
         </div>
@@ -150,16 +156,16 @@ const Profile: React.FC = () => {
         {/* Main Content */}
         <div className="xl:col-span-2 space-y-6">
           {/* Personal Information */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">
                 Personal Information
               </h3>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 mb-1">
                     First Name
                   </label>
                   {isEditing ? (
@@ -173,16 +179,16 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white dark:text-white">
                       {profileData.personalInfo.firstName}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Last Name
                   </label>
                   {isEditing ? (
@@ -196,16 +202,16 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.personalInfo.lastName}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Date of Birth
                   </label>
                   {isEditing ? (
@@ -219,16 +225,16 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.personalInfo.dateOfBirth}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Gender
                   </label>
                   {isEditing ? (
@@ -241,20 +247,20 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                       <option value="Other">Other</option>
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.personalInfo.gender}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Blood Type
                   </label>
                   {isEditing ? (
@@ -267,7 +273,7 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
@@ -279,13 +285,13 @@ const Profile: React.FC = () => {
                       <option value="O-">O-</option>
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.personalInfo.bloodType}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Phone
                   </label>
                   {isEditing ? (
@@ -299,17 +305,17 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.personalInfo.phone}
                     </p>
                   )}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Email
                 </label>
                 {isEditing ? (
@@ -319,16 +325,16 @@ const Profile: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("personalInfo", "email", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.personalInfo.email}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Address
                 </label>
                 {isEditing ? (
@@ -342,16 +348,16 @@ const Profile: React.FC = () => {
                       )
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.personalInfo.address}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Emergency Contact
                 </label>
                 {isEditing ? (
@@ -365,10 +371,10 @@ const Profile: React.FC = () => {
                         e.target.value
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.personalInfo.emergencyContact}
                   </p>
                 )}
@@ -377,15 +383,15 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Medical Information */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Medical Information
               </h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Allergies
                 </label>
                 {isEditing ? (
@@ -399,16 +405,16 @@ const Profile: React.FC = () => {
                       )
                     }
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.medicalInfo.allergies}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Current Medications
                 </label>
                 {isEditing ? (
@@ -422,16 +428,16 @@ const Profile: React.FC = () => {
                       )
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.medicalInfo.medications}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Medical Conditions
                 </label>
                 {isEditing ? (
@@ -445,17 +451,17 @@ const Profile: React.FC = () => {
                       )
                     }
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.medicalInfo.medicalConditions}
                   </p>
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Insurance Provider
                   </label>
                   {isEditing ? (
@@ -469,16 +475,16 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.medicalInfo.insuranceProvider}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Insurance Number
                   </label>
                   {isEditing ? (
@@ -492,17 +498,17 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.medicalInfo.insuranceNumber}
                     </p>
                   )}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Primary Physician
                 </label>
                 {isEditing ? (
@@ -516,10 +522,10 @@ const Profile: React.FC = () => {
                         e.target.value
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     {profileData.medicalInfo.primaryPhysician}
                   </p>
                 )}
@@ -528,16 +534,16 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Preferences */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Preferences
               </h3>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Language
                   </label>
                   {isEditing ? (
@@ -550,20 +556,20 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="English">English</option>
                       <option value="Spanish">Spanish</option>
                       <option value="French">French</option>
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.preferences.language}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Timezone
                   </label>
                   {isEditing ? (
@@ -576,14 +582,14 @@ const Profile: React.FC = () => {
                           e.target.value
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="EST (UTC-5)">EST (UTC-5)</option>
                       <option value="PST (UTC-8)">PST (UTC-8)</option>
                       <option value="CST (UTC-6)">CST (UTC-6)</option>
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-white">
                       {profileData.preferences.timezone}
                     </p>
                   )}
@@ -591,7 +597,7 @@ const Profile: React.FC = () => {
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
                   Notification Preferences
                 </h4>
                 <div className="space-y-2">
@@ -610,9 +616,9 @@ const Profile: React.FC = () => {
                             )
                           }
                           disabled={!isEditing}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary-600 focus:ring-primary-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                           {key.charAt(0).toUpperCase() + key.slice(1)}{" "}
                           notifications
                         </span>
@@ -623,7 +629,7 @@ const Profile: React.FC = () => {
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
                   Privacy Settings
                 </h4>
                 <div className="space-y-2">
@@ -642,9 +648,9 @@ const Profile: React.FC = () => {
                             )
                           }
                           disabled={!isEditing}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary-600 focus:ring-primary-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                           {key === "shareData"
                             ? "Share data for research"
                             : "Receive marketing communications"}
