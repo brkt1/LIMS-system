@@ -114,4 +114,21 @@ export const supportAPI = {
   createMessage: (data: any) => api.post('/support/messages/', data),
 };
 
+export const profileAPI = {
+  getProfile: () => api.get('/profile/'),
+  updateProfile: (data: any) => api.put('/profile/', data),
+  uploadProfilePicture: (file: File) => {
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    return api.post('/profile/upload-picture/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  deleteProfilePicture: () => api.delete('/profile/picture/'),
+  changePassword: (data: { old_password: string; new_password: string }) => 
+    api.post('/profile/change-password/', data),
+};
+
 export default api;

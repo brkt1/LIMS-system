@@ -87,6 +87,9 @@ INSTALLED_APPS = [
     
     # NEW APPS - FAQ System
     'lab.components.FAQ',
+    
+    # NEW APPS - Profile Management
+    'lab.components.Profile',
 ]
 
 # ------------------------

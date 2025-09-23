@@ -67,6 +67,9 @@ urlpatterns = [
     
     # FAQ System
     path('api/faq/', include('lab.components.FAQ.faq_urls')),
+    
+    # Profile Management
+    path('api/profile/', include('lab.components.Profile.profile_urls')),
 ]
 
 
