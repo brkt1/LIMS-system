@@ -7,6 +7,9 @@ import {
   Video,
   FileText,
   ExternalLink,
+  Phone,
+  Mail,
+  MessageCircle,
 } from "lucide-react";
 import React, { useState } from "react";
 
@@ -152,6 +155,64 @@ const Help: React.FC = () => {
     }
   };
 
+  // Handler functions
+  const handleWatch = (resource: any) => {
+    if (resource.type === "Video") {
+      alert(
+        `Playing video: "${resource.title}"\n\nDuration: ${resource.duration}\nCategory: ${resource.category}\n\nThis would open the video player in a new window.`
+      );
+    } else {
+      alert(
+        `Opening article: "${resource.title}"\n\nDuration: ${resource.duration}\nCategory: ${resource.category}\n\nThis would open the article in a new window.`
+      );
+    }
+  };
+
+  const handleDownload = (resource: any) => {
+    // Create a simple text file with the resource content
+    const content = `
+${resource.title}
+${"=".repeat(resource.title.length)}
+
+Category: ${resource.category}
+Type: ${resource.type}
+Duration: ${resource.duration}
+Difficulty: ${resource.difficulty}
+Views: ${resource.views.toLocaleString()}
+Last Updated: ${resource.lastUpdated}
+
+Description:
+${resource.description}
+
+${
+  resource.type === "Video"
+    ? "This is a video tutorial. In a real application, this would download the video file or transcript."
+    : "This is an article. In a real application, this would download the full article content."
+}
+
+Downloaded on: ${new Date().toLocaleDateString()}
+    `.trim();
+
+    // Create and download file
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${resource.title.replace(/[^a-zA-Z0-9]/g, "_")}_${
+      resource.id
+    }.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleContactSupport = () => {
+    alert(
+      "Contact Support\n\nPhone: (555) 123-4567\nEmail: support@medicare.com\nLive Chat: Available 24/7\n\nHours: Monday-Friday, 8:00 AM - 6:00 PM\nEmergency: (555) 911-HELP (24/7)"
+    );
+  };
+
   const categories = [
     "all",
     ...Array.from(new Set(helpResources.map((resource) => resource.category))),
@@ -202,56 +263,6 @@ const Help: React.FC = () => {
               </option>
             ))}
           </select>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Resources
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalResources}
-              </p>
-            </div>
-            <BookOpen className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Videos</p>
-              <p className="text-2xl font-bold text-red-600">{videoCount}</p>
-            </div>
-            <Video className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Articles
-              </p>
-              <p className="text-2xl font-bold text-blue-600">{articleCount}</p>
-            </div>
-            <FileText className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Views
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {totalViews.toLocaleString()}
-              </p>
-            </div>
-            <HelpCircle className="w-8 h-8 text-green-600" />
-          </div>
         </div>
       </div>
 
@@ -307,7 +318,10 @@ const Help: React.FC = () => {
                 </div>
 
                 <div className="flex space-x-2">
-                  <button className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                  <button
+                    onClick={() => handleWatch(resource)}
+                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
                     {resource.type === "Video" ? (
                       <Play className="w-4 h-4" />
                     ) : (
@@ -315,7 +329,10 @@ const Help: React.FC = () => {
                     )}
                     <span>{resource.type === "Video" ? "Watch" : "Read"}</span>
                   </button>
-                  <button className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                  <button
+                    onClick={() => handleDownload(resource)}
+                    className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  >
                     <Download className="w-4 h-4" />
                   </button>
                 </div>
@@ -359,7 +376,10 @@ const Help: React.FC = () => {
               Can't find what you're looking for? Our support team is here to
               help.
             </p>
-            <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            <button
+              onClick={handleContactSupport}
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
               Contact Support →
             </button>
           </div>

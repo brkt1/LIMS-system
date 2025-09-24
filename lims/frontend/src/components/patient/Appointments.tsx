@@ -6,14 +6,42 @@ import {
   Search,
   User,
   Video,
+  X,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Appointments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const appointments = [
+  // State management for modals
+  const [showBookAppointmentModal, setShowBookAppointmentModal] =
+    useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+
+  // Form states
+  const [appointmentData, setAppointmentData] = useState({
+    doctor: "",
+    date: "",
+    time: "",
+    type: "",
+    reason: "",
+    notes: "",
+  });
+
+  const [rescheduleData, setRescheduleData] = useState({
+    date: "",
+    time: "",
+  });
+
+  // Appointments data state
+  const [appointments, setAppointments] = useState([
     {
       id: "APT001",
       doctor: "Dr. Sarah Johnson",
@@ -79,7 +107,120 @@ const Appointments: React.FC = () => {
       reason: "Child's vaccination",
       notes: "Cancelled due to scheduling conflict",
     },
-  ];
+  ]);
+
+  // Load appointments from localStorage on component mount
+  useEffect(() => {
+    const savedAppointments = localStorage.getItem("patientAppointments");
+    if (savedAppointments) {
+      setAppointments(JSON.parse(savedAppointments));
+    }
+  }, []);
+
+  // Save appointments to localStorage whenever appointments change
+  useEffect(() => {
+    localStorage.setItem("patientAppointments", JSON.stringify(appointments));
+  }, [appointments]);
+
+  // Handler functions
+  const handleBookAppointment = () => {
+    setAppointmentData({
+      doctor: "",
+      date: "",
+      time: "",
+      type: "",
+      reason: "",
+      notes: "",
+    });
+    setShowBookAppointmentModal(true);
+  };
+
+  const handleCancelAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowCancelModal(true);
+  };
+
+  const handleRescheduleAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setRescheduleData({
+      date: appointment.date,
+      time: appointment.time,
+    });
+    setShowRescheduleModal(true);
+  };
+
+  const handleConfirmAppointment = (appointment: any) => {
+    setSelectedAppointment(appointment);
+    setShowConfirmModal(true);
+  };
+
+  const handleCreateAppointment = () => {
+    const newAppointment = {
+      id: `APT${String(appointments.length + 1).padStart(3, "0")}`,
+      doctor: appointmentData.doctor,
+      doctorSpecialty: getDoctorSpecialty(appointmentData.doctor),
+      date: appointmentData.date,
+      time: appointmentData.time,
+      duration: 30,
+      type: appointmentData.type,
+      status: "pending",
+      location:
+        appointmentData.type === "Video Call"
+          ? "Online - Zoom"
+          : "Main Clinic - Room 201",
+      reason: appointmentData.reason,
+      notes: appointmentData.notes,
+    };
+    setAppointments([newAppointment, ...appointments]);
+    setShowBookAppointmentModal(false);
+  };
+
+  const handleCancelConfirm = () => {
+    if (selectedAppointment) {
+      const updatedAppointments = appointments.map((apt) =>
+        apt.id === selectedAppointment.id
+          ? { ...apt, status: "cancelled" }
+          : apt
+      );
+      setAppointments(updatedAppointments);
+      setShowCancelModal(false);
+    }
+  };
+
+  const handleRescheduleConfirm = () => {
+    if (selectedAppointment) {
+      const updatedAppointments = appointments.map((apt) =>
+        apt.id === selectedAppointment.id
+          ? { ...apt, date: rescheduleData.date, time: rescheduleData.time }
+          : apt
+      );
+      setAppointments(updatedAppointments);
+      setShowRescheduleModal(false);
+    }
+  };
+
+  const handleConfirmConfirm = () => {
+    if (selectedAppointment) {
+      const updatedAppointments = appointments.map((apt) =>
+        apt.id === selectedAppointment.id
+          ? { ...apt, status: "confirmed" }
+          : apt
+      );
+      setAppointments(updatedAppointments);
+      setShowConfirmModal(false);
+    }
+  };
+
+  const getDoctorSpecialty = (doctorName: string) => {
+    const specialties: { [key: string]: string } = {
+      "Dr. Sarah Johnson": "Cardiologist",
+      "Dr. Michael Chen": "General Practitioner",
+      "Dr. Emily Rodriguez": "Dermatologist",
+      "Dr. David Wilson": "Orthopedist",
+      "Dr. Lisa Anderson": "Pediatrician",
+    };
+    return specialties[doctorName] || "General Practitioner";
+  };
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
@@ -149,7 +290,10 @@ const Appointments: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleBookAppointment}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>Book Appointment</span>
           </button>
@@ -182,62 +326,6 @@ const Appointments: React.FC = () => {
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Appointments
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalAppointments}
-              </p>
-            </div>
-            <Calendar className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Confirmed
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {confirmedAppointments}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Pending
-              </p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {pendingAppointments}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Completed
-              </p>
-              <p className="text-2xl font-bold text-blue-600">
-                {completedAppointments}
-              </p>
-            </div>
-            <Calendar className="w-8 h-8 text-blue-600" />
-          </div>
         </div>
       </div>
 
@@ -319,18 +407,30 @@ const Appointments: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
                   {appointment.status === "confirmed" && (
-                    <button className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                    <button
+                      onClick={() => handleCancelAppointment(appointment)}
+                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                    >
                       Cancel
                     </button>
                   )}
                   {appointment.status === "pending" && (
-                    <button className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <button
+                      onClick={() => handleConfirmAppointment(appointment)}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                    >
                       Confirm
                     </button>
                   )}
-                  <button className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm">
-                    Reschedule
-                  </button>
+                  {(appointment.status === "confirmed" ||
+                    appointment.status === "pending") && (
+                    <button
+                      onClick={() => handleRescheduleAppointment(appointment)}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm"
+                    >
+                      Reschedule
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -344,6 +444,345 @@ const Appointments: React.FC = () => {
           <p className="text-gray-500 dark:text-gray-400">
             No appointments found matching your search criteria.
           </p>
+        </div>
+      )}
+
+      {/* Book Appointment Modal */}
+      {showBookAppointmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Book New Appointment
+              </h2>
+              <button
+                onClick={() => setShowBookAppointmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Doctor *
+                </label>
+                <select
+                  value={appointmentData.doctor}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      doctor: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select doctor</option>
+                  <option value="Dr. Sarah Johnson">Dr. Sarah Johnson</option>
+                  <option value="Dr. Michael Chen">Dr. Michael Chen</option>
+                  <option value="Dr. Emily Rodriguez">
+                    Dr. Emily Rodriguez
+                  </option>
+                  <option value="Dr. David Wilson">Dr. David Wilson</option>
+                  <option value="Dr. Lisa Anderson">Dr. Lisa Anderson</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Preferred Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={appointmentData.date}
+                    onChange={(e) =>
+                      setAppointmentData({
+                        ...appointmentData,
+                        date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Preferred Time *
+                  </label>
+                  <select
+                    value={appointmentData.time}
+                    onChange={(e) =>
+                      setAppointmentData({
+                        ...appointmentData,
+                        time: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select time</option>
+                    <option value="09:00 AM">09:00 AM</option>
+                    <option value="10:00 AM">10:00 AM</option>
+                    <option value="11:00 AM">11:00 AM</option>
+                    <option value="02:00 PM">02:00 PM</option>
+                    <option value="03:00 PM">03:00 PM</option>
+                    <option value="04:00 PM">04:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Appointment Type *
+                </label>
+                <select
+                  value={appointmentData.type}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      type: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select type</option>
+                  <option value="In-Person">In-Person</option>
+                  <option value="Video Call">Video Call</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Reason for Visit *
+                </label>
+                <input
+                  type="text"
+                  value={appointmentData.reason}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      reason: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Describe the reason for your appointment"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Additional Notes
+                </label>
+                <textarea
+                  value={appointmentData.notes}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Any additional information or special requests"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowBookAppointmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAppointment}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Book Appointment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Appointment Modal */}
+      {showCancelModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Cancel Appointment
+              </h2>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <XCircle className="w-8 h-8 text-red-500" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedAppointment.doctor}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedAppointment.date} at {selectedAppointment.time}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                Are you sure you want to cancel this appointment? This action
+                cannot be undone.
+              </p>
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Keep Appointment
+                </button>
+                <button
+                  onClick={handleCancelConfirm}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Cancel Appointment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Appointment Modal */}
+      {showRescheduleModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Reschedule Appointment
+              </h2>
+              <button
+                onClick={() => setShowRescheduleModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <RotateCcw className="w-8 h-8 text-blue-500" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedAppointment.doctor}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Current: {selectedAppointment.date} at{" "}
+                    {selectedAppointment.time}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New Date *
+                </label>
+                <input
+                  type="date"
+                  value={rescheduleData.date}
+                  onChange={(e) =>
+                    setRescheduleData({
+                      ...rescheduleData,
+                      date: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New Time *
+                </label>
+                <select
+                  value={rescheduleData.time}
+                  onChange={(e) =>
+                    setRescheduleData({
+                      ...rescheduleData,
+                      time: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select time</option>
+                  <option value="09:00 AM">09:00 AM</option>
+                  <option value="10:00 AM">10:00 AM</option>
+                  <option value="11:00 AM">11:00 AM</option>
+                  <option value="02:00 PM">02:00 PM</option>
+                  <option value="03:00 PM">03:00 PM</option>
+                  <option value="04:00 PM">04:00 PM</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-end space-x-3 pt-4">
+                <button
+                  onClick={() => setShowRescheduleModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRescheduleConfirm}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Reschedule
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Appointment Modal */}
+      {showConfirmModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Confirm Appointment
+              </h2>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <CheckCircle className="w-8 h-8 text-green-500" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedAppointment.doctor}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedAppointment.date} at {selectedAppointment.time}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+                Are you sure you want to confirm this appointment? You will
+                receive a confirmation email.
+              </p>
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmConfirm}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Confirm Appointment
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

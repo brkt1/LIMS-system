@@ -6,6 +6,7 @@ import Inventory from "./Inventory";
 import KnowledgeBase from "./KnowledgeBase";
 import Messages from "./Messages";
 import Notifications from "./Notifications";
+import Profile from "./Profile";
 import Reports from "./Reports";
 import SupportTickets from "./SupportTickets";
 import SystemLogs from "./SystemLogs";
@@ -25,6 +26,7 @@ const SupportRouter: React.FC = () => {
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/system-logs" element={<SystemLogs />} />
       <Route path="/notifications" element={<Notifications />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 };

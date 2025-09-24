@@ -15,10 +15,10 @@ const PatientRouter: React.FC = () => {
       <Route path="/dashboard" element={<PatientDashboard />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/test-results" element={<TestResults />} />
-      <Route path="/profile" element={<Profile />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/support" element={<Support />} />
       <Route path="/help" element={<Help />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 };

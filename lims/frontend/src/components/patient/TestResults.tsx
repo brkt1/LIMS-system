@@ -5,13 +5,14 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const TestResults: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const testResults = [
+  // Test results data state
+  const [testResults, setTestResults] = useState([
     {
       id: "TR001",
       testName: "Complete Blood Count (CBC)",
@@ -161,7 +162,127 @@ const TestResults: React.FC = () => {
         "Test results are being processed. You will be notified when available.",
       reportUrl: "#",
     },
-  ];
+  ]);
+
+  // Load test results from localStorage on component mount
+  useEffect(() => {
+    const savedTestResults = localStorage.getItem("patientTestResults");
+    if (savedTestResults) {
+      setTestResults(JSON.parse(savedTestResults));
+    }
+  }, []);
+
+  // Save test results to localStorage whenever testResults change
+  useEffect(() => {
+    localStorage.setItem("patientTestResults", JSON.stringify(testResults));
+  }, [testResults]);
+
+  // Handler functions
+  const handleDownloadResult = (result: any) => {
+    // Create a simple text report
+    const reportContent = `
+Test Result Report
+==================
+
+Test Name: ${result.testName}
+Test Date: ${result.testDate}
+Doctor: ${result.doctor}
+Test ID: ${result.id}
+Status: ${result.status}
+
+Test Results:
+${result.results
+  .map(
+    (r: any) =>
+      `${r.parameter}: ${r.value} ${r.unit} (Normal: ${
+        r.normal
+      }) - ${r.status.toUpperCase()}`
+  )
+  .join("\n")}
+
+Notes: ${result.notes}
+
+Generated on: ${new Date().toLocaleDateString()}
+    `.trim();
+
+    // Create and download file
+    const blob = new Blob([reportContent], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${result.testName.replace(/[^a-zA-Z0-9]/g, "_")}_${
+      result.id
+    }.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadAll = () => {
+    const completedResults = testResults.filter(
+      (result) => result.status === "completed"
+    );
+
+    if (completedResults.length === 0) {
+      alert("No completed test results available for download.");
+      return;
+    }
+
+    // Create a comprehensive report
+    const allReportsContent = completedResults
+      .map(
+        (result) => `
+Test Result Report
+==================
+
+Test Name: ${result.testName}
+Test Date: ${result.testDate}
+Doctor: ${result.doctor}
+Test ID: ${result.id}
+Status: ${result.status}
+
+Test Results:
+${result.results
+  .map(
+    (r: any) =>
+      `${r.parameter}: ${r.value} ${r.unit} (Normal: ${
+        r.normal
+      }) - ${r.status.toUpperCase()}`
+  )
+  .join("\n")}
+
+Notes: ${result.notes}
+
+${"=".repeat(50)}
+    `
+      )
+      .join("\n\n");
+
+    const finalContent = `
+COMPREHENSIVE TEST RESULTS REPORT
+=================================
+
+Patient: [Patient Name]
+Generated on: ${new Date().toLocaleDateString()}
+Total Tests: ${completedResults.length}
+
+${allReportsContent}
+    `.trim();
+
+    // Create and download file
+    const blob = new Blob([finalContent], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `All_Test_Results_${
+      new Date().toISOString().split("T")[0]
+    }.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
 
   const filteredResults = testResults.filter((result) => {
     const matchesSearch =
@@ -251,7 +372,10 @@ const TestResults: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleDownloadAll}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto justify-center"
+          >
             <Download className="w-4 h-4" />
             <span>Download All</span>
           </button>
@@ -286,62 +410,6 @@ const TestResults: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Tests
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalTests}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Completed
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {completedTests}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Pending
-              </p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {pendingTests}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Abnormal Results
-              </p>
-              <p className="text-2xl font-bold text-red-600">
-                {abnormalResults}
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Test Results List */}
       <div className="space-y-6">
         {filteredResults.map((result) => (
@@ -370,7 +438,10 @@ const TestResults: React.FC = () => {
                     {getStatusText(result.status)}
                   </span>
                   {result.status === "completed" && (
-                    <button className="flex items-center space-x-1 px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm">
+                    <button
+                      onClick={() => handleDownloadResult(result)}
+                      className="flex items-center space-x-1 px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                    >
                       <Download className="w-3 h-3" />
                       <span>Download</span>
                     </button>

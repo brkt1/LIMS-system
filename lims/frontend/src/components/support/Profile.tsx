@@ -19,36 +19,30 @@ const Profile: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Patient profile data state
+  // Support profile data state
   const [profileData, setProfileData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
+    firstName: "Sarah",
+    lastName: "Johnson",
+    email: "sarah.johnson@support.com",
     phone: "+1 (555) 123-4567",
-    address: "123 Main Street, City, State 12345",
-    dateOfBirth: "1990-01-15",
-    gender: "Male",
-    bloodType: "O+",
-    emergencyContact: "Jane Doe",
-    emergencyPhone: "+1 (555) 987-6543",
-    insuranceProvider: "Health Insurance Co.",
-    insuranceNumber: "INS123456789",
-    medicalHistory: "No significant medical history",
-    allergies: "None known",
-    medications: "None currently",
-    bio: "Patient bio information...",
+    address: "123 Support Street, City, State 12345",
+    employeeId: "SUP001",
+    department: "Technical Support",
+    position: "Senior Support Specialist",
+    hireDate: "2022-03-15",
+    bio: "Experienced support specialist with expertise in system troubleshooting and user assistance.",
     timezone: "America/New_York",
     language: "en",
     notifications: {
       email: true,
       sms: true,
-      push: false,
+      push: true,
     },
   });
 
   // Load profile data from localStorage on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem("patientProfile");
+    const savedProfile = localStorage.getItem("supportProfile");
     if (savedProfile) {
       setProfileData(JSON.parse(savedProfile));
     }
@@ -56,7 +50,7 @@ const Profile: React.FC = () => {
 
   // Save profile data to localStorage whenever profileData changes
   useEffect(() => {
-    localStorage.setItem("patientProfile", JSON.stringify(profileData));
+    localStorage.setItem("supportProfile", JSON.stringify(profileData));
   }, [profileData]);
 
   const handleInputChange = (
@@ -112,7 +106,7 @@ const Profile: React.FC = () => {
 
   const handleCancel = () => {
     // Reload from localStorage to reset changes
-    const savedProfile = localStorage.getItem("patientProfile");
+    const savedProfile = localStorage.getItem("supportProfile");
     if (savedProfile) {
       setProfileData(JSON.parse(savedProfile));
     }
@@ -275,7 +269,7 @@ const Profile: React.FC = () => {
                 {profileData.email}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                Patient
+                Support Staff • {profileData.department}
               </p>
             </div>
           </div>
@@ -341,57 +335,6 @@ const Profile: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={profileData.dateOfBirth}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Gender
-              </label>
-              <select
-                name="gender"
-                value={profileData.gender}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-                <option value="Prefer not to say">Prefer not to say</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Blood Type
-              </label>
-              <select
-                name="bloodType"
-                value={profileData.bloodType}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-              >
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Address
               </label>
               <input
@@ -403,23 +346,55 @@ const Profile: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Employee ID
+              </label>
+              <input
+                type="text"
+                name="employeeId"
+                value={profileData.employeeId}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Medical Information */}
+        {/* Professional Information */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6">
-            Medical Information
+            Professional Information
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Emergency Contact
+                Department
+              </label>
+              <select
+                name="department"
+                value={profileData.department}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
+              >
+                <option value="Technical Support">Technical Support</option>
+                <option value="Customer Service">Customer Service</option>
+                <option value="System Administration">
+                  System Administration
+                </option>
+                <option value="Quality Assurance">Quality Assurance</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Position
               </label>
               <input
                 type="text"
-                name="emergencyContact"
-                value={profileData.emergencyContact}
+                name="position"
+                value={profileData.position}
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
@@ -427,87 +402,31 @@ const Profile: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Emergency Phone
+                Hire Date
               </label>
               <input
-                type="tel"
-                name="emergencyPhone"
-                value={profileData.emergencyPhone}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Insurance Provider
-              </label>
-              <input
-                type="text"
-                name="insuranceProvider"
-                value={profileData.insuranceProvider}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Insurance Number
-              </label>
-              <input
-                type="text"
-                name="insuranceNumber"
-                value={profileData.insuranceNumber}
+                type="date"
+                name="hireDate"
+                value={profileData.hireDate}
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
               />
             </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Medical History
-              </label>
-              <textarea
-                name="medicalHistory"
-                value={profileData.medicalHistory}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-                placeholder="Describe your medical history..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Allergies
-              </label>
-              <textarea
-                name="allergies"
-                value={profileData.allergies}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-                placeholder="List any known allergies..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Current Medications
-              </label>
-              <textarea
-                name="medications"
-                value={profileData.medications}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
-                placeholder="List current medications..."
-              />
-            </div>
+          <div className="mt-4 sm:mt-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Bio
+            </label>
+            <textarea
+              name="bio"
+              value={profileData.bio}
+              onChange={handleInputChange}
+              disabled={!isEditing}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
+              placeholder="Tell us about your professional background..."
+            />
           </div>
         </div>
 

@@ -231,7 +231,8 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
         { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
         { icon: 'Headphones', label: 'Support Tickets', path: '/support-tickets' },
         { icon: 'Package', label: 'Inventory', path: '/inventory' },
-        { icon: 'Bell', label: 'Notifications', path: '/notifications' }
+        { icon: 'Bell', label: 'Notifications', path: '/notifications' },
+        { icon: 'User', label: 'Profile', path: '/profile' }
       ]
     },
     {

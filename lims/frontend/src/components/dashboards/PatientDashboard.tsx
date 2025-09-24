@@ -6,11 +6,237 @@ import {
   HelpCircle,
   MessageSquare,
   User,
+  X,
+  Send,
+  Eye,
+  Download,
 } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
 
 const PatientDashboard: React.FC = () => {
+  // State management for modals
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+  const [showReplyModal, setShowReplyModal] = useState(false);
+  const [showBookAppointmentModal, setShowBookAppointmentModal] =
+    useState(false);
+  const [showViewResultModal, setShowViewResultModal] = useState(false);
+  const [showGetHelpModal, setShowGetHelpModal] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
+
+  // Form states
+  const [newMessage, setNewMessage] = useState({
+    to: "",
+    subject: "",
+    message: "",
+    priority: "normal",
+  });
+
+  const [replyMessage, setReplyMessage] = useState({
+    message: "",
+  });
+
+  const [appointmentData, setAppointmentData] = useState({
+    doctor: "",
+    date: "",
+    time: "",
+    type: "",
+    reason: "",
+  });
+
+  // Messages data state
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      from: "Dr. Sarah Johnson",
+      subject: "Test Results Discussion",
+      message:
+        "Your recent blood panel results look excellent. All values are within normal range. We should continue with the current treatment plan and schedule a follow-up in 3 months.",
+      time: "2 hours ago",
+      unread: true,
+    },
+    {
+      id: 2,
+      from: "Lab Technician Mike",
+      subject: "Sample Collection Reminder",
+      message:
+        "Please remember to fast for 12 hours before your blood test tomorrow. You can drink water but avoid food, coffee, and other beverages.",
+      time: "1 day ago",
+      unread: false,
+    },
+    {
+      id: 3,
+      from: "Nurse Lisa",
+      subject: "Appointment Confirmation",
+      message:
+        "Your appointment for tomorrow at 10:00 AM has been confirmed. Please arrive 15 minutes early and bring your insurance card.",
+      time: "2 days ago",
+      unread: false,
+    },
+  ]);
+
+  // Test results data state
+  const [testResults, setTestResults] = useState([
+    {
+      id: 1,
+      test: "Blood Panel Complete",
+      date: "Jan 18, 2025",
+      result: "Normal",
+      status: "Available",
+      details:
+        "All blood parameters are within normal ranges. Hemoglobin: 14.2 g/dL, White Blood Cells: 7.2 K/μL, Platelets: 285 K/μL.",
+      fileUrl: "blood_panel_jan18.pdf",
+    },
+    {
+      id: 2,
+      test: "X-Ray Chest",
+      date: "Jan 15, 2025",
+      result: "Clear",
+      status: "Available",
+      details:
+        "Chest X-ray shows clear lung fields with no signs of abnormalities. Heart size is normal.",
+      fileUrl: "chest_xray_jan15.pdf",
+    },
+    {
+      id: 3,
+      test: "Urine Analysis",
+      date: "Jan 12, 2025",
+      result: "Normal",
+      status: "Available",
+      details:
+        "Urine analysis shows normal values. No signs of infection or abnormalities detected.",
+      fileUrl: "urine_analysis_jan12.pdf",
+    },
+    {
+      id: 4,
+      test: "MRI Brain",
+      date: "Jan 10, 2025",
+      result: "Pending",
+      status: "Processing",
+      details:
+        "MRI scan is currently being processed by our radiologist. Results will be available within 2-3 business days.",
+      fileUrl: null,
+    },
+  ]);
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem("patientMessages");
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    }
+
+    const savedTestResults = localStorage.getItem("patientTestResults");
+    if (savedTestResults) {
+      setTestResults(JSON.parse(savedTestResults));
+    }
+  }, []);
+
+  // Save data to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem("patientMessages", JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem("patientTestResults", JSON.stringify(testResults));
+  }, [testResults]);
+
+  // Handler functions
+  const handleNewMessage = () => {
+    setNewMessage({
+      to: "",
+      subject: "",
+      message: "",
+      priority: "normal",
+    });
+    setShowNewMessageModal(true);
+  };
+
+  const handleMarkAsRead = (messageId: number) => {
+    const updatedMessages = messages.map((msg) =>
+      msg.id === messageId ? { ...msg, unread: false } : msg
+    );
+    setMessages(updatedMessages);
+  };
+
+  const handleReply = (message: any) => {
+    setSelectedMessage(message);
+    setReplyMessage({ message: "" });
+    setShowReplyModal(true);
+  };
+
+  const handleSendNewMessage = () => {
+    const newMessageData = {
+      id: messages.length + 1,
+      from: "You",
+      subject: newMessage.subject,
+      message: newMessage.message,
+      time: "Just now",
+      unread: false,
+    };
+    setMessages([newMessageData, ...messages]);
+    setShowNewMessageModal(false);
+  };
+
+  const handleSendReply = () => {
+    const replyData = {
+      id: messages.length + 1,
+      from: "You",
+      subject: `Re: ${selectedMessage.subject}`,
+      message: replyMessage.message,
+      time: "Just now",
+      unread: false,
+    };
+    setMessages([replyData, ...messages]);
+    setShowReplyModal(false);
+  };
+
+  const handleBookNow = () => {
+    setAppointmentData({
+      doctor: "",
+      date: "",
+      time: "",
+      type: "",
+      reason: "",
+    });
+    setShowBookAppointmentModal(true);
+  };
+
+  const handleBookAppointment = () => {
+    // Simulate booking appointment
+    console.log("Booking appointment:", appointmentData);
+    setShowBookAppointmentModal(false);
+    alert(
+      "Appointment request submitted successfully! You will receive a confirmation soon."
+    );
+  };
+
+  const handleViewResult = (test: any) => {
+    setSelectedTest(test);
+    setShowViewResultModal(true);
+  };
+
+  const handleDownloadResult = (test: any) => {
+    if (test.fileUrl) {
+      // Simulate file download
+      const content = `Test Result: ${test.test}\n\nDate: ${test.date}\nResult: ${test.result}\n\nDetails:\n${test.details}`;
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${test.test.replace(/\s+/g, "_")}_${test.date}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleGetHelp = () => {
+    setShowGetHelpModal(true);
+  };
+
   const patientCards = [
     {
       title: "Upcoming Appointments",
@@ -164,32 +390,7 @@ const PatientDashboard: React.FC = () => {
             <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
-            {[
-              {
-                test: "Blood Panel Complete",
-                date: "Jan 18, 2025",
-                result: "Normal",
-                status: "Available",
-              },
-              {
-                test: "X-Ray Chest",
-                date: "Jan 15, 2025",
-                result: "Clear",
-                status: "Available",
-              },
-              {
-                test: "Urine Analysis",
-                date: "Jan 12, 2025",
-                result: "Normal",
-                status: "Available",
-              },
-              {
-                test: "MRI Brain",
-                date: "Jan 10, 2025",
-                result: "Pending",
-                status: "Processing",
-              },
-            ].map((test, index) => (
+            {testResults.map((test, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
@@ -219,7 +420,7 @@ const PatientDashboard: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center space-x-2">
                   <span
                     className={`text-xs font-semibold px-2 py-1 rounded-full ${
                       test.result === "Normal" || test.result === "Clear"
@@ -231,6 +432,14 @@ const PatientDashboard: React.FC = () => {
                   >
                     {test.result}
                   </span>
+                  {test.status === "Available" && (
+                    <button
+                      onClick={() => handleViewResult(test)}
+                      className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                    >
+                      View
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -245,39 +454,17 @@ const PatientDashboard: React.FC = () => {
             Messages from Healthcare Team
           </h3>
           <div className="flex items-center space-x-2">
-            <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+            <button
+              onClick={handleNewMessage}
+              className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
               New Message
             </button>
             <MessageSquare className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
         </div>
         <div className="space-y-4">
-          {[
-            {
-              from: "Dr. Sarah Johnson",
-              subject: "Test Results Discussion",
-              message:
-                "Your recent blood panel results look excellent. All values are within normal range...",
-              time: "2 hours ago",
-              unread: true,
-            },
-            {
-              from: "Lab Technician Mike",
-              subject: "Sample Collection Reminder",
-              message:
-                "Please remember to fast for 12 hours before your blood test tomorrow...",
-              time: "1 day ago",
-              unread: false,
-            },
-            {
-              from: "Nurse Lisa",
-              subject: "Appointment Confirmation",
-              message:
-                "Your appointment for tomorrow at 10:00 AM has been confirmed. Please arrive 15 minutes early...",
-              time: "2 days ago",
-              unread: false,
-            },
-          ].map((message, index) => (
+          {messages.map((message, index) => (
             <div
               key={index}
               className={`p-4 rounded-lg border ${
@@ -311,7 +498,14 @@ const PatientDashboard: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                <button
+                  onClick={() =>
+                    message.unread
+                      ? handleMarkAsRead(message.id)
+                      : handleReply(message)
+                  }
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
                   {message.unread ? "Mark as Read" : "Reply"}
                 </button>
               </div>
@@ -332,7 +526,10 @@ const PatientDashboard: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Schedule your next visit with our healthcare team
           </p>
-          <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+          <button
+            onClick={handleBookNow}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+          >
             Book Now
           </button>
         </div>
@@ -347,7 +544,10 @@ const PatientDashboard: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Access your latest test results and reports
           </p>
-          <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">
+          <button
+            onClick={() => handleViewResult(testResults[0])}
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
+          >
             View Results
           </button>
         </div>
@@ -362,11 +562,479 @@ const PatientDashboard: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Find answers to common questions and get support
           </p>
-          <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700">
+          <button
+            onClick={handleGetHelp}
+            className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700"
+          >
             Get Help
           </button>
         </div>
       </div>
+
+      {/* New Message Modal */}
+      {showNewMessageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                New Message
+              </h2>
+              <button
+                onClick={() => setShowNewMessageModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  To *
+                </label>
+                <select
+                  value={newMessage.to}
+                  onChange={(e) =>
+                    setNewMessage({ ...newMessage, to: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select recipient</option>
+                  <option value="Dr. Sarah Johnson">Dr. Sarah Johnson</option>
+                  <option value="Dr. Mike Chen">Dr. Mike Chen</option>
+                  <option value="Dr. Lisa Rodriguez">Dr. Lisa Rodriguez</option>
+                  <option value="Nurse Lisa">Nurse Lisa</option>
+                  <option value="Lab Technician Mike">
+                    Lab Technician Mike
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Subject *
+                </label>
+                <input
+                  type="text"
+                  value={newMessage.subject}
+                  onChange={(e) =>
+                    setNewMessage({ ...newMessage, subject: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter message subject"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={newMessage.priority}
+                  onChange={(e) =>
+                    setNewMessage({ ...newMessage, priority: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="normal">Normal</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Message *
+                </label>
+                <textarea
+                  value={newMessage.message}
+                  onChange={(e) =>
+                    setNewMessage({ ...newMessage, message: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter your message"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowNewMessageModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendNewMessage}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reply Modal */}
+      {showReplyModal && selectedMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Reply to {selectedMessage.from}
+              </h2>
+              <button
+                onClick={() => setShowReplyModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Original Message: {selectedMessage.subject}
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {selectedMessage.message}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Your Reply *
+                </label>
+                <textarea
+                  value={replyMessage.message}
+                  onChange={(e) =>
+                    setReplyMessage({
+                      ...replyMessage,
+                      message: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter your reply"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowReplyModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendReply}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Send Reply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Book Appointment Modal */}
+      {showBookAppointmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Book New Appointment
+              </h2>
+              <button
+                onClick={() => setShowBookAppointmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Doctor *
+                </label>
+                <select
+                  value={appointmentData.doctor}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      doctor: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select doctor</option>
+                  <option value="Dr. Sarah Johnson">Dr. Sarah Johnson</option>
+                  <option value="Dr. Mike Chen">Dr. Mike Chen</option>
+                  <option value="Dr. Lisa Rodriguez">Dr. Lisa Rodriguez</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Preferred Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={appointmentData.date}
+                    onChange={(e) =>
+                      setAppointmentData({
+                        ...appointmentData,
+                        date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Preferred Time *
+                  </label>
+                  <select
+                    value={appointmentData.time}
+                    onChange={(e) =>
+                      setAppointmentData({
+                        ...appointmentData,
+                        time: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select time</option>
+                    <option value="09:00">09:00 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="14:00">02:00 PM</option>
+                    <option value="15:00">03:00 PM</option>
+                    <option value="16:00">04:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Appointment Type *
+                </label>
+                <select
+                  value={appointmentData.type}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      type: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select type</option>
+                  <option value="Consultation">Consultation</option>
+                  <option value="Follow-up">Follow-up</option>
+                  <option value="Test Review">Test Review</option>
+                  <option value="Emergency">Emergency</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Reason for Visit *
+                </label>
+                <textarea
+                  value={appointmentData.reason}
+                  onChange={(e) =>
+                    setAppointmentData({
+                      ...appointmentData,
+                      reason: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Describe the reason for your appointment"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowBookAppointmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBookAppointment}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Book Appointment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Result Modal */}
+      {showViewResultModal && selectedTest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Test Result Details
+              </h2>
+              <button
+                onClick={() => setShowViewResultModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedTest.test}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {selectedTest.details}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Test Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTest.date}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Result
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      selectedTest.result === "Normal" ||
+                      selectedTest.result === "Clear"
+                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                        : selectedTest.result === "Pending"
+                        ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                        : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+                    }`}
+                  >
+                    {selectedTest.result}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Status
+                </label>
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    selectedTest.status === "Available"
+                      ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                      : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                  }`}
+                >
+                  {selectedTest.status}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowViewResultModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+              {selectedTest.status === "Available" && (
+                <button
+                  onClick={() => handleDownloadResult(selectedTest)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Download Result
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Get Help Modal */}
+      {showGetHelpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Help & Support
+              </h2>
+              <button
+                onClick={() => setShowGetHelpModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Frequently Asked Questions
+                  </h3>
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <p>
+                      <strong>Q:</strong> How do I view my test results?
+                    </p>
+                    <p>
+                      <strong>A:</strong> Click on "View Results" in the test
+                      results section or use the "View Test Results" quick
+                      action button.
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Contact Information
+                  </h3>
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <p>
+                      <strong>Phone:</strong> (555) 123-4567
+                    </p>
+                    <p>
+                      <strong>Email:</strong> support@medicare.com
+                    </p>
+                    <p>
+                      <strong>Hours:</strong> Monday-Friday, 8:00 AM - 6:00 PM
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Emergency Contact
+                  </h3>
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <p>
+                      <strong>Emergency Line:</strong> (555) 911-HELP
+                    </p>
+                    <p>
+                      <strong>Available:</strong> 24/7 for urgent medical
+                      concerns
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowGetHelpModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowGetHelpModal(false);
+                  handleNewMessage();
+                }}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Contact Support
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </BaseDashboard>
   );
 };

@@ -146,6 +146,27 @@ const Support: React.FC = () => {
     }
   };
 
+  // Contact handler functions
+  const handleCallSupport = () => {
+    alert(
+      "Calling support...\n\nPhone: (555) 123-4567\nHours: Monday-Friday, 8:00 AM - 6:00 PM\n\nEmergency Line: (555) 911-HELP (24/7)"
+    );
+  };
+
+  const handleEmailSupport = () => {
+    const subject = encodeURIComponent("Patient Support Request");
+    const body = encodeURIComponent(
+      `Hello Support Team,\n\nI need assistance with:\n\n[Please describe your issue here]\n\nThank you.`
+    );
+    window.open(`mailto:support@clinic.com?subject=${subject}&body=${body}`);
+  };
+
+  const handleLiveChat = () => {
+    alert(
+      "Live Chat Support\n\nConnecting you to our support team...\n\nAvailable: Monday-Friday, 9:00 AM - 5:00 PM\n\nA support agent will be with you shortly."
+    );
+  };
+
   const totalTickets = supportTickets.length;
   const openTickets = supportTickets.filter((t) => t.status === "open").length;
   const inProgressTickets = supportTickets.filter(
@@ -180,7 +201,10 @@ const Support: React.FC = () => {
 
       {/* Quick Contact Options */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <button className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow">
+        <button
+          onClick={handleCallSupport}
+          className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
+        >
           <Phone className="w-6 h-6 text-primary-600" />
           <div className="text-left">
             <h3 className="font-medium text-gray-900 dark:text-white">
@@ -191,7 +215,10 @@ const Support: React.FC = () => {
             </p>
           </div>
         </button>
-        <button className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow">
+        <button
+          onClick={handleEmailSupport}
+          className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
+        >
           <Mail className="w-6 h-6 text-primary-600" />
           <div className="text-left">
             <h3 className="font-medium text-gray-900 dark:text-white">
@@ -202,7 +229,10 @@ const Support: React.FC = () => {
             </p>
           </div>
         </button>
-        <button className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow">
+        <button
+          onClick={handleLiveChat}
+          className="flex items-center space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
+        >
           <MessageCircle className="w-6 h-6 text-primary-600" />
           <div className="text-left">
             <h3 className="font-medium text-gray-900 dark:text-white">
@@ -213,58 +243,6 @@ const Support: React.FC = () => {
             </p>
           </div>
         </button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Tickets
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalTickets}
-              </p>
-            </div>
-            <Ticket className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Open</p>
-              <p className="text-2xl font-bold text-red-600">{openTickets}</p>
-            </div>
-            <Clock className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                In Progress
-              </p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {inProgressTickets}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Resolved
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {resolvedTickets}
-              </p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
       </div>
 
       {/* New Ticket Form Modal */}

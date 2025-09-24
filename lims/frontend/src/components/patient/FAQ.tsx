@@ -119,6 +119,30 @@ const FAQ: React.FC = () => {
     setExpandedItems(newExpanded);
   };
 
+  // Support handler functions
+  const handleCallSupport = () => {
+    // Simulate calling support
+    alert(
+      "Calling support...\n\nPhone: (555) 123-4567\nHours: Monday-Friday, 8:00 AM - 6:00 PM\n\nEmergency Line: (555) 911-HELP (24/7)"
+    );
+  };
+
+  const handleEmailSupport = () => {
+    // Simulate email support
+    const subject = encodeURIComponent("Patient Support Request");
+    const body = encodeURIComponent(
+      `Hello Support Team,\n\nI need assistance with:\n\n[Please describe your issue here]\n\nThank you.`
+    );
+    window.open(`mailto:support@medicare.com?subject=${subject}&body=${body}`);
+  };
+
+  const handleLiveChat = () => {
+    // Simulate live chat
+    alert(
+      "Live Chat Support\n\nConnecting you to our support team...\n\nAvailable: Monday-Friday, 9:00 AM - 5:00 PM\n\nA support agent will be with you shortly."
+    );
+  };
+
   const categories = [
     "all",
     ...Array.from(new Set(faqItems.map((item) => item.category))),
@@ -240,15 +264,24 @@ const FAQ: React.FC = () => {
           here to help.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <button
+            onClick={handleCallSupport}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
             <Phone className="w-4 h-4" />
             <span>Call Support</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          <button
+            onClick={handleEmailSupport}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
             <Mail className="w-4 h-4" />
             <span>Email Support</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          <button
+            onClick={handleLiveChat}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
             <MessageCircle className="w-4 h-4" />
             <span>Live Chat</span>
           </button>
