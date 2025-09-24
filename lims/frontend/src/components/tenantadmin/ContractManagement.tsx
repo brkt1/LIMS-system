@@ -6,15 +6,65 @@ import {
   DollarSign,
   User,
   AlertCircle,
+  Eye,
+  Edit,
+  X,
+  RotateCcw,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const ContractManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
 
-  const contracts = [
+  // Modal states
+  const [showAddContractModal, setShowAddContractModal] = useState(false);
+  const [showViewContractModal, setShowViewContractModal] = useState(false);
+  const [showEditContractModal, setShowEditContractModal] = useState(false);
+  const [showRenewContractModal, setShowRenewContractModal] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<any>(null);
+
+  // Form states
+  const [newContract, setNewContract] = useState({
+    title: "",
+    type: "",
+    vendor: "",
+    vendorContact: "",
+    vendorEmail: "",
+    vendorPhone: "",
+    startDate: "",
+    endDate: "",
+    value: "",
+    currency: "USD",
+    terms: "",
+    description: "",
+  });
+
+  const [editContract, setEditContract] = useState({
+    title: "",
+    type: "",
+    vendor: "",
+    vendorContact: "",
+    vendorEmail: "",
+    vendorPhone: "",
+    startDate: "",
+    endDate: "",
+    value: "",
+    currency: "USD",
+    terms: "",
+    description: "",
+  });
+
+  const [renewContract, setRenewContract] = useState({
+    newEndDate: "",
+    newValue: "",
+    newTerms: "",
+    notes: "",
+  });
+
+  // Convert static data to state
+  const [contracts, setContracts] = useState([
     {
       id: "CT001",
       title: "Medical Equipment Supply Agreement",
@@ -110,7 +160,20 @@ const ContractManagement: React.FC = () => {
       lastModified: "2025-01-20",
       modifiedBy: "Dr. Jennifer Smith",
     },
-  ];
+  ]);
+
+  // Load contracts from localStorage on component mount
+  useEffect(() => {
+    const savedContracts = localStorage.getItem("contracts");
+    if (savedContracts) {
+      setContracts(JSON.parse(savedContracts));
+    }
+  }, []);
+
+  // Save contracts to localStorage whenever contracts change
+  useEffect(() => {
+    localStorage.setItem("contracts", JSON.stringify(contracts));
+  }, [contracts]);
 
   const filteredContracts = contracts.filter((contract) => {
     const matchesSearch =
@@ -153,16 +216,110 @@ const ContractManagement: React.FC = () => {
     }
   };
 
-  const totalContracts = contracts.length;
-  const activeContracts = contracts.filter((c) => c.status === "active").length;
-  const totalValue = contracts.reduce((sum, c) => sum + c.value, 0);
-  const expiringSoon = contracts.filter((c) => {
-    const renewalDate = new Date(c.renewalDate);
-    const today = new Date();
-    const diffTime = renewalDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30 && diffDays > 0;
-  }).length;
+  // Handler functions
+  const handleAddContract = () => {
+    setNewContract({
+      title: "",
+      type: "",
+      vendor: "",
+      vendorContact: "",
+      vendorEmail: "",
+      vendorPhone: "",
+      startDate: "",
+      endDate: "",
+      value: "",
+      currency: "USD",
+      terms: "",
+      description: "",
+    });
+    setShowAddContractModal(true);
+  };
+
+  const handleViewContract = (contract: any) => {
+    setSelectedContract(contract);
+    setShowViewContractModal(true);
+  };
+
+  const handleEditContract = (contract: any) => {
+    setSelectedContract(contract);
+    setEditContract({
+      title: contract.title,
+      type: contract.type,
+      vendor: contract.vendor,
+      vendorContact: contract.vendorContact,
+      vendorEmail: contract.vendorEmail,
+      vendorPhone: contract.vendorPhone,
+      startDate: contract.startDate,
+      endDate: contract.endDate,
+      value: contract.value.toString(),
+      currency: contract.currency,
+      terms: contract.terms,
+      description: contract.description,
+    });
+    setShowEditContractModal(true);
+  };
+
+  const handleRenewContract = (contract: any) => {
+    setSelectedContract(contract);
+    setRenewContract({
+      newEndDate: "",
+      newValue: contract.value.toString(),
+      newTerms: contract.terms,
+      notes: "",
+    });
+    setShowRenewContractModal(true);
+  };
+
+  const handleCreateContract = () => {
+    const newId = `CT${String(contracts.length + 1).padStart(3, "0")}`;
+    const contract = {
+      id: newId,
+      ...newContract,
+      value: parseFloat(newContract.value),
+      status: "active",
+      renewalDate: newContract.endDate,
+      lastModified: new Date().toISOString().split("T")[0],
+      modifiedBy: "Current User",
+    };
+    setContracts((prev: any) => [...prev, contract]);
+    setShowAddContractModal(false);
+  };
+
+  const handleUpdateContract = () => {
+    setContracts((prev: any) =>
+      prev.map((contract: any) =>
+        contract.id === selectedContract.id
+          ? {
+              ...contract,
+              ...editContract,
+              value: parseFloat(editContract.value),
+              lastModified: new Date().toISOString().split("T")[0],
+              modifiedBy: "Current User",
+            }
+          : contract
+      )
+    );
+    setShowEditContractModal(false);
+  };
+
+  const handleRenewConfirm = () => {
+    setContracts((prev: any) =>
+      prev.map((contract: any) =>
+        contract.id === selectedContract.id
+          ? {
+              ...contract,
+              endDate: renewContract.newEndDate,
+              value: parseFloat(renewContract.newValue),
+              terms: renewContract.newTerms,
+              renewalDate: renewContract.newEndDate,
+              lastModified: new Date().toISOString().split("T")[0],
+              modifiedBy: "Current User",
+            }
+          : contract
+      )
+    );
+    setShowRenewContractModal(false);
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -172,9 +329,14 @@ const ContractManagement: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
             Contract Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">Manage contracts and agreements</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Manage contracts and agreements
+          </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleAddContract}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Contract</span>
         </button>
@@ -220,54 +382,6 @@ const ContractManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Contracts</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
-                {totalContracts}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Active</p>
-              <p className="text-2xl font-bold text-green-600">
-                {activeContracts}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Value</p>
-              <p className="text-2xl font-bold text-blue-600">
-                ${totalValue.toLocaleString()}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Expiring Soon</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {expiringSoon}
-              </p>
-            </div>
-            <AlertCircle className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Contracts Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -302,7 +416,10 @@ const ContractManagement: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredContracts.map((contract) => (
-                <tr key={contract.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={contract.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -375,14 +492,26 @@ const ContractManagement: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                        View
+                      <button
+                        onClick={() => handleViewContract(contract)}
+                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>View</span>
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                        Edit
+                      <button
+                        onClick={() => handleEditContract(contract)}
+                        className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span>Edit</span>
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                        Renew
+                      <button
+                        onClick={() => handleRenewContract(contract)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>Renew</span>
                       </button>
                     </div>
                   </td>
@@ -392,6 +521,751 @@ const ContractManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Contract Modal */}
+      {showAddContractModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Add New Contract
+              </h2>
+              <button
+                onClick={() => setShowAddContractModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newContract.title}
+                    onChange={(e) =>
+                      setNewContract({ ...newContract, title: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter contract title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Type
+                  </label>
+                  <select
+                    value={newContract.type}
+                    onChange={(e) =>
+                      setNewContract({ ...newContract, type: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select type</option>
+                    <option value="Supply">Supply</option>
+                    <option value="Service">Service</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Lease">Lease</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Vendor Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newContract.vendor}
+                    onChange={(e) =>
+                      setNewContract({ ...newContract, vendor: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter vendor name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    value={newContract.vendorContact}
+                    onChange={(e) =>
+                      setNewContract({
+                        ...newContract,
+                        vendorContact: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter contact person"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newContract.vendorEmail}
+                    onChange={(e) =>
+                      setNewContract({
+                        ...newContract,
+                        vendorEmail: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={newContract.vendorPhone}
+                    onChange={(e) =>
+                      setNewContract({
+                        ...newContract,
+                        vendorPhone: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newContract.startDate}
+                    onChange={(e) =>
+                      setNewContract({
+                        ...newContract,
+                        startDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newContract.endDate}
+                    onChange={(e) =>
+                      setNewContract({
+                        ...newContract,
+                        endDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Value
+                  </label>
+                  <input
+                    type="number"
+                    value={newContract.value}
+                    onChange={(e) =>
+                      setNewContract({ ...newContract, value: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter contract value"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Currency
+                  </label>
+                  <select
+                    value={newContract.currency}
+                    onChange={(e) =>
+                      setNewContract({
+                        ...newContract,
+                        currency: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Terms & Conditions
+                </label>
+                <textarea
+                  value={newContract.terms}
+                  onChange={(e) =>
+                    setNewContract({ ...newContract, terms: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter terms and conditions"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={newContract.description}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter contract description"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddContractModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateContract}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Create Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Contract Modal */}
+      {showViewContractModal && selectedContract && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Contract Details
+              </h2>
+              <button
+                onClick={() => setShowViewContractModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Title
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.title}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.type}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedContract.status
+                    )}`}
+                  >
+                    {selectedContract.status.charAt(0).toUpperCase() +
+                      selectedContract.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Vendor
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.vendor}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contact Person
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.vendorContact}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.vendorEmail}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.vendorPhone}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.startDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.endDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Value
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedContract.value.toLocaleString()}{" "}
+                    {selectedContract.currency}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Renewal Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.renewalDate}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Terms & Conditions
+                </label>
+                <p className="text-sm text-gray-900 dark:text-white">
+                  {selectedContract.terms}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <p className="text-sm text-gray-900 dark:text-white">
+                  {selectedContract.description}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Modified
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.lastModified}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Modified By
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedContract.modifiedBy}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewContractModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Contract Modal */}
+      {showEditContractModal && selectedContract && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Edit Contract
+              </h2>
+              <button
+                onClick={() => setShowEditContractModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editContract.title}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        title: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Type
+                  </label>
+                  <select
+                    value={editContract.type}
+                    onChange={(e) =>
+                      setEditContract({ ...editContract, type: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="Supply">Supply</option>
+                    <option value="Service">Service</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Lease">Lease</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Vendor Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editContract.vendor}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        vendor: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    value={editContract.vendorContact}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        vendorContact: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editContract.vendorEmail}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        vendorEmail: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editContract.vendorPhone}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        vendorPhone: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editContract.startDate}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        startDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editContract.endDate}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        endDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Contract Value
+                  </label>
+                  <input
+                    type="number"
+                    value={editContract.value}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        value: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Currency
+                  </label>
+                  <select
+                    value={editContract.currency}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        currency: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Terms & Conditions
+                </label>
+                <textarea
+                  value={editContract.terms}
+                  onChange={(e) =>
+                    setEditContract({ ...editContract, terms: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editContract.description}
+                  onChange={(e) =>
+                    setEditContract({
+                      ...editContract,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditContractModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateContract}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Renew Contract Modal */}
+      {showRenewContractModal && selectedContract && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Renew Contract
+              </h2>
+              <button
+                onClick={() => setShowRenewContractModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Current Contract
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>{selectedContract.title}</strong> -{" "}
+                  {selectedContract.vendor}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current End Date: {selectedContract.endDate}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current Value: ${selectedContract.value.toLocaleString()}{" "}
+                  {selectedContract.currency}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New End Date
+                </label>
+                <input
+                  type="date"
+                  value={renewContract.newEndDate}
+                  onChange={(e) =>
+                    setRenewContract({
+                      ...renewContract,
+                      newEndDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New Contract Value
+                </label>
+                <input
+                  type="number"
+                  value={renewContract.newValue}
+                  onChange={(e) =>
+                    setRenewContract({
+                      ...renewContract,
+                      newValue: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter new contract value"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Updated Terms
+                </label>
+                <textarea
+                  value={renewContract.newTerms}
+                  onChange={(e) =>
+                    setRenewContract({
+                      ...renewContract,
+                      newTerms: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter updated terms and conditions"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Renewal Notes
+                </label>
+                <textarea
+                  value={renewContract.notes}
+                  onChange={(e) =>
+                    setRenewContract({
+                      ...renewContract,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any additional notes for this renewal"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowRenewContractModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenewConfirm}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Renew Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

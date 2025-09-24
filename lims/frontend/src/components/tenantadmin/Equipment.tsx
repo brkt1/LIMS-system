@@ -6,15 +6,70 @@ import {
   CheckCircle,
   Clock,
   Calendar,
+  Eye,
+  Edit,
+  X,
+  Settings,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Equipment: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
 
-  const equipment = [
+  // Modal states
+  const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+  const [showViewEquipmentModal, setShowViewEquipmentModal] = useState(false);
+  const [showMaintainEquipmentModal, setShowMaintainEquipmentModal] =
+    useState(false);
+  const [showEditEquipmentModal, setShowEditEquipmentModal] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+
+  // Form states
+  const [newEquipment, setNewEquipment] = useState({
+    name: "",
+    type: "",
+    category: "",
+    serialNumber: "",
+    manufacturer: "",
+    model: "",
+    location: "",
+    purchaseDate: "",
+    warrantyExpiry: "",
+    maintenanceInterval: "",
+    responsible: "",
+    cost: "",
+    condition: "",
+  });
+
+  const [editEquipment, setEditEquipment] = useState({
+    name: "",
+    type: "",
+    category: "",
+    serialNumber: "",
+    manufacturer: "",
+    model: "",
+    location: "",
+    purchaseDate: "",
+    warrantyExpiry: "",
+    maintenanceInterval: "",
+    responsible: "",
+    cost: "",
+    condition: "",
+  });
+
+  const [maintenanceData, setMaintenanceData] = useState({
+    maintenanceType: "",
+    description: "",
+    technician: "",
+    scheduledDate: "",
+    estimatedDuration: "",
+    notes: "",
+  });
+
+  // Convert static data to state
+  const [equipment, setEquipment] = useState([
     {
       id: "EQ001",
       name: "Centrifuge Model CF-2000",
@@ -110,7 +165,20 @@ const Equipment: React.FC = () => {
       cost: 12000,
       condition: "Good",
     },
-  ];
+  ]);
+
+  // Load equipment from localStorage on component mount
+  useEffect(() => {
+    const savedEquipment = localStorage.getItem("tenantEquipment");
+    if (savedEquipment) {
+      setEquipment(JSON.parse(savedEquipment));
+    }
+  }, []);
+
+  // Save equipment to localStorage whenever equipment changes
+  useEffect(() => {
+    localStorage.setItem("tenantEquipment", JSON.stringify(equipment));
+  }, [equipment]);
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch =
@@ -153,30 +221,132 @@ const Equipment: React.FC = () => {
     }
   };
 
-  const totalEquipment = equipment.length;
-  const operationalEquipment = equipment.filter(
-    (e) => e.status === "operational"
-  ).length;
-  const maintenanceDue = equipment.filter((e) => {
-    const nextMaintenance = new Date(e.nextMaintenance);
-    const today = new Date();
-    const diffTime = nextMaintenance.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30 && diffDays > 0;
-  }).length;
-  const totalValue = equipment.reduce((sum, e) => sum + e.cost, 0);
+  // Handler functions
+  const handleAddEquipment = () => {
+    setNewEquipment({
+      name: "",
+      type: "",
+      category: "",
+      serialNumber: "",
+      manufacturer: "",
+      model: "",
+      location: "",
+      purchaseDate: "",
+      warrantyExpiry: "",
+      maintenanceInterval: "",
+      responsible: "",
+      cost: "",
+      condition: "",
+    });
+    setShowAddEquipmentModal(true);
+  };
+
+  const handleViewEquipment = (item: any) => {
+    setSelectedEquipment(item);
+    setShowViewEquipmentModal(true);
+  };
+
+  const handleMaintainEquipment = (item: any) => {
+    setSelectedEquipment(item);
+    setMaintenanceData({
+      maintenanceType: "",
+      description: "",
+      technician: "",
+      scheduledDate: "",
+      estimatedDuration: "",
+      notes: "",
+    });
+    setShowMaintainEquipmentModal(true);
+  };
+
+  const handleEditEquipment = (item: any) => {
+    setSelectedEquipment(item);
+    setEditEquipment({
+      name: item.name,
+      type: item.type,
+      category: item.category,
+      serialNumber: item.serialNumber,
+      manufacturer: item.manufacturer,
+      model: item.model,
+      location: item.location,
+      purchaseDate: item.purchaseDate,
+      warrantyExpiry: item.warrantyExpiry,
+      maintenanceInterval: item.maintenanceInterval,
+      responsible: item.responsible,
+      cost: item.cost.toString(),
+      condition: item.condition,
+    });
+    setShowEditEquipmentModal(true);
+  };
+
+  const handleCreateEquipment = () => {
+    const newId = `EQ${String(equipment.length + 1).padStart(3, "0")}`;
+    const equipmentItem = {
+      id: newId,
+      ...newEquipment,
+      cost: parseFloat(newEquipment.cost),
+      status: "operational",
+      lastMaintenance: new Date().toISOString().split("T")[0],
+      nextMaintenance: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0], // 90 days from now
+    };
+    setEquipment((prev: any) => [...prev, equipmentItem]);
+    setShowAddEquipmentModal(false);
+  };
+
+  const handleUpdateEquipment = () => {
+    setEquipment((prev: any) =>
+      prev.map((item: any) =>
+        item.id === selectedEquipment.id
+          ? {
+              ...item,
+              ...editEquipment,
+              cost: parseFloat(editEquipment.cost),
+            }
+          : item
+      )
+    );
+    setShowEditEquipmentModal(false);
+  };
+
+  const handleScheduleMaintenance = () => {
+    setEquipment((prev: any) =>
+      prev.map((item: any) =>
+        item.id === selectedEquipment.id
+          ? {
+              ...item,
+              status: "maintenance",
+              lastMaintenance: maintenanceData.scheduledDate,
+              nextMaintenance: new Date(
+                new Date(maintenanceData.scheduledDate).getTime() +
+                  90 * 24 * 60 * 60 * 1000
+              )
+                .toISOString()
+                .split("T")[0],
+            }
+          : item
+      )
+    );
+    setShowMaintainEquipmentModal(false);
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">Equipment</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
+            Equipment
+          </h1>
           <p className="text-gray-600 dark:text-gray-300">
             Manage laboratory equipment and maintenance
           </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleAddEquipment}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Equipment</span>
         </button>
@@ -222,54 +392,6 @@ const Equipment: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Equipment</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
-                {totalEquipment}
-              </p>
-            </div>
-            <Wrench className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Operational</p>
-              <p className="text-2xl font-bold text-green-600">
-                {operationalEquipment}
-              </p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Maintenance Due</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {maintenanceDue}
-              </p>
-            </div>
-            <AlertTriangle className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Value</p>
-              <p className="text-2xl font-bold text-blue-600">
-                ${totalValue.toLocaleString()}
-              </p>
-            </div>
-            <Wrench className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Equipment Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -304,7 +426,10 @@ const Equipment: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredEquipment.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={item.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -327,7 +452,9 @@ const Equipment: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm text-gray-900 dark:text-white">{item.type}</div>
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {item.type}
+                      </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                         {item.category}
                       </div>
@@ -366,14 +493,26 @@ const Equipment: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                        View
+                      <button
+                        onClick={() => handleViewEquipment(item)}
+                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>View</span>
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                        Maintain
+                      <button
+                        onClick={() => handleMaintainEquipment(item)}
+                        className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Maintain</span>
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                        Edit
+                      <button
+                        onClick={() => handleEditEquipment(item)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span>Edit</span>
                       </button>
                     </div>
                   </td>
@@ -383,6 +522,858 @@ const Equipment: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Equipment Modal */}
+      {showAddEquipmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Add New Equipment
+              </h2>
+              <button
+                onClick={() => setShowAddEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Equipment Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.name}
+                    onChange={(e) =>
+                      setNewEquipment({ ...newEquipment, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter equipment name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Type
+                  </label>
+                  <select
+                    value={newEquipment.type}
+                    onChange={(e) =>
+                      setNewEquipment({ ...newEquipment, type: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select type</option>
+                    <option value="Laboratory">Laboratory</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Sterilization">Sterilization</option>
+                    <option value="Diagnostic">Diagnostic</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.category}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        category: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter category"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Serial Number
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.serialNumber}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        serialNumber: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter serial number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Manufacturer
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.manufacturer}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        manufacturer: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter manufacturer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.model}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        model: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter model"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.location}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        location: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter location"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Purchase Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newEquipment.purchaseDate}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        purchaseDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Warranty Expiry
+                  </label>
+                  <input
+                    type="date"
+                    value={newEquipment.warrantyExpiry}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        warrantyExpiry: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Maintenance Interval
+                  </label>
+                  <select
+                    value={newEquipment.maintenanceInterval}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        maintenanceInterval: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select interval</option>
+                    <option value="1 month">1 month</option>
+                    <option value="3 months">3 months</option>
+                    <option value="6 months">6 months</option>
+                    <option value="1 year">1 year</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Responsible Person
+                  </label>
+                  <input
+                    type="text"
+                    value={newEquipment.responsible}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        responsible: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter responsible person"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Cost
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newEquipment.cost}
+                    onChange={(e) =>
+                      setNewEquipment({ ...newEquipment, cost: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter cost"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Condition
+                  </label>
+                  <select
+                    value={newEquipment.condition}
+                    onChange={(e) =>
+                      setNewEquipment({
+                        ...newEquipment,
+                        condition: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select condition</option>
+                    <option value="Excellent">Excellent</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Needs Repair">Needs Repair</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddEquipmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateEquipment}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Equipment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Equipment Modal */}
+      {showViewEquipmentModal && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Equipment Details
+              </h2>
+              <button
+                onClick={() => setShowViewEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Equipment ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.type}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.category}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Serial Number
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.serialNumber}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Manufacturer
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.manufacturer}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Model
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.model}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Location
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.location}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedEquipment.status
+                    )}`}
+                  >
+                    {selectedEquipment.status
+                      .replace("_", " ")
+                      .charAt(0)
+                      .toUpperCase() +
+                      selectedEquipment.status.replace("_", " ").slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Condition
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getConditionColor(
+                      selectedEquipment.condition
+                    )}`}
+                  >
+                    {selectedEquipment.condition}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Purchase Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.purchaseDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Warranty Expiry
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.warrantyExpiry}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Maintenance
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.lastMaintenance}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Next Maintenance
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.nextMaintenance}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Maintenance Interval
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.maintenanceInterval}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Responsible Person
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.responsible}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Cost
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedEquipment.cost.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewEquipmentModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintain Equipment Modal */}
+      {showMaintainEquipmentModal && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Schedule Maintenance
+              </h2>
+              <button
+                onClick={() => setShowMaintainEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Equipment Details
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>{selectedEquipment.name}</strong> -{" "}
+                  {selectedEquipment.serialNumber}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Location: {selectedEquipment.location}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Last Maintenance: {selectedEquipment.lastMaintenance}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Maintenance Type
+                </label>
+                <select
+                  value={maintenanceData.maintenanceType}
+                  onChange={(e) =>
+                    setMaintenanceData({
+                      ...maintenanceData,
+                      maintenanceType: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select maintenance type</option>
+                  <option value="Preventive">Preventive</option>
+                  <option value="Corrective">Corrective</option>
+                  <option value="Emergency">Emergency</option>
+                  <option value="Calibration">Calibration</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={maintenanceData.description}
+                  onChange={(e) =>
+                    setMaintenanceData({
+                      ...maintenanceData,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter maintenance description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Technician
+                </label>
+                <input
+                  type="text"
+                  value={maintenanceData.technician}
+                  onChange={(e) =>
+                    setMaintenanceData({
+                      ...maintenanceData,
+                      technician: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter technician name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Scheduled Date
+                </label>
+                <input
+                  type="date"
+                  value={maintenanceData.scheduledDate}
+                  onChange={(e) =>
+                    setMaintenanceData({
+                      ...maintenanceData,
+                      scheduledDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Estimated Duration (hours)
+                </label>
+                <input
+                  type="number"
+                  value={maintenanceData.estimatedDuration}
+                  onChange={(e) =>
+                    setMaintenanceData({
+                      ...maintenanceData,
+                      estimatedDuration: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter estimated duration"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={maintenanceData.notes}
+                  onChange={(e) =>
+                    setMaintenanceData({
+                      ...maintenanceData,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter additional notes"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowMaintainEquipmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleScheduleMaintenance}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Schedule Maintenance
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Equipment Modal */}
+      {showEditEquipmentModal && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Edit Equipment
+              </h2>
+              <button
+                onClick={() => setShowEditEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Equipment Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.name}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Type
+                  </label>
+                  <select
+                    value={editEquipment.type}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        type: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="Laboratory">Laboratory</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Sterilization">Sterilization</option>
+                    <option value="Diagnostic">Diagnostic</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.category}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        category: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Serial Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.serialNumber}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        serialNumber: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Manufacturer
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.manufacturer}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        manufacturer: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.model}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        model: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.location}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        location: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Purchase Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editEquipment.purchaseDate}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        purchaseDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Warranty Expiry
+                  </label>
+                  <input
+                    type="date"
+                    value={editEquipment.warrantyExpiry}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        warrantyExpiry: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Maintenance Interval
+                  </label>
+                  <select
+                    value={editEquipment.maintenanceInterval}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        maintenanceInterval: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="1 month">1 month</option>
+                    <option value="3 months">3 months</option>
+                    <option value="6 months">6 months</option>
+                    <option value="1 year">1 year</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Responsible Person
+                  </label>
+                  <input
+                    type="text"
+                    value={editEquipment.responsible}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        responsible: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Cost
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editEquipment.cost}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        cost: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Condition
+                  </label>
+                  <select
+                    value={editEquipment.condition}
+                    onChange={(e) =>
+                      setEditEquipment({
+                        ...editEquipment,
+                        condition: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="Excellent">Excellent</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Needs Repair">Needs Repair</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditEquipmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateEquipment}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Equipment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

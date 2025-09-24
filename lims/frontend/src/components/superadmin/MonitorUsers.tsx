@@ -6,18 +6,36 @@ import {
   Monitor,
   RefreshCw,
   Search,
-  Shield,
   User,
   Users,
+  Eye,
+  Edit,
+  Trash2,
+  X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const MonitorUsers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const onlineUsers = [
+  // Modal states
+  const [showViewUserModal, setShowViewUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  // Form states
+  const [editUser, setEditUser] = useState({
+    name: "",
+    email: "",
+    role: "",
+    status: "online",
+  });
+
+  const [onlineUsers, setOnlineUsers] = useState([
     {
       id: "1",
       name: "John Smith",
@@ -88,7 +106,97 @@ const MonitorUsers: React.FC = () => {
       sessionDuration: "4h 20m",
       actions: 156,
     },
-  ];
+  ]);
+
+  // Load users from localStorage on component mount
+  useEffect(() => {
+    const savedUsers = localStorage.getItem("superadmin-online-users");
+    if (savedUsers) {
+      try {
+        setOnlineUsers(JSON.parse(savedUsers));
+      } catch (error) {
+        console.error("Error loading saved users:", error);
+      }
+    }
+  }, []);
+
+  // Save users to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem(
+      "superadmin-online-users",
+      JSON.stringify(onlineUsers)
+    );
+  }, [onlineUsers]);
+
+  // Handler functions
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Add a new user entry to simulate refresh
+    const newUser = {
+      id: (onlineUsers.length + 1).toString(),
+      name: "New User",
+      email: "newuser@example.com",
+      role: "User",
+      tenant: "System",
+      status: "online",
+      lastActivity: "Just now",
+      ipAddress: "127.0.0.1",
+      location: "Unknown",
+      device: "Unknown",
+      sessionDuration: "0m",
+      actions: 0,
+    };
+
+    setOnlineUsers((prev: any) => [newUser, ...prev]);
+    setIsRefreshing(false);
+  };
+
+  const handleViewUser = (user: any) => {
+    setSelectedUser(user);
+    setShowViewUserModal(true);
+  };
+
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setEditUser({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleUpdateUser = () => {
+    if (selectedUser) {
+      setOnlineUsers((prev: any) =>
+        prev.map((user: any) =>
+          user.id === selectedUser.id ? { ...user, ...editUser } : user
+        )
+      );
+      setShowEditUserModal(false);
+      setSelectedUser(null);
+    }
+  };
+
+  const handleDeleteUser = (user: any) => {
+    setSelectedUser(user);
+    setShowDeleteUserModal(true);
+  };
+
+  const handleDeleteUserConfirm = () => {
+    if (selectedUser) {
+      setOnlineUsers((prev: any) =>
+        prev.filter((user: any) => user.id !== selectedUser.id)
+      );
+      setShowDeleteUserModal(false);
+      setSelectedUser(null);
+    }
+  };
 
   const filteredUsers = onlineUsers.filter((user) => {
     const matchesSearch =
@@ -97,7 +205,10 @@ const MonitorUsers: React.FC = () => {
       user.tenant.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || user.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesRole =
+      filterRole === "all" ||
+      user.role.toLowerCase().includes(filterRole.toLowerCase());
+    return matchesSearch && matchesStatus && matchesRole;
   });
 
   const getStatusColor = (status: string) => {
@@ -130,13 +241,6 @@ const MonitorUsers: React.FC = () => {
       default:
         return "bg-gray-100 dark:bg-gray-700 text-gray-800";
     }
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
   };
 
   const totalOnline = onlineUsers.filter(
@@ -200,7 +304,9 @@ const MonitorUsers: React.FC = () => {
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {totalIdle}
                 </p>
-                <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-400">Inactive</p>
+                <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-400">
+                  Inactive
+                </p>
               </div>
               <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600 dark:text-yellow-400" />
             </div>
@@ -214,7 +320,9 @@ const MonitorUsers: React.FC = () => {
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {totalAway}
                 </p>
-                <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400">Away</p>
+                <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400">
+                  Away
+                </p>
               </div>
               <User className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 dark:text-orange-400" />
             </div>
@@ -228,7 +336,9 @@ const MonitorUsers: React.FC = () => {
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {onlineUsers.length}
                 </p>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">All statuses</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  All statuses
+                </p>
               </div>
               <Monitor className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
             </div>
@@ -259,7 +369,11 @@ const MonitorUsers: React.FC = () => {
               <option value="away">Away</option>
               <option value="offline">Offline</option>
             </select>
-            <select className="px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base">
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base"
+            >
               <option value="all">All Roles</option>
               <option value="super">Super Admin</option>
               <option value="tenant">Tenant Admin</option>
@@ -307,7 +421,10 @@ const MonitorUsers: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900">
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
+                  >
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex items-center space-x-2 sm:space-x-3">
                         <div className="relative">
@@ -387,16 +504,25 @@ const MonitorUsers: React.FC = () => {
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex items-center space-x-1 sm:space-x-2">
                         <button
+                          onClick={() => handleViewUser(user)}
                           className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400"
                           title="View Details"
                         >
-                          <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button
-                          className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400"
-                          title="End Session"
+                          onClick={() => handleEditUser(user)}
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                          title="Edit User"
                         >
-                          <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400"
+                          title="Delete User"
+                        >
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </td>
@@ -513,6 +639,271 @@ const MonitorUsers: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* View User Modal */}
+        {showViewUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  User Details
+                </h3>
+                <button
+                  onClick={() => setShowViewUserModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.name}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Role
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
+                        selectedUser.role
+                      )}`}
+                    >
+                      {selectedUser.role}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Status
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        selectedUser.status
+                      )}`}
+                    >
+                      {selectedUser.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Tenant
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.tenant}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Last Activity
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.lastActivity}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      IP Address
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.ipAddress}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Location
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.location}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Device
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.device}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Session Duration
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.sessionDuration}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Actions Count
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedUser.actions}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowViewUserModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Edit User
+                </h3>
+                <button
+                  onClick={() => setShowEditUserModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editUser.name}
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={editUser.email}
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={editUser.role}
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, role: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="Super Admin">Super Admin</option>
+                      <option value="Tenant Admin">Tenant Admin</option>
+                      <option value="Doctor">Doctor</option>
+                      <option value="Technician">Technician</option>
+                      <option value="Support">Support</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={editUser.status}
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, status: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="online">Online</option>
+                      <option value="idle">Idle</option>
+                      <option value="away">Away</option>
+                      <option value="offline">Offline</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowEditUserModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateUser}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update User
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete User Modal */}
+        {showDeleteUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete User
+                </h3>
+                <button
+                  onClick={() => setShowDeleteUserModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Are you sure you want to delete the user{" "}
+                  <strong>"{selectedUser.name}"</strong>? This action cannot be
+                  undone.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowDeleteUserModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteUserConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

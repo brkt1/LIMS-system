@@ -6,7 +6,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const UsageAnalysis: React.FC = () => {
   const [timeRange, setTimeRange] = useState("30d");
@@ -85,6 +85,111 @@ const UsageAnalysis: React.FC = () => {
     }
   };
 
+  // Export functionality
+  const handleExportReport = () => {
+    const csvContent = generateUsageReportCSV();
+    downloadCSV(csvContent, `usage-analysis-report-${timeRange}.csv`);
+  };
+
+  const generateUsageReportCSV = () => {
+    const headers = ["Metric", "Value", "Time Range", "Generated Date"];
+
+    const currentDate = new Date().toISOString().split("T")[0];
+    const timeRangeLabel = getTimeRangeLabel(timeRange);
+
+    const rows = [
+      [
+        "Total Users",
+        usageData.totalUsers.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "Active Users",
+        usageData.activeUsers.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "Total Tenants",
+        usageData.totalTenants.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "Active Tenants",
+        usageData.activeTenants.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "Total Tests",
+        usageData.totalTests.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "Total Reports",
+        usageData.totalReports.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "System Uptime (%)",
+        usageData.systemUptime.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      [
+        "Avg Response Time (ms)",
+        usageData.avgResponseTime.toString(),
+        timeRangeLabel,
+        currentDate,
+      ],
+      ["", "", "", ""], // Empty row
+      [
+        "Tenant Name",
+        "Users",
+        "Tests",
+        "Reports",
+        "Growth (%)",
+        "Time Range",
+        "Generated Date",
+      ],
+    ];
+
+    // Add tenant usage data
+    tenantUsage.forEach((tenant) => {
+      rows.push([
+        tenant.name,
+        tenant.users.toString(),
+        tenant.tests.toString(),
+        tenant.reports.toString(),
+        tenant.growth.toString(),
+        timeRangeLabel,
+        currentDate,
+      ]);
+    });
+
+    const csvContent = rows
+      .map((row) => row.map((field) => `"${field}"`).join(","))
+      .join("\n");
+
+    return csvContent;
+  };
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Header */}
@@ -99,7 +204,10 @@ const UsageAnalysis: React.FC = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+            <button
+              onClick={handleExportReport}
+              className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+            >
               <Download className="w-4 h-4" />
               <span>Export Report</span>
             </button>

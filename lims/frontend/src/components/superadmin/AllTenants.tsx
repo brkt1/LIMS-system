@@ -1,12 +1,42 @@
-import { BarChart3, Building2, Download, Search, Users } from "lucide-react";
-import React, { useState } from "react";
+import {
+  BarChart3,
+  Building2,
+  Download,
+  Search,
+  Users,
+  Eye,
+  Edit,
+  Trash2,
+  MoreVertical,
+  X,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 const AllTenants: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("name");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const tenants = [
+  // Modal states
+  const [showViewTenantModal, setShowViewTenantModal] = useState(false);
+  const [showEditTenantModal, setShowEditTenantModal] = useState(false);
+  const [showDeleteTenantModal, setShowDeleteTenantModal] = useState(false);
+  const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState<any>(null);
+
+  // Form states
+  const [editTenant, setEditTenant] = useState({
+    name: "",
+    domain: "",
+    status: "Active",
+    users: 0,
+    plan: "Basic",
+    revenue: 0,
+    growth: 0,
+  });
+
+  const [tenants, setTenants] = useState([
     {
       id: "1",
       name: "MedLab Solutions",
@@ -85,13 +115,168 @@ const AllTenants: React.FC = () => {
       growth: 6.8,
       logo: "MG",
     },
-  ];
+  ]);
 
-  const filteredTenants = tenants.filter(
-    (tenant) =>
-      filterStatus === "all" ||
-      tenant.status.toLowerCase() === filterStatus.toLowerCase()
-  );
+  // Load tenants from localStorage on component mount
+  useEffect(() => {
+    const savedTenants = localStorage.getItem("superadmin-all-tenants");
+    if (savedTenants) {
+      try {
+        setTenants(JSON.parse(savedTenants));
+      } catch (error) {
+        console.error("Error loading saved tenants:", error);
+      }
+    }
+  }, []);
+
+  // Save tenants to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem("superadmin-all-tenants", JSON.stringify(tenants));
+  }, [tenants]);
+
+  // Export functionality
+  const handleExportAll = () => {
+    const csvContent = generateCSV(tenants);
+    downloadCSV(csvContent, "all-tenants-export.csv");
+  };
+
+  const generateCSV = (data: any[]) => {
+    const headers = [
+      "ID",
+      "Name",
+      "Domain",
+      "Status",
+      "Users",
+      "Plan",
+      "Created",
+      "Last Active",
+      "Revenue",
+      "Growth (%)",
+    ];
+
+    const rows = data.map((tenant) => [
+      tenant.id,
+      tenant.name,
+      tenant.domain,
+      tenant.status,
+      tenant.users,
+      tenant.plan,
+      tenant.created,
+      tenant.lastActive,
+      tenant.revenue,
+      tenant.growth,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((field) => `"${field}"`).join(","))
+      .join("\n");
+
+    return csvContent;
+  };
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CRUD handler functions
+  const handleViewTenant = (tenant: any) => {
+    setSelectedTenant(tenant);
+    setShowViewTenantModal(true);
+  };
+
+  const handleEditTenant = (tenant: any) => {
+    setSelectedTenant(tenant);
+    setEditTenant({
+      name: tenant.name,
+      domain: tenant.domain,
+      status: tenant.status,
+      users: tenant.users,
+      plan: tenant.plan,
+      revenue: tenant.revenue,
+      growth: tenant.growth,
+    });
+    setShowEditTenantModal(true);
+  };
+
+  const handleDeleteTenant = (tenant: any) => {
+    setSelectedTenant(tenant);
+    setShowDeleteTenantModal(true);
+  };
+
+  const handleMoreActions = (tenant: any) => {
+    setSelectedTenant(tenant);
+    setShowMoreActionsModal(true);
+  };
+
+  const handleUpdateTenant = () => {
+    if (selectedTenant) {
+      setTenants((prev: any) =>
+        prev.map((tenant: any) =>
+          tenant.id === selectedTenant.id
+            ? { ...tenant, ...editTenant }
+            : tenant
+        )
+      );
+      setShowEditTenantModal(false);
+      setSelectedTenant(null);
+    }
+  };
+
+  const handleDeleteTenantConfirm = () => {
+    if (selectedTenant) {
+      setTenants((prev: any) =>
+        prev.filter((tenant: any) => tenant.id !== selectedTenant.id)
+      );
+      setShowDeleteTenantModal(false);
+      setSelectedTenant(null);
+    }
+  };
+
+  const handleSuspendTenant = () => {
+    if (selectedTenant) {
+      setTenants((prev: any) =>
+        prev.map((tenant: any) =>
+          tenant.id === selectedTenant.id
+            ? { ...tenant, status: "Suspended" }
+            : tenant
+        )
+      );
+      setShowMoreActionsModal(false);
+      setSelectedTenant(null);
+    }
+  };
+
+  const handleActivateTenant = () => {
+    if (selectedTenant) {
+      setTenants((prev: any) =>
+        prev.map((tenant: any) =>
+          tenant.id === selectedTenant.id
+            ? { ...tenant, status: "Active" }
+            : tenant
+        )
+      );
+      setShowMoreActionsModal(false);
+      setSelectedTenant(null);
+    }
+  };
+
+  const filteredTenants = tenants.filter((tenant) => {
+    const matchesStatus =
+      filterStatus === "all" || tenant.status === filterStatus;
+    const matchesSearch =
+      tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tenant.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tenant.plan.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -142,9 +327,12 @@ const AllTenants: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-          <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+          <button
+            onClick={handleExportAll}
+            className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+          >
             <Download className="w-4 h-4" />
-            <span>Export</span>
+            <span>Export All</span>
           </button>
           <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg w-full sm:w-auto">
             <button
@@ -234,8 +422,10 @@ const AllTenants: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search tenants..."
-              className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              placeholder="Search tenants by name, domain, or plan..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -245,9 +435,9 @@ const AllTenants: React.FC = () => {
               className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
             >
               <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="suspended">Suspended</option>
-              <option value="pending">Pending</option>
+              <option value="Active">Active</option>
+              <option value="Suspended">Suspended</option>
+              <option value="Pending">Pending</option>
             </select>
             <select
               value={sortBy}
@@ -341,9 +531,41 @@ const AllTenants: React.FC = () => {
               </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-y-1 sm:space-y-0">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-y-1 sm:space-y-0 mb-3">
                   <span>Created: {tenant.created}</span>
                   <span>Last active: {tenant.lastActive}</span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleViewTenant(tenant)}
+                    className="flex items-center space-x-1 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>View</span>
+                  </button>
+                  <button
+                    onClick={() => handleEditTenant(tenant)}
+                    className="flex items-center space-x-1 px-2 py-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
+                  >
+                    <Edit className="w-3 h-3" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTenant(tenant)}
+                    className="flex items-center space-x-1 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete</span>
+                  </button>
+                  <button
+                    onClick={() => handleMoreActions(tenant)}
+                    className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    <MoreVertical className="w-3 h-3" />
+                    <span>More</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -375,6 +597,9 @@ const AllTenants: React.FC = () => {
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                     Created
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -438,10 +663,391 @@ const AllTenants: React.FC = () => {
                     <td className="py-4 px-4 text-sm text-gray-900">
                       {tenant.created}
                     </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleViewTenant(tenant)}
+                          className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors"
+                          title="View Tenant"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditTenant(tenant)}
+                          className="p-1 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors"
+                          title="Edit Tenant"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTenant(tenant)}
+                          className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Delete Tenant"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleMoreActions(tenant)}
+                          className="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                          title="More Actions"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* View Tenant Modal */}
+      {showViewTenantModal && selectedTenant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Tenant Details
+              </h3>
+              <button
+                onClick={() => setShowViewTenantModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTenant.name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Domain
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTenant.domain}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedTenant.status
+                    )}`}
+                  >
+                    {selectedTenant.status}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Plan
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
+                      selectedTenant.plan
+                    )}`}
+                  >
+                    {selectedTenant.plan}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Users
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTenant.users}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Revenue
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedTenant.revenue.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Growth
+                  </label>
+                  <p
+                    className={`text-sm font-medium ${getGrowthColor(
+                      selectedTenant.growth
+                    )}`}
+                  >
+                    {selectedTenant.growth > 0 ? "+" : ""}
+                    {selectedTenant.growth}%
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Created
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTenant.created}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Active
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTenant.lastActive}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewTenantModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tenant Modal */}
+      {showEditTenantModal && selectedTenant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Tenant
+              </h3>
+              <button
+                onClick={() => setShowEditTenantModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editTenant.name}
+                    onChange={(e) =>
+                      setEditTenant({ ...editTenant, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Domain
+                  </label>
+                  <input
+                    type="text"
+                    value={editTenant.domain}
+                    onChange={(e) =>
+                      setEditTenant({ ...editTenant, domain: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editTenant.status}
+                    onChange={(e) =>
+                      setEditTenant({ ...editTenant, status: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Plan
+                  </label>
+                  <select
+                    value={editTenant.plan}
+                    onChange={(e) =>
+                      setEditTenant({ ...editTenant, plan: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  >
+                    <option value="Basic">Basic</option>
+                    <option value="Professional">Professional</option>
+                    <option value="Enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Users
+                  </label>
+                  <input
+                    type="number"
+                    value={editTenant.users}
+                    onChange={(e) =>
+                      setEditTenant({
+                        ...editTenant,
+                        users: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Revenue
+                  </label>
+                  <input
+                    type="number"
+                    value={editTenant.revenue}
+                    onChange={(e) =>
+                      setEditTenant({
+                        ...editTenant,
+                        revenue: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Growth (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editTenant.growth}
+                    onChange={(e) =>
+                      setEditTenant({
+                        ...editTenant,
+                        growth: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditTenantModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateTenant}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Update Tenant
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Tenant Modal */}
+      {showDeleteTenantModal && selectedTenant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Tenant
+              </h3>
+              <button
+                onClick={() => setShowDeleteTenantModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Are you sure you want to delete{" "}
+                <strong>{selectedTenant.name}</strong>? This action cannot be
+                undone.
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowDeleteTenantModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteTenantConfirm}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete Tenant
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* More Actions Modal */}
+      {showMoreActionsModal && selectedTenant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                More Actions
+              </h3>
+              <button
+                onClick={() => setShowMoreActionsModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Additional actions for <strong>{selectedTenant.name}</strong>
+              </p>
+              <div className="space-y-3">
+                {selectedTenant.status === "Active" ? (
+                  <button
+                    onClick={handleSuspendTenant}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-colors"
+                  >
+                    <span>Suspend Tenant</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleActivateTenant}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-100 dark:bg-green-900/20 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
+                  >
+                    <span>Activate Tenant</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowMoreActionsModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

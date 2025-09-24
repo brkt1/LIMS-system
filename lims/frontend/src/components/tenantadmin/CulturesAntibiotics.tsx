@@ -6,15 +6,49 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  Eye,
+  Edit,
+  X,
+  FileText,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const CulturesAntibiotics: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
 
-  const cultures = [
+  // Modal states
+  const [showAddCultureModal, setShowAddCultureModal] = useState(false);
+  const [showViewCultureModal, setShowViewCultureModal] = useState(false);
+  const [showUpdateCultureModal, setShowUpdateCultureModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedCulture, setSelectedCulture] = useState<any>(null);
+
+  // Form states
+  const [newCulture, setNewCulture] = useState({
+    patientName: "",
+    patientId: "",
+    specimenType: "",
+    cultureType: "",
+    organism: "",
+    collectionDate: "",
+    technician: "",
+    notes: "",
+  });
+
+  const [updateCulture, setUpdateCulture] = useState({
+    organism: "",
+    sensitivity: "",
+    antibiotics: "",
+    resistantTo: "",
+    sensitiveTo: "",
+    reportDate: "",
+    notes: "",
+  });
+
+  // Dynamic cultures state
+  const [cultures, setCultures] = useState([
     {
       id: "CUL001",
       patientName: "John Smith",
@@ -105,7 +139,25 @@ const CulturesAntibiotics: React.FC = () => {
       technician: "Dr. Jennifer Smith",
       notes: "Fungal blood culture",
     },
-  ];
+  ]);
+
+  // Load cultures from localStorage on component mount
+  useEffect(() => {
+    const savedCultures = localStorage.getItem("cultures-antibiotics");
+    if (savedCultures) {
+      try {
+        const parsedCultures = JSON.parse(savedCultures);
+        setCultures(parsedCultures);
+      } catch (error) {
+        console.error("Error loading cultures:", error);
+      }
+    }
+  }, []);
+
+  // Save cultures to localStorage whenever cultures change
+  useEffect(() => {
+    localStorage.setItem("cultures-antibiotics", JSON.stringify(cultures));
+  }, [cultures]);
 
   const filteredCultures = cultures.filter((culture) => {
     const matchesSearch =
@@ -149,6 +201,147 @@ const CulturesAntibiotics: React.FC = () => {
     }
   };
 
+  // Handler functions
+  const handleAddCulture = () => {
+    setNewCulture({
+      patientName: "",
+      patientId: "",
+      specimenType: "",
+      cultureType: "",
+      organism: "",
+      collectionDate: "",
+      technician: "",
+      notes: "",
+    });
+    setShowAddCultureModal(true);
+  };
+
+  const handleViewCulture = (culture: any) => {
+    setSelectedCulture(culture);
+    setShowViewCultureModal(true);
+  };
+
+  const handleUpdateCulture = (culture: any) => {
+    setSelectedCulture(culture);
+    setUpdateCulture({
+      organism: culture.organism,
+      sensitivity: culture.sensitivity,
+      antibiotics: culture.antibiotics.join(", "),
+      resistantTo: culture.resistantTo.join(", "),
+      sensitiveTo: culture.sensitiveTo.join(", "),
+      reportDate: culture.reportDate,
+      notes: culture.notes,
+    });
+    setShowUpdateCultureModal(true);
+  };
+
+  const handleReportCulture = (culture: any) => {
+    setSelectedCulture(culture);
+    setShowReportModal(true);
+  };
+
+  const handleCreateCulture = () => {
+    if (
+      newCulture.patientName &&
+      newCulture.patientId &&
+      newCulture.specimenType
+    ) {
+      const culture = {
+        id: `CUL${String(cultures.length + 1).padStart(3, "0")}`,
+        ...newCulture,
+        incubationDate: new Date().toISOString().split("T")[0],
+        status: "pending",
+        sensitivity: "Pending",
+        antibiotics: [],
+        resistantTo: [],
+        sensitiveTo: [],
+        reportDate: "",
+      };
+      setCultures((prev: any) => [culture, ...prev]);
+      setShowAddCultureModal(false);
+      setNewCulture({
+        patientName: "",
+        patientId: "",
+        specimenType: "",
+        cultureType: "",
+        organism: "",
+        collectionDate: "",
+        technician: "",
+        notes: "",
+      });
+    }
+  };
+
+  const handleUpdateCultureConfirm = () => {
+    if (selectedCulture && updateCulture.organism) {
+      setCultures((prev: any) =>
+        prev.map((culture: any) =>
+          culture.id === selectedCulture.id
+            ? {
+                ...culture,
+                ...updateCulture,
+                antibiotics: updateCulture.antibiotics
+                  .split(", ")
+                  .filter((a) => a.trim()),
+                resistantTo: updateCulture.resistantTo
+                  .split(", ")
+                  .filter((a) => a.trim()),
+                sensitiveTo: updateCulture.sensitiveTo
+                  .split(", ")
+                  .filter((a) => a.trim()),
+                status:
+                  updateCulture.sensitivity === "Pending"
+                    ? "incubating"
+                    : "completed",
+                reportDate:
+                  updateCulture.reportDate ||
+                  new Date().toISOString().split("T")[0],
+              }
+            : culture
+        )
+      );
+      setShowUpdateCultureModal(false);
+      setSelectedCulture(null);
+    }
+  };
+
+  const handleGenerateReport = () => {
+    if (selectedCulture) {
+      // Simulate report generation
+      const reportData = {
+        cultureId: selectedCulture.id,
+        patientName: selectedCulture.patientName,
+        organism: selectedCulture.organism,
+        sensitivity: selectedCulture.sensitivity,
+        reportDate: new Date().toISOString().split("T")[0],
+      };
+
+      // Create and download report
+      const reportContent = `Culture & Antibiotic Sensitivity Report
+      
+Culture ID: ${reportData.cultureId}
+Patient: ${reportData.patientName}
+Organism: ${reportData.organism}
+Sensitivity: ${reportData.sensitivity}
+Report Date: ${reportData.reportDate}
+
+Generated on: ${new Date().toLocaleString()}`;
+
+      const blob = new Blob([reportContent], { type: "text/plain" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `culture-report-${reportData.cultureId}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setShowReportModal(false);
+      setSelectedCulture(null);
+    }
+  };
+
   const totalCultures = cultures.length;
   const completedCultures = cultures.filter(
     (c) => c.status === "completed"
@@ -172,7 +365,10 @@ const CulturesAntibiotics: React.FC = () => {
             Manage bacterial cultures and antibiotic sensitivity testing
           </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleAddCulture}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Culture</span>
         </button>
@@ -217,54 +413,6 @@ const CulturesAntibiotics: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Cultures</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
-                {totalCultures}
-              </p>
-            </div>
-            <Microscope className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Completed</p>
-              <p className="text-2xl font-bold text-green-600">
-                {completedCultures}
-              </p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Incubating</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {incubatingCultures}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Resistant</p>
-              <p className="text-2xl font-bold text-red-600">
-                {resistantCultures}
-              </p>
-            </div>
-            <AlertCircle className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Cultures Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -299,7 +447,10 @@ const CulturesAntibiotics: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredCultures.map((culture) => (
-                <tr key={culture.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={culture.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -355,13 +506,22 @@ const CulturesAntibiotics: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
+                      <button
+                        onClick={() => handleViewCulture(culture)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
+                      <button
+                        onClick={() => handleUpdateCulture(culture)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
                         Update
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
+                      <button
+                        onClick={() => handleReportCulture(culture)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                      >
                         Report
                       </button>
                     </div>
@@ -372,6 +532,547 @@ const CulturesAntibiotics: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Culture Modal */}
+      {showAddCultureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Culture
+              </h3>
+              <button
+                onClick={() => setShowAddCultureModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCulture.patientName}
+                    onChange={(e) =>
+                      setNewCulture({
+                        ...newCulture,
+                        patientName: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCulture.patientId}
+                    onChange={(e) =>
+                      setNewCulture({
+                        ...newCulture,
+                        patientId: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient ID"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Specimen Type *
+                  </label>
+                  <select
+                    value={newCulture.specimenType}
+                    onChange={(e) =>
+                      setNewCulture({
+                        ...newCulture,
+                        specimenType: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select specimen type</option>
+                    <option value="Blood">Blood</option>
+                    <option value="Urine">Urine</option>
+                    <option value="Sputum">Sputum</option>
+                    <option value="Wound Swab">Wound Swab</option>
+                    <option value="Stool">Stool</option>
+                    <option value="CSF">CSF</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Culture Type
+                  </label>
+                  <select
+                    value={newCulture.cultureType}
+                    onChange={(e) =>
+                      setNewCulture({
+                        ...newCulture,
+                        cultureType: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select culture type</option>
+                    <option value="Bacterial">Bacterial</option>
+                    <option value="Fungal">Fungal</option>
+                    <option value="Viral">Viral</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Collection Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newCulture.collectionDate}
+                    onChange={(e) =>
+                      setNewCulture({
+                        ...newCulture,
+                        collectionDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Technician
+                  </label>
+                  <input
+                    type="text"
+                    value={newCulture.technician}
+                    onChange={(e) =>
+                      setNewCulture({
+                        ...newCulture,
+                        technician: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter technician name"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={newCulture.notes}
+                    onChange={(e) =>
+                      setNewCulture({ ...newCulture, notes: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Enter any notes about this culture"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddCultureModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateCulture}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Culture
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Culture Modal */}
+      {showViewCultureModal && selectedCulture && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Culture Details
+              </h3>
+              <button
+                onClick={() => setShowViewCultureModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Culture ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.patientName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.patientId}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Specimen Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.specimenType}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Culture Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.cultureType}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Organism
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.organism}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedCulture.status
+                    )}`}
+                  >
+                    {selectedCulture.status.charAt(0).toUpperCase() +
+                      selectedCulture.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Sensitivity
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSensitivityColor(
+                      selectedCulture.sensitivity
+                    )}`}
+                  >
+                    {selectedCulture.sensitivity}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Collection Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.collectionDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Incubation Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.incubationDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Technician
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.technician}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Report Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.reportDate || "Not available"}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Antibiotics Tested
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.antibiotics.join(", ") || "None"}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Resistant To
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.resistantTo.join(", ") || "None"}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Sensitive To
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.sensitiveTo.join(", ") || "None"}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedCulture.notes || "None"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewCultureModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Culture Modal */}
+      {showUpdateCultureModal && selectedCulture && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Update Culture Results
+              </h3>
+              <button
+                onClick={() => setShowUpdateCultureModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Organism *
+                  </label>
+                  <input
+                    type="text"
+                    value={updateCulture.organism}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        organism: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter organism name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Sensitivity
+                  </label>
+                  <select
+                    value={updateCulture.sensitivity}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        sensitivity: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Sensitive">Sensitive</option>
+                    <option value="Resistant">Resistant</option>
+                    <option value="Intermediate">Intermediate</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Antibiotics Tested
+                  </label>
+                  <input
+                    type="text"
+                    value={updateCulture.antibiotics}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        antibiotics: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter antibiotics separated by commas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Resistant To
+                  </label>
+                  <input
+                    type="text"
+                    value={updateCulture.resistantTo}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        resistantTo: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter resistant antibiotics separated by commas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Sensitive To
+                  </label>
+                  <input
+                    type="text"
+                    value={updateCulture.sensitiveTo}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        sensitiveTo: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter sensitive antibiotics separated by commas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Report Date
+                  </label>
+                  <input
+                    type="date"
+                    value={updateCulture.reportDate}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        reportDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={updateCulture.notes}
+                    onChange={(e) =>
+                      setUpdateCulture({
+                        ...updateCulture,
+                        notes: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Enter any additional notes"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowUpdateCultureModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateCultureConfirm}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Culture
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && selectedCulture && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Generate Report
+              </h3>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedCulture.id}
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Patient: {selectedCulture.patientName}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Organism: {selectedCulture.organism}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Status: {selectedCulture.status}
+                </p>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                This will generate and download a detailed culture and
+                antibiotic sensitivity report for the selected culture.
+              </p>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerateReport}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FileText className="w-4 h-4 inline mr-2" />
+                Generate Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

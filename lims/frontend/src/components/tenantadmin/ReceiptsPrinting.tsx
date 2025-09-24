@@ -6,15 +6,34 @@ import {
   Download,
   Calendar,
   DollarSign,
+  Eye,
+  X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const ReceiptsPrinting: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("all");
 
-  const receipts = [
+  // Modal states
+  const [showPrintReceiptModal, setShowPrintReceiptModal] = useState(false);
+  const [showViewReceiptModal, setShowViewReceiptModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+
+  // Form states
+  const [newReceipt, setNewReceipt] = useState({
+    patientName: "",
+    patientId: "",
+    amount: "",
+    services: "",
+    doctor: "",
+    paymentMethod: "Cash",
+  });
+
+  const [receipts, setReceipts] = useState([
     {
       id: "RCP001",
       patientName: "John Smith",
@@ -80,7 +99,20 @@ const ReceiptsPrinting: React.FC = () => {
       paymentMethod: "Insurance",
       printCount: 0,
     },
-  ];
+  ]);
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedReceipts = localStorage.getItem("receipts");
+    if (savedReceipts) {
+      setReceipts(JSON.parse(savedReceipts));
+    }
+  }, []);
+
+  // Save data to localStorage whenever receipts change
+  useEffect(() => {
+    localStorage.setItem("receipts", JSON.stringify(receipts));
+  }, [receipts]);
 
   const filteredReceipts = receipts.filter((receipt) => {
     const matchesSearch =
@@ -90,6 +122,137 @@ const ReceiptsPrinting: React.FC = () => {
       filterStatus === "all" || receipt.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
+
+  // Handler functions
+  const handlePrintReceipt = () => {
+    setNewReceipt({
+      patientName: "",
+      patientId: "",
+      amount: "",
+      services: "",
+      doctor: "",
+      paymentMethod: "Cash",
+    });
+    setShowPrintReceiptModal(true);
+  };
+
+  const handleViewReceipt = (receipt: any) => {
+    setSelectedReceipt(receipt);
+    setShowViewReceiptModal(true);
+  };
+
+  const handlePrint = (receipt: any) => {
+    setSelectedReceipt(receipt);
+    setShowPrintModal(true);
+  };
+
+  const handleDownload = (receipt: any) => {
+    setSelectedReceipt(receipt);
+    setShowDownloadModal(true);
+  };
+
+  const handleCreateReceipt = () => {
+    const newId = `RCP${String(receipts.length + 1).padStart(3, "0")}`;
+    const now = new Date();
+    const receipt = {
+      ...newReceipt,
+      id: newId,
+      amount: parseFloat(newReceipt.amount),
+      services: newReceipt.services.split(",").map((s) => s.trim()),
+      status: "printed",
+      generatedDate: now.toISOString().split("T")[0],
+      generatedTime: now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      printCount: 1,
+    };
+    setReceipts([...receipts, receipt]);
+    setShowPrintReceiptModal(false);
+  };
+
+  const handlePrintConfirm = () => {
+    if (selectedReceipt) {
+      // Simulate printing
+      window.print();
+
+      // Update print count
+      setReceipts(
+        receipts.map((receipt) =>
+          receipt.id === selectedReceipt.id
+            ? {
+                ...receipt,
+                printCount: receipt.printCount + 1,
+                status: "printed",
+              }
+            : receipt
+        )
+      );
+      setShowPrintModal(false);
+    }
+  };
+
+  const handleDownloadConfirm = () => {
+    if (selectedReceipt) {
+      // Simulate file download
+      const blob = new Blob(["Receipt Content"], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedReceipt.id}_receipt.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setShowDownloadModal(false);
+    }
+  };
+
+  const handleExportAll = () => {
+    // Generate CSV content
+    const csvContent = [
+      [
+        "Receipt ID",
+        "Patient Name",
+        "Patient ID",
+        "Amount",
+        "Status",
+        "Generated Date",
+        "Generated Time",
+        "Services",
+        "Doctor",
+        "Payment Method",
+        "Print Count",
+      ],
+      ...receipts.map((receipt) => [
+        receipt.id,
+        receipt.patientName,
+        receipt.patientId,
+        receipt.amount,
+        receipt.status,
+        receipt.generatedDate,
+        receipt.generatedTime,
+        receipt.services.join("; "),
+        receipt.doctor,
+        receipt.paymentMethod,
+        receipt.printCount,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "receipts_export.csv";
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -104,11 +267,6 @@ const ReceiptsPrinting: React.FC = () => {
     }
   };
 
-  const totalReceipts = receipts.length;
-  const printedReceipts = receipts.filter((r) => r.status === "printed").length;
-  const totalAmount = receipts.reduce((sum, r) => sum + r.amount, 0);
-  const avgAmount = totalAmount / receipts.length;
-
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -122,11 +280,17 @@ const ReceiptsPrinting: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleExportAll}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Download className="w-4 h-4" />
             <span>Export All</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handlePrintReceipt}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>Print Receipt</span>
           </button>
@@ -171,54 +335,6 @@ const ReceiptsPrinting: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Receipts</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
-                {totalReceipts}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Printed</p>
-              <p className="text-2xl font-bold text-green-600">
-                {printedReceipts}
-              </p>
-            </div>
-            <Printer className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Amount</p>
-              <p className="text-2xl font-bold text-blue-600">
-                ${totalAmount.toFixed(2)}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Avg. Amount</p>
-              <p className="text-2xl font-bold text-purple-600">
-                ${avgAmount.toFixed(2)}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Receipts Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -253,7 +369,10 @@ const ReceiptsPrinting: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredReceipts.map((receipt) => (
-                <tr key={receipt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={receipt.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -307,13 +426,25 @@ const ReceiptsPrinting: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
+                      <button
+                        onClick={() => handleViewReceipt(receipt)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
+                      <button
+                        onClick={() => handlePrint(receipt)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                      >
+                        <Printer className="w-4 h-4 mr-1" />
                         Print
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
+                      <button
+                        onClick={() => handleDownload(receipt)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
+                      >
+                        <Download className="w-4 h-4 mr-1" />
                         Download
                       </button>
                     </div>
@@ -324,6 +455,366 @@ const ReceiptsPrinting: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Receipt Modal */}
+      {showPrintReceiptModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Print Receipt
+              </h3>
+              <button
+                onClick={() => setShowPrintReceiptModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newReceipt.patientName}
+                    onChange={(e) =>
+                      setNewReceipt({
+                        ...newReceipt,
+                        patientName: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={newReceipt.patientId}
+                    onChange={(e) =>
+                      setNewReceipt({
+                        ...newReceipt,
+                        patientId: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient ID"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Amount *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newReceipt.amount}
+                    onChange={(e) =>
+                      setNewReceipt({ ...newReceipt, amount: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Payment Method
+                  </label>
+                  <select
+                    value={newReceipt.paymentMethod}
+                    onChange={(e) =>
+                      setNewReceipt({
+                        ...newReceipt,
+                        paymentMethod: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Check">Check</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Doctor *
+                  </label>
+                  <input
+                    type="text"
+                    value={newReceipt.doctor}
+                    onChange={(e) =>
+                      setNewReceipt({ ...newReceipt, doctor: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter doctor name"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Services *
+                  </label>
+                  <textarea
+                    value={newReceipt.services}
+                    onChange={(e) =>
+                      setNewReceipt({ ...newReceipt, services: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter services (comma-separated)"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowPrintReceiptModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateReceipt}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Receipt Modal */}
+      {showViewReceiptModal && selectedReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Receipt Details - {selectedReceipt.id}
+              </h3>
+              <button
+                onClick={() => setShowViewReceiptModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.patientName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.patientId}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Amount
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedReceipt.amount.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedReceipt.status
+                    )}`}
+                  >
+                    {selectedReceipt.status.charAt(0).toUpperCase() +
+                      selectedReceipt.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Doctor
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.doctor}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Payment Method
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.paymentMethod}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Generated Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.generatedDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Generated Time
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.generatedTime}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Print Count
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.printCount}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Services
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReceipt.services.join(", ")}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewReceiptModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Modal */}
+      {showPrintModal && selectedReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Print Receipt
+              </h3>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Print the receipt for{" "}
+                <strong>{selectedReceipt.patientName}</strong>?
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Receipt ID:</strong> {selectedReceipt.id}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Amount:</strong> ${selectedReceipt.amount.toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Services:</strong>{" "}
+                  {selectedReceipt.services.join(", ")}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Payment Method:</strong>{" "}
+                  {selectedReceipt.paymentMethod}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePrintConfirm}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Modal */}
+      {showDownloadModal && selectedReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Download Receipt
+              </h3>
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Download the receipt for{" "}
+                <strong>{selectedReceipt.patientName}</strong>?
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Receipt ID:</strong> {selectedReceipt.id}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Amount:</strong> ${selectedReceipt.amount.toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Services:</strong>{" "}
+                  {selectedReceipt.services.join(", ")}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Generated:</strong> {selectedReceipt.generatedDate} at{" "}
+                  {selectedReceipt.generatedTime}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDownloadConfirm}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Download Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -5,15 +5,61 @@ import {
   Search,
   TrendingDown,
   TrendingUp,
+  Eye,
+  Edit,
+  X,
+  Package2,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const InventoryManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const inventoryItems = [
+  // Modal states
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [showViewItemModal, setShowViewItemModal] = useState(false);
+  const [showEditItemModal, setShowEditItemModal] = useState(false);
+  const [showRestockModal, setShowRestockModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  // Form states
+  const [newItem, setNewItem] = useState({
+    name: "",
+    category: "",
+    sku: "",
+    currentStock: 0,
+    minStock: 0,
+    maxStock: 0,
+    unit: "",
+    unitPrice: 0,
+    supplier: "",
+    expiryDate: "",
+  });
+
+  const [editItem, setEditItem] = useState({
+    name: "",
+    category: "",
+    sku: "",
+    currentStock: 0,
+    minStock: 0,
+    maxStock: 0,
+    unit: "",
+    unitPrice: 0,
+    supplier: "",
+    expiryDate: "",
+  });
+
+  const [restockData, setRestockData] = useState({
+    quantity: 0,
+    supplier: "",
+    cost: 0,
+    notes: "",
+  });
+
+  // Dynamic inventory state
+  const [inventoryItems, setInventoryItems] = useState([
     {
       id: "INV001",
       name: "Blood Collection Tubes",
@@ -89,7 +135,25 @@ const InventoryManagement: React.FC = () => {
       expiryDate: "2025-07-18",
       status: "in-stock",
     },
-  ];
+  ]);
+
+  // Load inventory from localStorage on component mount
+  useEffect(() => {
+    const savedInventory = localStorage.getItem("inventory-items");
+    if (savedInventory) {
+      try {
+        const parsedInventory = JSON.parse(savedInventory);
+        setInventoryItems(parsedInventory);
+      } catch (error) {
+        console.error("Error loading inventory:", error);
+      }
+    }
+  }, []);
+
+  // Save inventory to localStorage whenever inventory changes
+  useEffect(() => {
+    localStorage.setItem("inventory-items", JSON.stringify(inventoryItems));
+  }, [inventoryItems]);
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
@@ -130,6 +194,140 @@ const InventoryManagement: React.FC = () => {
     return <TrendingUp className="w-4 h-4 text-green-600" />;
   };
 
+  // Handler functions
+  const handleAddItem = () => {
+    setNewItem({
+      name: "",
+      category: "",
+      sku: "",
+      currentStock: 0,
+      minStock: 0,
+      maxStock: 0,
+      unit: "",
+      unitPrice: 0,
+      supplier: "",
+      expiryDate: "",
+    });
+    setShowAddItemModal(true);
+  };
+
+  const handleViewItem = (item: any) => {
+    setSelectedItem(item);
+    setShowViewItemModal(true);
+  };
+
+  const handleEditItem = (item: any) => {
+    setSelectedItem(item);
+    setEditItem({
+      name: item.name,
+      category: item.category,
+      sku: item.sku,
+      currentStock: item.currentStock,
+      minStock: item.minStock,
+      maxStock: item.maxStock,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+      supplier: item.supplier,
+      expiryDate: item.expiryDate,
+    });
+    setShowEditItemModal(true);
+  };
+
+  const handleRestockItem = (item: any) => {
+    setSelectedItem(item);
+    setRestockData({
+      quantity: 0,
+      supplier: item.supplier,
+      cost: 0,
+      notes: "",
+    });
+    setShowRestockModal(true);
+  };
+
+  const handleCreateItem = () => {
+    if (newItem.name && newItem.category && newItem.sku) {
+      const item = {
+        id: `INV${String(inventoryItems.length + 1).padStart(3, "0")}`,
+        ...newItem,
+        lastRestocked: new Date().toISOString().split("T")[0],
+        status:
+          newItem.currentStock === 0
+            ? "out-of-stock"
+            : newItem.currentStock <= newItem.minStock
+            ? "low-stock"
+            : "in-stock",
+      };
+      setInventoryItems((prev: any) => [item, ...prev]);
+      setShowAddItemModal(false);
+      setNewItem({
+        name: "",
+        category: "",
+        sku: "",
+        currentStock: 0,
+        minStock: 0,
+        maxStock: 0,
+        unit: "",
+        unitPrice: 0,
+        supplier: "",
+        expiryDate: "",
+      });
+    }
+  };
+
+  const handleUpdateItem = () => {
+    if (selectedItem && editItem.name && editItem.category && editItem.sku) {
+      setInventoryItems((prev: any) =>
+        prev.map((item: any) =>
+          item.id === selectedItem.id
+            ? {
+                ...item,
+                ...editItem,
+                status:
+                  editItem.currentStock === 0
+                    ? "out-of-stock"
+                    : editItem.currentStock <= editItem.minStock
+                    ? "low-stock"
+                    : "in-stock",
+              }
+            : item
+        )
+      );
+      setShowEditItemModal(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleRestockConfirm = () => {
+    if (selectedItem && restockData.quantity > 0) {
+      const newStock = selectedItem.currentStock + restockData.quantity;
+      setInventoryItems((prev: any) =>
+        prev.map((item: any) =>
+          item.id === selectedItem.id
+            ? {
+                ...item,
+                currentStock: newStock,
+                lastRestocked: new Date().toISOString().split("T")[0],
+                status:
+                  newStock === 0
+                    ? "out-of-stock"
+                    : newStock <= item.minStock
+                    ? "low-stock"
+                    : "in-stock",
+              }
+            : item
+        )
+      );
+      setShowRestockModal(false);
+      setSelectedItem(null);
+      setRestockData({
+        quantity: 0,
+        supplier: "",
+        cost: 0,
+        notes: "",
+      });
+    }
+  };
+
   const totalValue = inventoryItems.reduce(
     (sum, item) => sum + item.currentStock * item.unitPrice,
     0
@@ -154,7 +352,10 @@ const InventoryManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleAddItem}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>Add Item</span>
           </button>
@@ -351,13 +552,22 @@ const InventoryManagement: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
+                      <button
+                        onClick={() => handleViewItem(item)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
+                      <button
+                        onClick={() => handleRestockItem(item)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
                         Restock
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
+                      <button
+                        onClick={() => handleEditItem(item)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                      >
                         Edit
                       </button>
                     </div>
@@ -368,6 +578,644 @@ const InventoryManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Item Modal */}
+      {showAddItemModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Item
+              </h3>
+              <button
+                onClick={() => setShowAddItemModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Item Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.name}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter item name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={newItem.category}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, category: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Supplies">Supplies</option>
+                    <option value="Test Kits">Test Kits</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Equipment">Equipment</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.sku}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, sku: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter SKU"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Unit
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.unit}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, unit: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="e.g., pieces, boxes, kits"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={newItem.currentStock}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        currentStock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Min Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={newItem.minStock}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        minStock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Max Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={newItem.maxStock}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        maxStock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Unit Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newItem.unitPrice}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        unitPrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Supplier
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.supplier}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, supplier: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter supplier name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Expiry Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newItem.expiryDate}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, expiryDate: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddItemModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateItem}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Item Modal */}
+      {showViewItemModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Item Details
+              </h3>
+              <button
+                onClick={() => setShowViewItemModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Item Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.category}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    SKU
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.sku}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Item ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Current Stock
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.currentStock} {selectedItem.unit}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedItem.status
+                    )}`}
+                  >
+                    {getStockStatus(
+                      selectedItem.currentStock,
+                      selectedItem.minStock
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Min Stock
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.minStock} {selectedItem.unit}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Max Stock
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.maxStock} {selectedItem.unit}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Unit Price
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedItem.unitPrice.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Value
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    $
+                    {(
+                      selectedItem.currentStock * selectedItem.unitPrice
+                    ).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Supplier
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.supplier}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Restocked
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.lastRestocked}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Expiry Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedItem.expiryDate}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewItemModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {showEditItemModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Item
+              </h3>
+              <button
+                onClick={() => setShowEditItemModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Item Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editItem.name}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={editItem.category}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, category: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="Supplies">Supplies</option>
+                    <option value="Test Kits">Test Kits</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Equipment">Equipment</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    value={editItem.sku}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, sku: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Unit
+                  </label>
+                  <input
+                    type="text"
+                    value={editItem.unit}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, unit: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={editItem.currentStock}
+                    onChange={(e) =>
+                      setEditItem({
+                        ...editItem,
+                        currentStock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Min Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={editItem.minStock}
+                    onChange={(e) =>
+                      setEditItem({
+                        ...editItem,
+                        minStock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Max Stock
+                  </label>
+                  <input
+                    type="number"
+                    value={editItem.maxStock}
+                    onChange={(e) =>
+                      setEditItem({
+                        ...editItem,
+                        maxStock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Unit Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editItem.unitPrice}
+                    onChange={(e) =>
+                      setEditItem({
+                        ...editItem,
+                        unitPrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Supplier
+                  </label>
+                  <input
+                    type="text"
+                    value={editItem.supplier}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, supplier: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Expiry Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editItem.expiryDate}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, expiryDate: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditItemModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateItem}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restock Modal */}
+      {showRestockModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Restock Item
+              </h3>
+              <button
+                onClick={() => setShowRestockModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedItem.name}
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current Stock: {selectedItem.currentStock} {selectedItem.unit}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  SKU: {selectedItem.sku}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Quantity to Add *
+                </label>
+                <input
+                  type="number"
+                  value={restockData.quantity}
+                  onChange={(e) =>
+                    setRestockData({
+                      ...restockData,
+                      quantity: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  min="1"
+                  placeholder="Enter quantity"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Supplier
+                </label>
+                <input
+                  type="text"
+                  value={restockData.supplier}
+                  onChange={(e) =>
+                    setRestockData({ ...restockData, supplier: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter supplier name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Cost ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={restockData.cost}
+                  onChange={(e) =>
+                    setRestockData({
+                      ...restockData,
+                      cost: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  min="0"
+                  placeholder="Enter cost"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  value={restockData.notes}
+                  onChange={(e) =>
+                    setRestockData({ ...restockData, notes: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  rows={3}
+                  placeholder="Enter any notes about this restock"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowRestockModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRestockConfirm}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Package2 className="w-4 h-4 inline mr-2" />
+                Restock Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

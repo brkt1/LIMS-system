@@ -8,12 +8,57 @@ import {
   Send,
   Trash2,
   Users,
+  X,
+  Save,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const GlobalNotification: React.FC = () => {
   const [activeTab, setActiveTab] = useState("compose");
   const [showComposeModal, setShowComposeModal] = useState(false);
+
+  // Modal states
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
+  const [showViewTemplateModal, setShowViewTemplateModal] = useState(false);
+  const [showViewHistoryModal, setShowViewHistoryModal] = useState(false);
+  const [showEditHistoryModal, setShowEditHistoryModal] = useState(false);
+  const [showDeleteHistoryModal, setShowDeleteHistoryModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [selectedHistory, setSelectedHistory] = useState<any>(null);
+
+  // Form states
+  const [composeNotification, setComposeNotification] = useState({
+    subject: "",
+    message: "",
+    type: "general",
+    recipients: "all",
+    scheduledDate: "",
+    scheduledTime: "",
+  });
+
+  const [newTemplate, setNewTemplate] = useState({
+    name: "",
+    subject: "",
+    message: "",
+    type: "general",
+  });
+
+  const [editTemplate, setEditTemplate] = useState({
+    name: "",
+    subject: "",
+    message: "",
+    type: "general",
+  });
+
+  const [editHistory, setEditHistory] = useState({
+    subject: "",
+    message: "",
+    status: "sent",
+  });
+
+  // Filter states
+  const [filterType, setFilterType] = useState("all");
 
   const notificationStats = {
     totalSent: 1247,
@@ -24,7 +69,7 @@ const GlobalNotification: React.FC = () => {
     clickRate: 12.3,
   };
 
-  const notificationTemplates = [
+  const [notificationTemplates, setNotificationTemplates] = useState([
     {
       id: "1",
       name: "System Maintenance",
@@ -57,9 +102,9 @@ const GlobalNotification: React.FC = () => {
       lastUsed: "2025-01-20",
       usageCount: 8,
     },
-  ];
+  ]);
 
-  const recentNotifications = [
+  const [recentNotifications, setRecentNotifications] = useState([
     {
       id: "1",
       subject: "Scheduled System Maintenance",
@@ -100,7 +145,197 @@ const GlobalNotification: React.FC = () => {
       openRate: 0,
       clickRate: 0,
     },
-  ];
+  ]);
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedTemplates = localStorage.getItem(
+      "superadmin-notification-templates"
+    );
+    const savedNotifications = localStorage.getItem(
+      "superadmin-notification-history"
+    );
+
+    if (savedTemplates) {
+      try {
+        setNotificationTemplates(JSON.parse(savedTemplates));
+      } catch (error) {
+        console.error("Error loading saved templates:", error);
+      }
+    }
+
+    if (savedNotifications) {
+      try {
+        setRecentNotifications(JSON.parse(savedNotifications));
+      } catch (error) {
+        console.error("Error loading saved notifications:", error);
+      }
+    }
+  }, []);
+
+  // Save data to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem(
+      "superadmin-notification-templates",
+      JSON.stringify(notificationTemplates)
+    );
+  }, [notificationTemplates]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "superadmin-notification-history",
+      JSON.stringify(recentNotifications)
+    );
+  }, [recentNotifications]);
+
+  // Handler functions
+  const handleComposeNotification = () => {
+    setShowComposeModal(true);
+  };
+
+  const handleSaveNotification = () => {
+    // Save as draft functionality
+    console.log("Saving notification as draft:", composeNotification);
+    setShowComposeModal(false);
+    setComposeNotification({
+      subject: "",
+      message: "",
+      type: "general",
+      recipients: "all",
+      scheduledDate: "",
+      scheduledTime: "",
+    });
+  };
+
+  const handleSendNotification = () => {
+    // Send notification functionality
+    const newNotification = {
+      id: (recentNotifications.length + 1).toString(),
+      subject: composeNotification.subject,
+      type: composeNotification.type,
+      status: "sent",
+      recipients: composeNotification.recipients === "all" ? 1247 : 100,
+      sentAt: new Date().toISOString().replace("T", " ").substring(0, 16),
+      openRate: 0,
+      clickRate: 0,
+    };
+
+    setRecentNotifications((prev: any) => [newNotification, ...prev]);
+    setShowComposeModal(false);
+    setComposeNotification({
+      subject: "",
+      message: "",
+      type: "general",
+      recipients: "all",
+      scheduledDate: "",
+      scheduledTime: "",
+    });
+  };
+
+  const handleCreateTemplate = () => {
+    setShowCreateTemplateModal(true);
+  };
+
+  const handleCreateTemplateSubmit = () => {
+    const newTemplateData = {
+      id: (notificationTemplates.length + 1).toString(),
+      ...newTemplate,
+      lastUsed: new Date().toISOString().split("T")[0],
+      usageCount: 0,
+    };
+
+    setNotificationTemplates((prev: any) => [...prev, newTemplateData]);
+    setShowCreateTemplateModal(false);
+    setNewTemplate({ name: "", subject: "", message: "", type: "general" });
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setSelectedTemplate(template);
+    setEditTemplate({
+      name: template.name,
+      subject: template.subject,
+      message: template.message,
+      type: template.type,
+    });
+    setShowEditTemplateModal(true);
+  };
+
+  const handleUpdateTemplate = () => {
+    if (selectedTemplate) {
+      setNotificationTemplates((prev: any) =>
+        prev.map((template: any) =>
+          template.id === selectedTemplate.id
+            ? { ...template, ...editTemplate }
+            : template
+        )
+      );
+      setShowEditTemplateModal(false);
+      setSelectedTemplate(null);
+    }
+  };
+
+  const handleUseTemplate = (template: any) => {
+    setComposeNotification({
+      subject: template.subject,
+      message: template.message,
+      type: template.type,
+      recipients: "all",
+      scheduledDate: "",
+      scheduledTime: "",
+    });
+    setShowComposeModal(true);
+  };
+
+  const handleViewTemplate = (template: any) => {
+    setSelectedTemplate(template);
+    setShowViewTemplateModal(true);
+  };
+
+  const handleViewHistory = (notification: any) => {
+    setSelectedHistory(notification);
+    setShowViewHistoryModal(true);
+  };
+
+  const handleEditHistory = (notification: any) => {
+    setSelectedHistory(notification);
+    setEditHistory({
+      subject: notification.subject,
+      message: notification.message || "",
+      status: notification.status,
+    });
+    setShowEditHistoryModal(true);
+  };
+
+  const handleUpdateHistory = () => {
+    if (selectedHistory) {
+      setRecentNotifications((prev: any) =>
+        prev.map((notification: any) =>
+          notification.id === selectedHistory.id
+            ? { ...notification, ...editHistory }
+            : notification
+        )
+      );
+      setShowEditHistoryModal(false);
+      setSelectedHistory(null);
+    }
+  };
+
+  const handleDeleteHistory = (notification: any) => {
+    setSelectedHistory(notification);
+    setShowDeleteHistoryModal(true);
+  };
+
+  const handleDeleteHistoryConfirm = () => {
+    if (selectedHistory) {
+      setRecentNotifications((prev: any) =>
+        prev.filter(
+          (notification: any) => notification.id !== selectedHistory.id
+        )
+      );
+      setShowDeleteHistoryModal(false);
+      setSelectedHistory(null);
+    }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -146,7 +381,7 @@ const GlobalNotification: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowComposeModal(true)}
+            onClick={handleComposeNotification}
             className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
@@ -220,7 +455,6 @@ const GlobalNotification: React.FC = () => {
                 { id: "compose", name: "Compose" },
                 { id: "templates", name: "Templates" },
                 { id: "history", name: "History" },
-                { id: "settings", name: "Settings" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -339,7 +573,10 @@ const GlobalNotification: React.FC = () => {
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Notification Templates
               </h3>
-              <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors text-sm sm:text-base w-full sm:w-auto">
+              <button
+                onClick={handleCreateTemplate}
+                className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors text-sm sm:text-base w-full sm:w-auto"
+              >
                 <Plus className="w-4 h-4" />
                 <span>Create Template</span>
               </button>
@@ -381,11 +618,17 @@ const GlobalNotification: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <button className="flex-1 px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors flex items-center justify-center">
+                    <button
+                      onClick={() => handleEditTemplate(template)}
+                      className="flex-1 px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors flex items-center justify-center"
+                    >
                       <Edit className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Edit
                     </button>
-                    <button className="flex-1 px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button
+                      onClick={() => handleUseTemplate(template)}
+                      className="flex-1 px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
                       Use Template
                     </button>
                   </div>
@@ -404,7 +647,11 @@ const GlobalNotification: React.FC = () => {
                   Notification History
                 </h3>
                 <div className="flex items-center space-x-3">
-                  <select className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto">
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto"
+                  >
                     <option value="all">All Types</option>
                     <option value="maintenance">Maintenance</option>
                     <option value="security">Security</option>
@@ -442,7 +689,10 @@ const GlobalNotification: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {recentNotifications.map((notification) => (
-                      <tr key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900">
+                      <tr
+                        key={notification.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
+                      >
                         <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                           {notification.subject}
                         </td>
@@ -475,13 +725,22 @@ const GlobalNotification: React.FC = () => {
                         </td>
                         <td className="py-3 sm:py-4 px-2 sm:px-4">
                           <div className="flex items-center space-x-1 sm:space-x-2">
-                            <button className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400">
+                            <button
+                              onClick={() => handleViewHistory(notification)}
+                              className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400"
+                            >
                               <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <button className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                            <button
+                              onClick={() => handleEditHistory(notification)}
+                              className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                            >
                               <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <button className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400">
+                            <button
+                              onClick={() => handleDeleteHistory(notification)}
+                              className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400"
+                            >
                               <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </div>
@@ -495,66 +754,646 @@ const GlobalNotification: React.FC = () => {
           </div>
         )}
 
-        {/* Settings Tab */}
-        {activeTab === "settings" && (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                Notification Settings
-              </h3>
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between">
+        {/* Compose Notification Modal */}
+        {showComposeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Compose Notification
+                </h3>
+                <button
+                  onClick={() => setShowComposeModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                      Email Notifications
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Send notifications via email
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Subject
+                    </label>
                     <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      defaultChecked
+                      type="text"
+                      value={composeNotification.subject}
+                      onChange={(e) =>
+                        setComposeNotification({
+                          ...composeNotification,
+                          subject: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      placeholder="Enter notification subject"
                     />
-                    <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-gray-800 after:border-gray-300 dark:border-gray-600 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                      In-App Notifications
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Show notifications in the application
-                    </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={composeNotification.type}
+                      onChange={(e) =>
+                        setComposeNotification({
+                          ...composeNotification,
+                          type: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="general">General</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="security">Security</option>
+                      <option value="feature">Feature</option>
+                      <option value="billing">Billing</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Recipients
+                    </label>
+                    <select
+                      value={composeNotification.recipients}
+                      onChange={(e) =>
+                        setComposeNotification({
+                          ...composeNotification,
+                          recipients: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="all">All Users</option>
+                      <option value="admins">Admins Only</option>
+                      <option value="tenants">Tenant Admins</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Scheduled Date
+                    </label>
                     <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      defaultChecked
+                      type="date"
+                      value={composeNotification.scheduledDate}
+                      onChange={(e) =>
+                        setComposeNotification({
+                          ...composeNotification,
+                          scheduledDate: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                     />
-                    <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-gray-800 after:border-gray-300 dark:border-gray-600 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
+                  </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    value={composeNotification.message}
+                    onChange={(e) =>
+                      setComposeNotification({
+                        ...composeNotification,
+                        message: e.target.value,
+                      })
+                    }
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    placeholder="Enter notification message"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowComposeModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveNotification}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Draft</span>
+                </button>
+                <button
+                  onClick={handleSendNotification}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Send Notification</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-                <div className="flex items-center justify-between">
+        {/* Create Template Modal */}
+        {showCreateTemplateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Create Template
+                </h3>
+                <button
+                  onClick={() => setShowCreateTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                      SMS Notifications
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Send critical notifications via SMS
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Template Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newTemplate.name}
+                      onChange={(e) =>
+                        setNewTemplate({ ...newTemplate, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      placeholder="Enter template name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={newTemplate.type}
+                      onChange={(e) =>
+                        setNewTemplate({ ...newTemplate, type: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="general">General</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="security">Security</option>
+                      <option value="feature">Feature</option>
+                      <option value="billing">Billing</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={newTemplate.subject}
+                    onChange={(e) =>
+                      setNewTemplate({
+                        ...newTemplate,
+                        subject: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    placeholder="Enter template subject"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    value={newTemplate.message}
+                    onChange={(e) =>
+                      setNewTemplate({
+                        ...newTemplate,
+                        message: e.target.value,
+                      })
+                    }
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    placeholder="Enter template message"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowCreateTemplateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateTemplateSubmit}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create Template
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Template Modal */}
+        {showEditTemplateModal && selectedTemplate && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Edit Template
+                </h3>
+                <button
+                  onClick={() => setShowEditTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Template Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editTemplate.name}
+                      onChange={(e) =>
+                        setEditTemplate({
+                          ...editTemplate,
+                          name: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={editTemplate.type}
+                      onChange={(e) =>
+                        setEditTemplate({
+                          ...editTemplate,
+                          type: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="general">General</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="security">Security</option>
+                      <option value="feature">Feature</option>
+                      <option value="billing">Billing</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={editTemplate.subject}
+                    onChange={(e) =>
+                      setEditTemplate({
+                        ...editTemplate,
+                        subject: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    value={editTemplate.message}
+                    onChange={(e) =>
+                      setEditTemplate({
+                        ...editTemplate,
+                        message: e.target.value,
+                      })
+                    }
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowEditTemplateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateTemplate}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update Template
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Template Modal */}
+        {showViewTemplateModal && selectedTemplate && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Template Details
+                </h3>
+                <button
+                  onClick={() => setShowViewTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Template Name
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedTemplate.name}
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-gray-800 after:border-gray-300 dark:border-gray-600 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                        selectedTemplate.type
+                      )}`}
+                    >
+                      {selectedTemplate.type}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Last Used
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedTemplate.lastUsed}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Usage Count
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedTemplate.usageCount}
+                    </p>
+                  </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Subject
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTemplate.subject}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Message
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                    {selectedTemplate.message}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowViewTemplateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View History Modal */}
+        {showViewHistoryModal && selectedHistory && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Notification Details
+                </h3>
+                <button
+                  onClick={() => setShowViewHistoryModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Subject
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedHistory.subject}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                        selectedHistory.type
+                      )}`}
+                    >
+                      {selectedHistory.type}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Status
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        selectedHistory.status
+                      )}`}
+                    >
+                      {selectedHistory.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Recipients
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedHistory.recipients.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Sent At
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedHistory.sentAt}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Open Rate
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedHistory.openRate}%
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Message
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                    {selectedHistory.message || "No message content available"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowViewHistoryModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit History Modal */}
+        {showEditHistoryModal && selectedHistory && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Edit Notification
+                </h3>
+                <button
+                  onClick={() => setShowEditHistoryModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={editHistory.subject}
+                    onChange={(e) =>
+                      setEditHistory({
+                        ...editHistory,
+                        subject: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editHistory.status}
+                    onChange={(e) =>
+                      setEditHistory({ ...editHistory, status: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  >
+                    <option value="sent">Sent</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    value={editHistory.message}
+                    onChange={(e) =>
+                      setEditHistory({
+                        ...editHistory,
+                        message: e.target.value,
+                      })
+                    }
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowEditHistoryModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateHistory}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update Notification
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete History Modal */}
+        {showDeleteHistoryModal && selectedHistory && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Notification
+                </h3>
+                <button
+                  onClick={() => setShowDeleteHistoryModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Are you sure you want to delete the notification{" "}
+                  <strong>"{selectedHistory.subject}"</strong>? This action
+                  cannot be undone.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowDeleteHistoryModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteHistoryConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

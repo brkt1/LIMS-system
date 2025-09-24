@@ -6,15 +6,40 @@ import {
   Clock,
   Phone,
   Calendar,
+  Eye,
+  Check,
+  X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const HomeVisitRequests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
 
-  const requests = [
+  // Modal states
+  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showViewRequestModal, setShowViewRequestModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+
+  // Form states
+  const [newRequest, setNewRequest] = useState({
+    patientName: "",
+    patientId: "",
+    address: "",
+    phone: "",
+    requestedDate: "",
+    requestedTime: "",
+    serviceType: "",
+    doctor: "",
+    notes: "",
+    priority: "normal",
+    estimatedDuration: "",
+  });
+
+  const [requests, setRequests] = useState([
     {
       id: "HVR001",
       patientName: "John Smith",
@@ -95,7 +120,20 @@ const HomeVisitRequests: React.FC = () => {
       createdDate: "2025-01-22",
       estimatedDuration: "40 minutes",
     },
-  ];
+  ]);
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedRequests = localStorage.getItem("homeVisitRequests");
+    if (savedRequests) {
+      setRequests(JSON.parse(savedRequests));
+    }
+  }, []);
+
+  // Save data to localStorage whenever requests change
+  useEffect(() => {
+    localStorage.setItem("homeVisitRequests", JSON.stringify(requests));
+  }, [requests]);
 
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
@@ -108,6 +146,73 @@ const HomeVisitRequests: React.FC = () => {
       filterPriority === "all" || request.priority === filterPriority;
     return matchesSearch && matchesStatus && matchesPriority;
   });
+
+  // Handler functions
+  const handleNewRequest = () => {
+    setNewRequest({
+      patientName: "",
+      patientId: "",
+      address: "",
+      phone: "",
+      requestedDate: "",
+      requestedTime: "",
+      serviceType: "",
+      doctor: "",
+      notes: "",
+      priority: "normal",
+      estimatedDuration: "",
+    });
+    setShowNewRequestModal(true);
+  };
+
+  const handleViewRequest = (request: any) => {
+    setSelectedRequest(request);
+    setShowViewRequestModal(true);
+  };
+
+  const handleApproveRequest = (request: any) => {
+    setSelectedRequest(request);
+    setShowApproveModal(true);
+  };
+
+  const handleScheduleRequest = (request: any) => {
+    setSelectedRequest(request);
+    setShowScheduleModal(true);
+  };
+
+  const handleCreateRequest = () => {
+    const newId = `HVR${String(requests.length + 1).padStart(3, "0")}`;
+    const request = {
+      ...newRequest,
+      id: newId,
+      status: "pending",
+      createdDate: new Date().toISOString().split("T")[0],
+    };
+    setRequests([...requests, request]);
+    setShowNewRequestModal(false);
+  };
+
+  const handleApproveConfirm = () => {
+    if (selectedRequest) {
+      setRequests(
+        requests.map((req) =>
+          req.id === selectedRequest.id ? { ...req, status: "approved" } : req
+        )
+      );
+      setShowApproveModal(false);
+    }
+  };
+
+  const handleScheduleConfirm = () => {
+    if (selectedRequest) {
+      setRequests(
+        requests.map((req) =>
+          req.id === selectedRequest.id ? { ...req, status: "scheduled" } : req
+        )
+      );
+      setShowScheduleModal(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -139,13 +244,6 @@ const HomeVisitRequests: React.FC = () => {
     }
   };
 
-  const totalRequests = requests.length;
-  const pendingRequests = requests.filter((r) => r.status === "pending").length;
-  const completedRequests = requests.filter(
-    (r) => r.status === "completed"
-  ).length;
-  const urgentRequests = requests.filter((r) => r.priority === "urgent").length;
-
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -154,9 +252,14 @@ const HomeVisitRequests: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
             Home Visit Requests
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">Manage home visit service requests</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Manage home visit service requests
+          </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleNewRequest}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>New Request</span>
         </button>
@@ -202,54 +305,6 @@ const HomeVisitRequests: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Requests</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
-                {totalRequests}
-              </p>
-            </div>
-            <Stethoscope className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {pendingRequests}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Completed</p>
-              <p className="text-2xl font-bold text-green-600">
-                {completedRequests}
-              </p>
-            </div>
-            <Calendar className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Urgent</p>
-              <p className="text-2xl font-bold text-red-600">
-                {urgentRequests}
-              </p>
-            </div>
-            <Stethoscope className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Requests Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -287,7 +342,10 @@ const HomeVisitRequests: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={request.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -356,13 +414,27 @@ const HomeVisitRequests: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
+                      <button
+                        onClick={() => handleViewRequest(request)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                        Approve
-                      </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
+                      {request.status === "pending" && (
+                        <button
+                          onClick={() => handleApproveRequest(request)}
+                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Approve
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleScheduleRequest(request)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
+                      >
+                        <Calendar className="w-4 h-4 mr-1" />
                         Schedule
                       </button>
                     </div>
@@ -373,6 +445,448 @@ const HomeVisitRequests: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* New Request Modal */}
+      {showNewRequestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                New Home Visit Request
+              </h3>
+              <button
+                onClick={() => setShowNewRequestModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.patientName}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        patientName: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.patientId}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        patientId: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient ID"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    value={newRequest.phone}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Service Type *
+                  </label>
+                  <select
+                    value={newRequest.serviceType}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        serviceType: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select service type</option>
+                    <option value="Blood Collection">Blood Collection</option>
+                    <option value="Vaccination">Vaccination</option>
+                    <option value="COVID-19 Test">COVID-19 Test</option>
+                    <option value="Consultation">Consultation</option>
+                    <option value="Physical Examination">
+                      Physical Examination
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Requested Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={newRequest.requestedDate}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        requestedDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Requested Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={newRequest.requestedTime}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        requestedTime: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Doctor *
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.doctor}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, doctor: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter doctor name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Priority
+                  </label>
+                  <select
+                    value={newRequest.priority}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, priority: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Address *
+                  </label>
+                  <textarea
+                    value={newRequest.address}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, address: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter full address"
+                    rows={3}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={newRequest.notes}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, notes: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter any additional notes"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowNewRequestModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateRequest}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Create Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Request Modal */}
+      {showViewRequestModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Request Details - {selectedRequest.id}
+              </h3>
+              <button
+                onClick={() => setShowViewRequestModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.patientName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.patientId}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.phone}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Service Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.serviceType}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Doctor
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.doctor}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                      selectedRequest.priority
+                    )}`}
+                  >
+                    {selectedRequest.priority.charAt(0).toUpperCase() +
+                      selectedRequest.priority.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedRequest.status
+                    )}`}
+                  >
+                    {selectedRequest.status.charAt(0).toUpperCase() +
+                      selectedRequest.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Requested Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.requestedDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Requested Time
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.requestedTime}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Estimated Duration
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.estimatedDuration}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Address
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.address}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.notes || "No notes provided"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewRequestModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Request Modal */}
+      {showApproveModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Approve Request
+              </h3>
+              <button
+                onClick={() => setShowApproveModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Are you sure you want to approve the home visit request for{" "}
+                <strong>{selectedRequest.patientName}</strong>?
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Service:</strong> {selectedRequest.serviceType}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Date:</strong> {selectedRequest.requestedDate} at{" "}
+                  {selectedRequest.requestedTime}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Doctor:</strong> {selectedRequest.doctor}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowApproveModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApproveConfirm}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Approve Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Request Modal */}
+      {showScheduleModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Schedule Visit
+              </h3>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Schedule the home visit for{" "}
+                <strong>{selectedRequest.patientName}</strong>?
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Service:</strong> {selectedRequest.serviceType}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Requested Date:</strong>{" "}
+                  {selectedRequest.requestedDate} at{" "}
+                  {selectedRequest.requestedTime}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Doctor:</strong> {selectedRequest.doctor}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>Address:</strong> {selectedRequest.address}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleScheduleConfirm}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Schedule Visit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

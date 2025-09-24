@@ -6,15 +6,50 @@ import {
   TrendingUp,
   Edit,
   Trash2,
+  Eye,
+  X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const TestPricing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const pricingItems = [
+  // Modal states
+  const [showAddPricingModal, setShowAddPricingModal] = useState(false);
+  const [showViewPricingModal, setShowViewPricingModal] = useState(false);
+  const [showEditPricingModal, setShowEditPricingModal] = useState(false);
+  const [showDeletePricingModal, setShowDeletePricingModal] = useState(false);
+  const [selectedPricing, setSelectedPricing] = useState<any>(null);
+
+  // Form states
+  const [newPricing, setNewPricing] = useState({
+    testName: "",
+    category: "",
+    basePrice: 0,
+    insurancePrice: 0,
+    cashPrice: 0,
+    description: "",
+    turnaroundTime: "",
+    requirements: "",
+    code: "",
+  });
+
+  const [editPricing, setEditPricing] = useState({
+    testName: "",
+    category: "",
+    basePrice: 0,
+    insurancePrice: 0,
+    cashPrice: 0,
+    description: "",
+    turnaroundTime: "",
+    requirements: "",
+    code: "",
+  });
+
+  // Dynamic pricing state
+  const [pricingItems, setPricingItems] = useState([
     {
       id: "PRC001",
       testName: "Complete Blood Count (CBC)",
@@ -105,7 +140,25 @@ const TestPricing: React.FC = () => {
       requirements: "Blood sample (10ml)",
       code: "BC",
     },
-  ];
+  ]);
+
+  // Load pricing items from localStorage on component mount
+  useEffect(() => {
+    const savedPricing = localStorage.getItem("test-pricing");
+    if (savedPricing) {
+      try {
+        const parsedPricing = JSON.parse(savedPricing);
+        setPricingItems(parsedPricing);
+      } catch (error) {
+        console.error("Error loading pricing:", error);
+      }
+    }
+  }, []);
+
+  // Save pricing items to localStorage whenever pricing changes
+  useEffect(() => {
+    localStorage.setItem("test-pricing", JSON.stringify(pricingItems));
+  }, [pricingItems]);
 
   const filteredPricing = pricingItems.filter((item) => {
     const matchesSearch =
@@ -132,6 +185,107 @@ const TestPricing: React.FC = () => {
     }
   };
 
+  // Handler functions
+  const handleAddPricing = () => {
+    setNewPricing({
+      testName: "",
+      category: "",
+      basePrice: 0,
+      insurancePrice: 0,
+      cashPrice: 0,
+      description: "",
+      turnaroundTime: "",
+      requirements: "",
+      code: "",
+    });
+    setShowAddPricingModal(true);
+  };
+
+  const handleViewPricing = (pricing: any) => {
+    setSelectedPricing(pricing);
+    setShowViewPricingModal(true);
+  };
+
+  const handleEditPricing = (pricing: any) => {
+    setSelectedPricing(pricing);
+    setEditPricing({
+      testName: pricing.testName,
+      category: pricing.category,
+      basePrice: pricing.basePrice,
+      insurancePrice: pricing.insurancePrice,
+      cashPrice: pricing.cashPrice,
+      description: pricing.description,
+      turnaroundTime: pricing.turnaroundTime,
+      requirements: pricing.requirements,
+      code: pricing.code,
+    });
+    setShowEditPricingModal(true);
+  };
+
+  const handleDeletePricing = (pricing: any) => {
+    setSelectedPricing(pricing);
+    setShowDeletePricingModal(true);
+  };
+
+  const handleCreatePricing = () => {
+    if (newPricing.testName && newPricing.category && newPricing.code) {
+      const pricing = {
+        id: `PRC${String(pricingItems.length + 1).padStart(3, "0")}`,
+        ...newPricing,
+        status: "active",
+        lastUpdated: new Date().toISOString().split("T")[0],
+        updatedBy: "Current User",
+      };
+      setPricingItems((prev: any) => [pricing, ...prev]);
+      setShowAddPricingModal(false);
+      setNewPricing({
+        testName: "",
+        category: "",
+        basePrice: 0,
+        insurancePrice: 0,
+        cashPrice: 0,
+        description: "",
+        turnaroundTime: "",
+        requirements: "",
+        code: "",
+      });
+    }
+  };
+
+  const handleUpdatePricing = () => {
+    if (
+      selectedPricing &&
+      editPricing.testName &&
+      editPricing.category &&
+      editPricing.code
+    ) {
+      setPricingItems((prev: any) =>
+        prev.map((item: any) =>
+          item.id === selectedPricing.id
+            ? {
+                ...item,
+                ...editPricing,
+                lastUpdated: new Date().toISOString().split("T")[0],
+                updatedBy: "Current User",
+              }
+            : item
+        )
+      );
+      setShowEditPricingModal(false);
+      setSelectedPricing(null);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedPricing) {
+      setPricingItems((prev: any) =>
+        prev.filter((item: any) => item.id !== selectedPricing.id)
+      );
+      setShowDeletePricingModal(false);
+      setSelectedPricing(null);
+    }
+  };
+
   const totalTests = pricingItems.length;
   const activeTests = pricingItems.filter((t) => t.status === "active").length;
   const avgBasePrice =
@@ -153,7 +307,10 @@ const TestPricing: React.FC = () => {
             Manage pricing for tests and culture services
           </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleAddPricing}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Pricing</span>
         </button>
@@ -199,50 +356,6 @@ const TestPricing: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Tests</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">{totalTests}</p>
-            </div>
-            <Calculator className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Active Tests</p>
-              <p className="text-2xl font-bold text-green-600">{activeTests}</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Avg. Base Price</p>
-              <p className="text-2xl font-bold text-blue-600">
-                ${avgBasePrice.toFixed(0)}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Est. Revenue</p>
-              <p className="text-2xl font-bold text-purple-600">
-                ${totalRevenue.toLocaleString()}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-      </div>
-
       {/* Pricing Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -277,13 +390,18 @@ const TestPricing: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredPricing.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={item.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {item.testName}
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{item.code}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        {item.code}
+                      </div>
                       <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden">
                         Base: ${item.basePrice}
                       </div>
@@ -322,13 +440,22 @@ const TestPricing: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
+                      <button
+                        onClick={() => handleViewPricing(item)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
+                      <button
+                        onClick={() => handleEditPricing(item)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
                         Edit
                       </button>
-                      <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left">
+                      <button
+                        onClick={() => handleDeletePricing(item)}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left"
+                      >
                         Delete
                       </button>
                     </div>
@@ -339,6 +466,565 @@ const TestPricing: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Pricing Modal */}
+      {showAddPricingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Pricing
+              </h3>
+              <button
+                onClick={() => setShowAddPricingModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Test Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newPricing.testName}
+                    onChange={(e) =>
+                      setNewPricing({ ...newPricing, testName: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter test name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={newPricing.category}
+                    onChange={(e) =>
+                      setNewPricing({ ...newPricing, category: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Hematology">Hematology</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Endocrinology">Endocrinology</option>
+                    <option value="Urinalysis">Urinalysis</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Test Code *
+                  </label>
+                  <input
+                    type="text"
+                    value={newPricing.code}
+                    onChange={(e) =>
+                      setNewPricing({ ...newPricing, code: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter test code"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Turnaround Time
+                  </label>
+                  <input
+                    type="text"
+                    value={newPricing.turnaroundTime}
+                    onChange={(e) =>
+                      setNewPricing({
+                        ...newPricing,
+                        turnaroundTime: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="e.g., 30 minutes, 2-4 hours"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newPricing.basePrice}
+                    onChange={(e) =>
+                      setNewPricing({
+                        ...newPricing,
+                        basePrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Insurance Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newPricing.insurancePrice}
+                    onChange={(e) =>
+                      setNewPricing({
+                        ...newPricing,
+                        insurancePrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Cash Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newPricing.cashPrice}
+                    onChange={(e) =>
+                      setNewPricing({
+                        ...newPricing,
+                        cashPrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Requirements
+                  </label>
+                  <input
+                    type="text"
+                    value={newPricing.requirements}
+                    onChange={(e) =>
+                      setNewPricing({
+                        ...newPricing,
+                        requirements: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="e.g., Blood sample (2ml)"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={newPricing.description}
+                    onChange={(e) =>
+                      setNewPricing({
+                        ...newPricing,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Enter test description"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddPricingModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreatePricing}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Pricing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Pricing Modal */}
+      {showViewPricingModal && selectedPricing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Pricing Details
+              </h3>
+              <button
+                onClick={() => setShowViewPricingModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Test Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.testName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.category}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Test Code
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.code}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Pricing ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Base Price
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedPricing.basePrice.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Insurance Price
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedPricing.insurancePrice.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Cash Price
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    ${selectedPricing.cashPrice.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedPricing.status
+                    )}`}
+                  >
+                    {selectedPricing.status.charAt(0).toUpperCase() +
+                      selectedPricing.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Turnaround Time
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.turnaroundTime}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Requirements
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.requirements}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Updated
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.lastUpdated}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Updated By
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.updatedBy}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Description
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPricing.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewPricingModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Pricing Modal */}
+      {showEditPricingModal && selectedPricing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Pricing
+              </h3>
+              <button
+                onClick={() => setShowEditPricingModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Test Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editPricing.testName}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        testName: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={editPricing.category}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        category: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="Hematology">Hematology</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Endocrinology">Endocrinology</option>
+                    <option value="Urinalysis">Urinalysis</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Test Code *
+                  </label>
+                  <input
+                    type="text"
+                    value={editPricing.code}
+                    onChange={(e) =>
+                      setEditPricing({ ...editPricing, code: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Turnaround Time
+                  </label>
+                  <input
+                    type="text"
+                    value={editPricing.turnaroundTime}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        turnaroundTime: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editPricing.basePrice}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        basePrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Insurance Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editPricing.insurancePrice}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        insurancePrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Cash Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editPricing.cashPrice}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        cashPrice: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Requirements
+                  </label>
+                  <input
+                    type="text"
+                    value={editPricing.requirements}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        requirements: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={editPricing.description}
+                    onChange={(e) =>
+                      setEditPricing({
+                        ...editPricing,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditPricingModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdatePricing}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Pricing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Pricing Modal */}
+      {showDeletePricingModal && selectedPricing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Pricing
+              </h3>
+              <button
+                onClick={() => setShowDeletePricingModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Are you sure you want to delete the pricing for{" "}
+                <strong>"{selectedPricing.testName}"</strong>? This action
+                cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowDeletePricingModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 inline mr-2" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

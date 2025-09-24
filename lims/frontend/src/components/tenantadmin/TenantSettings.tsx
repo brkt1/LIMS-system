@@ -1,5 +1,13 @@
-import { Building2, Save, Settings, Shield, Users } from "lucide-react";
-import React, { useState } from "react";
+import {
+  Building2,
+  Save,
+  Settings,
+  Shield,
+  Users,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 const TenantSettings: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -37,12 +45,41 @@ const TenantSettings: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState("general");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
+    "idle"
+  );
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem("tenant-settings");
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(parsedSettings);
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    }
+  }, []);
+
+  // Save settings to localStorage whenever settings change
+  useEffect(() => {
+    if (settings.organizationName !== "MediCare Clinic") {
+      // Only save if not initial state
+      localStorage.setItem("tenant-settings", JSON.stringify(settings));
+      setHasUnsavedChanges(false);
+    }
+  }, [settings]);
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings((prev) => ({
       ...prev,
       [key]: value,
     }));
+    setHasUnsavedChanges(true);
+    setSaveStatus("idle");
   };
 
   const handleNestedSettingChange = (
@@ -57,12 +94,42 @@ const TenantSettings: React.FC = () => {
         [childKey]: value,
       },
     }));
+    setHasUnsavedChanges(true);
+    setSaveStatus("idle");
   };
 
-  const handleSave = () => {
-    // Here you would typically save the settings to the backend
-    console.log("Saving settings:", settings);
-    alert("Settings saved successfully!");
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus("idle");
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Save to localStorage (in a real app, this would be an API call)
+      localStorage.setItem("tenant-settings", JSON.stringify(settings));
+
+      // Simulate success
+      setSaveStatus("success");
+      setHasUnsavedChanges(false);
+
+      // Reset success status after 3 seconds
+      setTimeout(() => {
+        setSaveStatus("idle");
+      }, 3000);
+
+      console.log("Settings saved successfully:", settings);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      setSaveStatus("error");
+
+      // Reset error status after 5 seconds
+      setTimeout(() => {
+        setSaveStatus("idle");
+      }, 5000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const tabs = [
@@ -85,13 +152,47 @@ const TenantSettings: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button
-            onClick={handleSave}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Changes</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Status indicator */}
+            {saveStatus === "success" && (
+              <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Saved successfully!</span>
+              </div>
+            )}
+            {saveStatus === "error" && (
+              <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Save failed. Please try again.
+                </span>
+              </div>
+            )}
+            {hasUnsavedChanges && saveStatus === "idle" && (
+              <div className="flex items-center space-x-2 text-yellow-600 dark:text-yellow-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Unsaved changes</span>
+              </div>
+            )}
+
+            {/* Save button */}
+            <button
+              onClick={handleSave}
+              disabled={
+                isSaving || (!hasUnsavedChanges && saveStatus === "idle")
+              }
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto justify-center ${
+                isSaving
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : hasUnsavedChanges || saveStatus !== "idle"
+                  ? "bg-primary-600 text-white hover:bg-primary-700"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              <Save className={`w-4 h-4 ${isSaving ? "animate-spin" : ""}`} />
+              <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+            </button>
+          </div>
         </div>
       </div>
 

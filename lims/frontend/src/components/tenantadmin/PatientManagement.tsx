@@ -6,15 +6,50 @@ import {
   Calendar,
   Phone,
   Mail,
+  Eye,
+  Edit,
+  History,
+  X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const PatientManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterAge, setFilterAge] = useState("all");
 
-  const patients = [
+  // Modal states
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [showViewPatientModal, setShowViewPatientModal] = useState(false);
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+
+  // Form states
+  const [newPatient, setNewPatient] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    age: "",
+    gender: "",
+    primaryDoctor: "",
+    insurance: "",
+    emergencyContact: "",
+  });
+
+  const [editPatient, setEditPatient] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    age: "",
+    gender: "",
+    primaryDoctor: "",
+    insurance: "",
+    emergencyContact: "",
+  });
+
+  // Dynamic patients state
+  const [patients, setPatients] = useState([
     {
       id: "P001",
       name: "John Smith",
@@ -85,7 +120,25 @@ const PatientManagement: React.FC = () => {
       insurance: "Medicare",
       emergencyContact: "Mary Brown (555) 543-2109",
     },
-  ];
+  ]);
+
+  // Load patients from localStorage on component mount
+  useEffect(() => {
+    const savedPatients = localStorage.getItem("patient-management");
+    if (savedPatients) {
+      try {
+        const parsedPatients = JSON.parse(savedPatients);
+        setPatients(parsedPatients);
+      } catch (error) {
+        console.error("Error loading patients:", error);
+      }
+    }
+  }, []);
+
+  // Save patients to localStorage whenever patients changes
+  useEffect(() => {
+    localStorage.setItem("patient-management", JSON.stringify(patients));
+  }, [patients]);
 
   const filteredPatients = patients.filter((patient) => {
     const matchesSearch =
@@ -116,6 +169,98 @@ const PatientManagement: React.FC = () => {
     }
   };
 
+  // Handler functions
+  const handleAddPatient = () => {
+    setNewPatient({
+      name: "",
+      email: "",
+      phone: "",
+      age: "",
+      gender: "",
+      primaryDoctor: "",
+      insurance: "",
+      emergencyContact: "",
+    });
+    setShowAddPatientModal(true);
+  };
+
+  const handleViewPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowViewPatientModal(true);
+  };
+
+  const handleEditPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setEditPatient({
+      name: patient.name,
+      email: patient.email,
+      phone: patient.phone,
+      age: patient.age.toString(),
+      gender: patient.gender,
+      primaryDoctor: patient.primaryDoctor,
+      insurance: patient.insurance,
+      emergencyContact: patient.emergencyContact,
+    });
+    setShowEditPatientModal(true);
+  };
+
+  const handleViewHistory = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowHistoryModal(true);
+  };
+
+  const handleCreatePatient = () => {
+    if (
+      newPatient.name &&
+      newPatient.email &&
+      newPatient.phone &&
+      newPatient.age &&
+      newPatient.gender
+    ) {
+      const patient = {
+        id: `P${String(patients.length + 1).padStart(3, "0")}`,
+        ...newPatient,
+        age: parseInt(newPatient.age),
+        status: "active",
+        lastVisit: new Date().toISOString().split("T")[0],
+        totalVisits: 0,
+      };
+      setPatients((prev: any) => [patient, ...prev]);
+      setShowAddPatientModal(false);
+      setNewPatient({
+        name: "",
+        email: "",
+        phone: "",
+        age: "",
+        gender: "",
+        primaryDoctor: "",
+        insurance: "",
+        emergencyContact: "",
+      });
+    }
+  };
+
+  const handleUpdatePatient = () => {
+    if (
+      selectedPatient &&
+      editPatient.name &&
+      editPatient.email &&
+      editPatient.phone &&
+      editPatient.age &&
+      editPatient.gender
+    ) {
+      setPatients((prev: any) =>
+        prev.map((patient: any) =>
+          patient.id === selectedPatient.id
+            ? { ...patient, ...editPatient, age: parseInt(editPatient.age) }
+            : patient
+        )
+      );
+      setShowEditPatientModal(false);
+      setSelectedPatient(null);
+    }
+  };
+
   const totalPatients = patients.length;
   const activePatients = patients.filter((p) => p.status === "active").length;
   const totalVisits = patients.reduce((sum, p) => sum + p.totalVisits, 0);
@@ -135,7 +280,10 @@ const PatientManagement: React.FC = () => {
             Manage patient records and information
           </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleAddPatient}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Patient</span>
         </button>
@@ -327,13 +475,22 @@ const PatientManagement: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
+                      <button
+                        onClick={() => handleViewPatient(patient)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
                         View
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
+                      <button
+                        onClick={() => handleEditPatient(patient)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
                         Edit
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
+                      <button
+                        onClick={() => handleViewHistory(patient)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                      >
                         History
                       </button>
                     </div>
@@ -344,6 +501,607 @@ const PatientManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Patient Modal */}
+      {showAddPatientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Patient
+              </h3>
+              <button
+                onClick={() => setShowAddPatientModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newPatient.name}
+                    onChange={(e) =>
+                      setNewPatient({ ...newPatient, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter patient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={newPatient.email}
+                    onChange={(e) =>
+                      setNewPatient({ ...newPatient, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    value={newPatient.phone}
+                    onChange={(e) =>
+                      setNewPatient({ ...newPatient, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Age *
+                  </label>
+                  <input
+                    type="number"
+                    value={newPatient.age}
+                    onChange={(e) =>
+                      setNewPatient({ ...newPatient, age: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter age"
+                    min="0"
+                    max="120"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gender *
+                  </label>
+                  <select
+                    value={newPatient.gender}
+                    onChange={(e) =>
+                      setNewPatient({ ...newPatient, gender: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Primary Doctor
+                  </label>
+                  <input
+                    type="text"
+                    value={newPatient.primaryDoctor}
+                    onChange={(e) =>
+                      setNewPatient({
+                        ...newPatient,
+                        primaryDoctor: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter primary doctor"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Insurance
+                  </label>
+                  <input
+                    type="text"
+                    value={newPatient.insurance}
+                    onChange={(e) =>
+                      setNewPatient({
+                        ...newPatient,
+                        insurance: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter insurance provider"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Emergency Contact
+                  </label>
+                  <input
+                    type="text"
+                    value={newPatient.emergencyContact}
+                    onChange={(e) =>
+                      setNewPatient({
+                        ...newPatient,
+                        emergencyContact: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter emergency contact"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddPatientModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreatePatient}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Patient
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Patient Modal */}
+      {showViewPatientModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Patient Details
+              </h3>
+              <button
+                onClick={() => setShowViewPatientModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.email}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.phone}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Age
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.age} years
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Gender
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.gender}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedPatient.status
+                    )}`}
+                  >
+                    {selectedPatient.status.charAt(0).toUpperCase() +
+                      selectedPatient.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Visits
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.totalVisits}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Primary Doctor
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.primaryDoctor}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Insurance
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.insurance}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Last Visit
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.lastVisit}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Emergency Contact
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedPatient.emergencyContact}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewPatientModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Patient Modal */}
+      {showEditPatientModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Patient
+              </h3>
+              <button
+                onClick={() => setShowEditPatientModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Patient Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editPatient.name}
+                    onChange={(e) =>
+                      setEditPatient({ ...editPatient, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={editPatient.email}
+                    onChange={(e) =>
+                      setEditPatient({ ...editPatient, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    value={editPatient.phone}
+                    onChange={(e) =>
+                      setEditPatient({ ...editPatient, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Age *
+                  </label>
+                  <input
+                    type="number"
+                    value={editPatient.age}
+                    onChange={(e) =>
+                      setEditPatient({ ...editPatient, age: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="0"
+                    max="120"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gender *
+                  </label>
+                  <select
+                    value={editPatient.gender}
+                    onChange={(e) =>
+                      setEditPatient({ ...editPatient, gender: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Primary Doctor
+                  </label>
+                  <input
+                    type="text"
+                    value={editPatient.primaryDoctor}
+                    onChange={(e) =>
+                      setEditPatient({
+                        ...editPatient,
+                        primaryDoctor: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Insurance
+                  </label>
+                  <input
+                    type="text"
+                    value={editPatient.insurance}
+                    onChange={(e) =>
+                      setEditPatient({
+                        ...editPatient,
+                        insurance: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Emergency Contact
+                  </label>
+                  <input
+                    type="text"
+                    value={editPatient.emergencyContact}
+                    onChange={(e) =>
+                      setEditPatient({
+                        ...editPatient,
+                        emergencyContact: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditPatientModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdatePatient}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Patient
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Patient History Modal */}
+      {showHistoryModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Patient History - {selectedPatient.name}
+              </h3>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Visit History
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Regular Checkup
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          Dr. Sarah Johnson
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          2025-01-21
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          10:30 AM
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Blood Test
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          Dr. Mike Davis
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          2025-01-15
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          2:15 PM
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Consultation
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          Dr. Lisa Wilson
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          2025-01-08
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          9:00 AM
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Medical Records
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Complete Blood Count
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          Results: Normal
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          2025-01-15
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          X-Ray Chest
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          Results: Clear
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          2025-01-10
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                    Prescriptions
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Vitamin D3
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">
+                          1000 IU daily
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          2025-01-21
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

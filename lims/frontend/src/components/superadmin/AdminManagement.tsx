@@ -8,15 +8,33 @@ import {
   User,
   UserCheck,
   UserX,
+  X,
+  Eye,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const AdminManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const admins = [
+  // Modal states
+  const [showViewAdminModal, setShowViewAdminModal] = useState(false);
+  const [showEditAdminModal, setShowEditAdminModal] = useState(false);
+  const [showDeleteAdminModal, setShowDeleteAdminModal] = useState(false);
+  const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
+
+  // Form states
+  const [editAdmin, setEditAdmin] = useState({
+    name: "",
+    email: "",
+    role: "System Admin",
+    status: "Active",
+    permissions: [] as string[],
+  });
+
+  const [admins, setAdmins] = useState([
     {
       id: "1",
       name: "John Smith",
@@ -61,7 +79,100 @@ const AdminManagement: React.FC = () => {
       created: "2024-04-12",
       avatar: "ED",
     },
-  ];
+  ]);
+
+  // Load admins from localStorage on component mount
+  useEffect(() => {
+    const savedAdmins = localStorage.getItem("superadmin-admins");
+    if (savedAdmins) {
+      try {
+        setAdmins(JSON.parse(savedAdmins));
+      } catch (error) {
+        console.error("Error loading saved admins:", error);
+      }
+    }
+  }, []);
+
+  // Save admins to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem("superadmin-admins", JSON.stringify(admins));
+  }, [admins]);
+
+  // CRUD handler functions
+  const handleViewAdmin = (admin: any) => {
+    setSelectedAdmin(admin);
+    setShowViewAdminModal(true);
+  };
+
+  const handleEditAdmin = (admin: any) => {
+    setSelectedAdmin(admin);
+    setEditAdmin({
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      status: admin.status,
+      permissions: admin.permissions,
+    });
+    setShowEditAdminModal(true);
+  };
+
+  const handleDeleteAdmin = (admin: any) => {
+    setSelectedAdmin(admin);
+    setShowDeleteAdminModal(true);
+  };
+
+  const handleMoreActions = (admin: any) => {
+    setSelectedAdmin(admin);
+    setShowMoreActionsModal(true);
+  };
+
+  const handleUpdateAdmin = () => {
+    if (selectedAdmin) {
+      setAdmins((prev: any) =>
+        prev.map((admin: any) =>
+          admin.id === selectedAdmin.id ? { ...admin, ...editAdmin } : admin
+        )
+      );
+      setShowEditAdminModal(false);
+      setSelectedAdmin(null);
+    }
+  };
+
+  const handleDeleteAdminConfirm = () => {
+    if (selectedAdmin) {
+      setAdmins((prev: any) =>
+        prev.filter((admin: any) => admin.id !== selectedAdmin.id)
+      );
+      setShowDeleteAdminModal(false);
+      setSelectedAdmin(null);
+    }
+  };
+
+  const handleSuspendAdmin = () => {
+    if (selectedAdmin) {
+      setAdmins((prev: any) =>
+        prev.map((admin: any) =>
+          admin.id === selectedAdmin.id
+            ? { ...admin, status: "Inactive" }
+            : admin
+        )
+      );
+      setShowMoreActionsModal(false);
+      setSelectedAdmin(null);
+    }
+  };
+
+  const handleActivateAdmin = () => {
+    if (selectedAdmin) {
+      setAdmins((prev: any) =>
+        prev.map((admin: any) =>
+          admin.id === selectedAdmin.id ? { ...admin, status: "Active" } : admin
+        )
+      );
+      setShowMoreActionsModal(false);
+      setSelectedAdmin(null);
+    }
+  };
 
   const filteredAdmins = admins.filter((admin) => {
     const matchesSearch =
@@ -255,7 +366,10 @@ const AdminManagement: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredAdmins.map((admin) => (
-                  <tr key={admin.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900">
+                  <tr
+                    key={admin.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
+                  >
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex items-center space-x-2 sm:space-x-3">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -318,13 +432,32 @@ const AdminManagement: React.FC = () => {
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex items-center space-x-1 sm:space-x-2">
-                        <button className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400">
+                        <button
+                          onClick={() => handleViewAdmin(admin)}
+                          className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400"
+                          title="View Admin"
+                        >
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditAdmin(admin)}
+                          className="p-1 text-gray-400 hover:text-green-600 dark:text-green-400"
+                          title="Edit Admin"
+                        >
                           <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400">
+                        <button
+                          onClick={() => handleDeleteAdmin(admin)}
+                          className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400"
+                          title="Delete Admin"
+                        >
                           <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                        <button
+                          onClick={() => handleMoreActions(admin)}
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                          title="More Actions"
+                        >
                           <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
@@ -432,6 +565,340 @@ const AdminManagement: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* View Admin Modal */}
+        {showViewAdminModal && selectedAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Admin Details
+                </h3>
+                <button
+                  onClick={() => setShowViewAdminModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedAdmin.name}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedAdmin.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Role
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
+                        selectedAdmin.role
+                      )}`}
+                    >
+                      {selectedAdmin.role}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Status
+                    </label>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        selectedAdmin.status
+                      )}`}
+                    >
+                      {selectedAdmin.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Last Login
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedAdmin.lastLogin}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Created
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedAdmin.created}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Permissions
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedAdmin.permissions.map(
+                      (permission: string, index: number) => (
+                        <span
+                          key={index}
+                          className="inline-flex px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded"
+                        >
+                          {permission}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowViewAdminModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Admin Modal */}
+        {showEditAdminModal && selectedAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Edit Admin
+                </h3>
+                <button
+                  onClick={() => setShowEditAdminModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editAdmin.name}
+                      onChange={(e) =>
+                        setEditAdmin({ ...editAdmin, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={editAdmin.email}
+                      onChange={(e) =>
+                        setEditAdmin({ ...editAdmin, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={editAdmin.role}
+                      onChange={(e) =>
+                        setEditAdmin({ ...editAdmin, role: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="Super Admin">Super Admin</option>
+                      <option value="System Admin">System Admin</option>
+                      <option value="Support Admin">Support Admin</option>
+                      <option value="Billing Admin">Billing Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={editAdmin.status}
+                      onChange={(e) =>
+                        setEditAdmin({ ...editAdmin, status: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Permissions
+                  </label>
+                  <div className="space-y-2">
+                    {[
+                      "All Permissions",
+                      "User Management",
+                      "System Settings",
+                      "Analytics",
+                      "Support Management",
+                      "User Support",
+                      "Billing Management",
+                      "Financial Reports",
+                    ].map((permission) => (
+                      <label key={permission} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={editAdmin.permissions.includes(permission)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditAdmin({
+                                ...editAdmin,
+                                permissions: [
+                                  ...editAdmin.permissions,
+                                  permission,
+                                ],
+                              });
+                            } else {
+                              setEditAdmin({
+                                ...editAdmin,
+                                permissions: editAdmin.permissions.filter(
+                                  (p) => p !== permission
+                                ),
+                              });
+                            }
+                          }}
+                          className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {permission}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowEditAdminModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateAdmin}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update Admin
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Admin Modal */}
+        {showDeleteAdminModal && selectedAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Admin
+                </h3>
+                <button
+                  onClick={() => setShowDeleteAdminModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Are you sure you want to delete{" "}
+                  <strong>{selectedAdmin.name}</strong>? This action cannot be
+                  undone.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowDeleteAdminModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAdminConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete Admin
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* More Actions Modal */}
+        {showMoreActionsModal && selectedAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  More Actions
+                </h3>
+                <button
+                  onClick={() => setShowMoreActionsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Additional actions for <strong>{selectedAdmin.name}</strong>
+                </p>
+                <div className="space-y-3">
+                  {selectedAdmin.status === "Active" ? (
+                    <button
+                      onClick={handleSuspendAdmin}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-colors"
+                    >
+                      <span>Suspend Admin</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleActivateAdmin}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-100 dark:bg-green-900/20 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
+                    >
+                      <span>Activate Admin</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setShowMoreActionsModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

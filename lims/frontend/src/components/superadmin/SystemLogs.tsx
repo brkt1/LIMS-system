@@ -8,7 +8,7 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const SystemLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,7 +33,7 @@ const SystemLogs: React.FC = () => {
     { id: "security", name: "Security" },
   ];
 
-  const systemLogs = [
+  const [systemLogs, setSystemLogs] = useState([
     {
       id: "1",
       timestamp: "2025-01-20 14:30:25",
@@ -127,7 +127,101 @@ const SystemLogs: React.FC = () => {
         adminEmail: "admin@pcn.com",
       },
     },
-  ];
+  ]);
+
+  // Load logs from localStorage on component mount
+  useEffect(() => {
+    const savedLogs = localStorage.getItem("superadmin-system-logs");
+    if (savedLogs) {
+      try {
+        setSystemLogs(JSON.parse(savedLogs));
+      } catch (error) {
+        console.error("Error loading saved logs:", error);
+      }
+    }
+  }, []);
+
+  // Save logs to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem("superadmin-system-logs", JSON.stringify(systemLogs));
+  }, [systemLogs]);
+
+  // Export functionality
+  const handleExportLogs = () => {
+    const csvContent = generateLogsCSV();
+    downloadCSV(csvContent, "system-logs-report.csv");
+  };
+
+  const generateLogsCSV = () => {
+    const headers = [
+      "Timestamp",
+      "Level",
+      "Category",
+      "Message",
+      "User",
+      "IP Address",
+      "Tenant",
+      "Details",
+    ];
+
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    const rows = filteredLogs.map((log) => [
+      log.timestamp,
+      log.level,
+      log.category,
+      log.message,
+      log.user,
+      log.ip,
+      log.tenant,
+      JSON.stringify(log.details),
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((field) => `"${field}"`).join(","))
+      .join("\n");
+
+    return csvContent;
+  };
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Add a new log entry to simulate refresh
+    const newLog = {
+      id: (systemLogs.length + 1).toString(),
+      timestamp: new Date().toISOString().replace("T", " ").substring(0, 19),
+      level: "info",
+      category: "system",
+      message: "System logs refreshed successfully",
+      user: "system",
+      ip: "127.0.0.1",
+      tenant: "System",
+      details: {
+        refreshTime: new Date().toISOString(),
+        totalLogs: systemLogs.length + 1,
+      },
+    };
+
+    setSystemLogs((prev: any) => [newLog, ...prev]);
+    setIsRefreshing(false);
+  };
 
   const filteredLogs = systemLogs.filter((log) => {
     const matchesSearch =
@@ -145,13 +239,21 @@ const SystemLogs: React.FC = () => {
       case "error":
         return <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />;
       case "warning":
-        return <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />;
+        return (
+          <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+        );
       case "info":
-        return <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+        return (
+          <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        );
       case "debug":
-        return <Activity className="w-4 h-4 text-gray-600 dark:text-gray-300" />;
+        return (
+          <Activity className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        );
       default:
-        return <Activity className="w-4 h-4 text-gray-600 dark:text-gray-300" />;
+        return (
+          <Activity className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        );
     }
   };
 
@@ -187,13 +289,6 @@ const SystemLogs: React.FC = () => {
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
-  };
-
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Header */}
@@ -218,7 +313,10 @@ const SystemLogs: React.FC = () => {
               />
               <span>Refresh</span>
             </button>
-            <button className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors text-sm sm:text-base w-full sm:w-auto">
+            <button
+              onClick={handleExportLogs}
+              className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors text-sm sm:text-base w-full sm:w-auto"
+            >
               <Download className="w-4 h-4" />
               <span>Export Logs</span>
             </button>
@@ -327,7 +425,10 @@ const SystemLogs: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900">
+                  <tr
+                    key={log.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
+                  >
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex items-center space-x-1 sm:space-x-2">
                         <div className="flex-shrink-0">

@@ -6,15 +6,69 @@ import {
   Phone,
   Users,
   Calendar,
+  Eye,
+  Edit,
+  X,
+  Settings,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const BranchManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCity, setFilterCity] = useState("all");
 
-  const branches = [
+  // Modal states
+  const [showAddBranchModal, setShowAddBranchModal] = useState(false);
+  const [showViewBranchModal, setShowViewBranchModal] = useState(false);
+  const [showEditBranchModal, setShowEditBranchModal] = useState(false);
+  const [showManageBranchModal, setShowManageBranchModal] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState<any>(null);
+
+  // Form states
+  const [newBranch, setNewBranch] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    manager: "",
+    establishedDate: "",
+    totalStaff: "",
+    totalPatients: "",
+    services: "",
+    operatingHours: "",
+  });
+
+  const [editBranch, setEditBranch] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    manager: "",
+    establishedDate: "",
+    totalStaff: "",
+    totalPatients: "",
+    services: "",
+    operatingHours: "",
+  });
+
+  const [manageData, setManageData] = useState({
+    action: "",
+    description: "",
+    assignedTo: "",
+    priority: "",
+    dueDate: "",
+    notes: "",
+  });
+
+  // Convert static data to state
+  const [branches, setBranches] = useState([
     {
       id: "BR001",
       name: "Main Clinic",
@@ -100,7 +154,20 @@ const BranchManagement: React.FC = () => {
       services: ["Oncology", "Surgery", "Rehabilitation"],
       operatingHours: "Mon-Fri 8AM-6PM",
     },
-  ];
+  ]);
+
+  // Load branches from localStorage on component mount
+  useEffect(() => {
+    const savedBranches = localStorage.getItem("tenantBranches");
+    if (savedBranches) {
+      setBranches(JSON.parse(savedBranches));
+    }
+  }, []);
+
+  // Save branches to localStorage whenever branches change
+  useEffect(() => {
+    localStorage.setItem("tenantBranches", JSON.stringify(branches));
+  }, [branches]);
 
   const filteredBranches = branches.filter((branch) => {
     const matchesSearch =
@@ -112,6 +179,20 @@ const BranchManagement: React.FC = () => {
     const matchesCity = filterCity === "all" || branch.city === filterCity;
     return matchesSearch && matchesStatus && matchesCity;
   });
+
+  // Calculate statistics
+  const totalBranches = branches.length;
+  const activeBranches = branches.filter(
+    (branch) => branch.status === "active"
+  ).length;
+  const totalStaff = branches.reduce(
+    (sum, branch) => sum + branch.totalStaff,
+    0
+  );
+  const totalPatients = branches.reduce(
+    (sum, branch) => sum + branch.totalPatients,
+    0
+  );
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -128,10 +209,108 @@ const BranchManagement: React.FC = () => {
     }
   };
 
-  const totalBranches = branches.length;
-  const activeBranches = branches.filter((b) => b.status === "active").length;
-  const totalStaff = branches.reduce((sum, b) => sum + b.totalStaff, 0);
-  const totalPatients = branches.reduce((sum, b) => sum + b.totalPatients, 0);
+  // Handler functions
+  const handleAddBranch = () => {
+    setNewBranch({
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      manager: "",
+      establishedDate: "",
+      totalStaff: "",
+      totalPatients: "",
+      services: "",
+      operatingHours: "",
+    });
+    setShowAddBranchModal(true);
+  };
+
+  const handleViewBranch = (branch: any) => {
+    setSelectedBranch(branch);
+    setShowViewBranchModal(true);
+  };
+
+  const handleEditBranch = (branch: any) => {
+    setSelectedBranch(branch);
+    setEditBranch({
+      name: branch.name,
+      address: branch.address,
+      phone: branch.phone,
+      email: branch.email,
+      city: branch.city,
+      state: branch.state,
+      zipCode: branch.zipCode,
+      manager: branch.manager,
+      establishedDate: branch.establishedDate,
+      totalStaff: branch.totalStaff.toString(),
+      totalPatients: branch.totalPatients.toString(),
+      services: Array.isArray(branch.services)
+        ? branch.services.join(", ")
+        : branch.services,
+      operatingHours: branch.operatingHours,
+    });
+    setShowEditBranchModal(true);
+  };
+
+  const handleManageBranch = (branch: any) => {
+    setSelectedBranch(branch);
+    setManageData({
+      action: "",
+      description: "",
+      assignedTo: "",
+      priority: "",
+      dueDate: "",
+      notes: "",
+    });
+    setShowManageBranchModal(true);
+  };
+
+  const handleCreateBranch = () => {
+    const newId = `BR${String(branches.length + 1).padStart(3, "0")}`;
+    const branch = {
+      id: newId,
+      ...newBranch,
+      totalStaff: parseInt(newBranch.totalStaff) || 0,
+      totalPatients: parseInt(newBranch.totalPatients) || 0,
+      services: newBranch.services
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s),
+      status: "active",
+    };
+    setBranches((prev: any) => [...prev, branch]);
+    setShowAddBranchModal(false);
+  };
+
+  const handleUpdateBranch = () => {
+    setBranches((prev: any) =>
+      prev.map((branch: any) =>
+        branch.id === selectedBranch.id
+          ? {
+              ...branch,
+              ...editBranch,
+              totalStaff: parseInt(editBranch.totalStaff) || 0,
+              totalPatients: parseInt(editBranch.totalPatients) || 0,
+              services: editBranch.services
+                .split(",")
+                .map((s) => s.trim())
+                .filter((s) => s),
+            }
+          : branch
+      )
+    );
+    setShowEditBranchModal(false);
+  };
+
+  const handleManageAction = () => {
+    // Here you could implement specific management actions
+    // For now, we'll just close the modal
+    setShowManageBranchModal(false);
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -141,9 +320,14 @@ const BranchManagement: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
             Branch Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">Manage multiple clinic branches</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Manage multiple clinic branches
+          </p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+        <button
+          onClick={handleAddBranch}
+          className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Branch</span>
         </button>
@@ -195,7 +379,9 @@ const BranchManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Branches</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Branches
+              </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
                 {totalBranches}
               </p>
@@ -206,7 +392,9 @@ const BranchManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Active Branches</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Active Branches
+              </p>
               <p className="text-2xl font-bold text-green-600">
                 {activeBranches}
               </p>
@@ -217,7 +405,9 @@ const BranchManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Staff</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Staff
+              </p>
               <p className="text-2xl font-bold text-blue-600">{totalStaff}</p>
             </div>
             <Users className="w-8 h-8 text-blue-600" />
@@ -226,7 +416,9 @@ const BranchManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Patients</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Patients
+              </p>
               <p className="text-2xl font-bold text-purple-600">
                 {totalPatients.toLocaleString()}
               </p>
@@ -270,7 +462,10 @@ const BranchManagement: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredBranches.map((branch) => (
-                <tr key={branch.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
+                <tr
+                  key={branch.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -337,14 +532,26 @@ const BranchManagement: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                        View
+                      <button
+                        onClick={() => handleViewBranch(branch)}
+                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>View</span>
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                        Edit
+                      <button
+                        onClick={() => handleEditBranch(branch)}
+                        className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span>Edit</span>
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                        Manage
+                      <button
+                        onClick={() => handleManageBranch(branch)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Manage</span>
                       </button>
                     </div>
                   </td>
@@ -354,6 +561,745 @@ const BranchManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Branch Modal */}
+      {showAddBranchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Add New Branch
+              </h2>
+              <button
+                onClick={() => setShowAddBranchModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Branch Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.name}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter branch name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Manager
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.manager}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, manager: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter manager name"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.address}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, address: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter full address"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.city}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, city: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter city"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.state}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, state: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter state"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Zip Code
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.zipCode}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, zipCode: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter zip code"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={newBranch.phone}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newBranch.email}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Established Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newBranch.establishedDate}
+                    onChange={(e) =>
+                      setNewBranch({
+                        ...newBranch,
+                        establishedDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Operating Hours
+                  </label>
+                  <input
+                    type="text"
+                    value={newBranch.operatingHours}
+                    onChange={(e) =>
+                      setNewBranch({
+                        ...newBranch,
+                        operatingHours: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., Mon-Fri 8AM-6PM"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Staff
+                  </label>
+                  <input
+                    type="number"
+                    value={newBranch.totalStaff}
+                    onChange={(e) =>
+                      setNewBranch({ ...newBranch, totalStaff: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter staff count"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Patients
+                  </label>
+                  <input
+                    type="number"
+                    value={newBranch.totalPatients}
+                    onChange={(e) =>
+                      setNewBranch({
+                        ...newBranch,
+                        totalPatients: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter patient count"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Services (comma-separated)
+                </label>
+                <textarea
+                  value={newBranch.services}
+                  onChange={(e) =>
+                    setNewBranch({ ...newBranch, services: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter services offered (e.g., General Medicine, Laboratory, Radiology)"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowAddBranchModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateBranch}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Branch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Branch Modal */}
+      {showViewBranchModal && selectedBranch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Branch Details
+              </h2>
+              <button
+                onClick={() => setShowViewBranchModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Branch ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Manager
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.manager}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedBranch.status
+                    )}`}
+                  >
+                    {selectedBranch.status.charAt(0).toUpperCase() +
+                      selectedBranch.status.slice(1)}
+                  </span>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Address
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.address}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.phone}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.email}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Established Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.establishedDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Operating Hours
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.operatingHours}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Staff
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.totalStaff}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Patients
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedBranch.totalPatients.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Services
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {Array.isArray(selectedBranch.services) ? (
+                    selectedBranch.services.map(
+                      (service: string, index: number) => (
+                        <span
+                          key={index}
+                          className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                        >
+                          {service}
+                        </span>
+                      )
+                    )
+                  ) : (
+                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      {selectedBranch.services}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowViewBranchModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Branch Modal */}
+      {showEditBranchModal && selectedBranch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Edit Branch
+              </h2>
+              <button
+                onClick={() => setShowEditBranchModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Branch Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.name}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Manager
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.manager}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, manager: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.address}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, address: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.city}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, city: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.state}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, state: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Zip Code
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.zipCode}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, zipCode: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editBranch.phone}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editBranch.email}
+                    onChange={(e) =>
+                      setEditBranch({ ...editBranch, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Established Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editBranch.establishedDate}
+                    onChange={(e) =>
+                      setEditBranch({
+                        ...editBranch,
+                        establishedDate: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Operating Hours
+                  </label>
+                  <input
+                    type="text"
+                    value={editBranch.operatingHours}
+                    onChange={(e) =>
+                      setEditBranch({
+                        ...editBranch,
+                        operatingHours: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Staff
+                  </label>
+                  <input
+                    type="number"
+                    value={editBranch.totalStaff}
+                    onChange={(e) =>
+                      setEditBranch({
+                        ...editBranch,
+                        totalStaff: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Patients
+                  </label>
+                  <input
+                    type="number"
+                    value={editBranch.totalPatients}
+                    onChange={(e) =>
+                      setEditBranch({
+                        ...editBranch,
+                        totalPatients: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Services (comma-separated)
+                </label>
+                <textarea
+                  value={editBranch.services}
+                  onChange={(e) =>
+                    setEditBranch({ ...editBranch, services: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowEditBranchModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateBranch}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Branch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Branch Modal */}
+      {showManageBranchModal && selectedBranch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Manage Branch
+              </h2>
+              <button
+                onClick={() => setShowManageBranchModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Branch Details
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>{selectedBranch.name}</strong> - {selectedBranch.id}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Manager: {selectedBranch.manager}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Location: {selectedBranch.city}, {selectedBranch.state}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Management Action
+                </label>
+                <select
+                  value={manageData.action}
+                  onChange={(e) =>
+                    setManageData({ ...manageData, action: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select action</option>
+                  <option value="staff_assignment">Staff Assignment</option>
+                  <option value="resource_allocation">
+                    Resource Allocation
+                  </option>
+                  <option value="performance_review">Performance Review</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="expansion">Expansion Planning</option>
+                  <option value="audit">Audit & Compliance</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={manageData.description}
+                  onChange={(e) =>
+                    setManageData({
+                      ...manageData,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter management action description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Assigned To
+                </label>
+                <input
+                  type="text"
+                  value={manageData.assignedTo}
+                  onChange={(e) =>
+                    setManageData({ ...manageData, assignedTo: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter assigned person"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={manageData.priority}
+                  onChange={(e) =>
+                    setManageData({ ...manageData, priority: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select priority</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={manageData.dueDate}
+                  onChange={(e) =>
+                    setManageData({ ...manageData, dueDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={manageData.notes}
+                  onChange={(e) =>
+                    setManageData({ ...manageData, notes: e.target.value })
+                  }
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter additional notes"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowManageBranchModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleManageAction}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Execute Action
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
