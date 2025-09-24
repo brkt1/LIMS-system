@@ -6,11 +6,175 @@ import {
   Headphones,
   Package,
   TrendingUp,
+  X,
+  Edit,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
 
 const SupportDashboard: React.FC = () => {
+  // State management for modals
+  const [showManageInventoryModal, setShowManageInventoryModal] =
+    useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
+  const [showUrgentOrderModal, setShowUrgentOrderModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  // Form states
+  const [updateData, setUpdateData] = useState({
+    stockLevel: "",
+    notes: "",
+  });
+
+  const [reorderData, setReorderData] = useState({
+    quantity: "",
+    supplier: "",
+    expectedDate: "",
+    notes: "",
+  });
+
+  const [urgentOrderData, setUrgentOrderData] = useState({
+    quantity: "",
+    supplier: "",
+    priority: "urgent",
+    notes: "",
+  });
+
+  // Inventory data state
+  const [inventoryItems, setInventoryItems] = useState([
+    {
+      id: 1,
+      name: "Blood Collection Tubes",
+      category: "Supplies",
+      stockLevel: 45,
+      status: "In Stock",
+      lastUpdated: "2025-01-20 10:30",
+    },
+    {
+      id: 2,
+      name: "Microscope Slides",
+      category: "Supplies",
+      stockLevel: 8,
+      status: "Low Stock",
+      lastUpdated: "2025-01-20 09:15",
+    },
+    {
+      id: 3,
+      name: "Lab Coats",
+      category: "Equipment",
+      stockLevel: 0,
+      status: "Out of Stock",
+      lastUpdated: "2025-01-19 16:45",
+    },
+  ]);
+
+  // Load inventory from localStorage on component mount
+  useEffect(() => {
+    const savedInventory = localStorage.getItem("supportInventory");
+    if (savedInventory) {
+      setInventoryItems(JSON.parse(savedInventory));
+    }
+  }, []);
+
+  // Save inventory to localStorage whenever inventory changes
+  useEffect(() => {
+    localStorage.setItem("supportInventory", JSON.stringify(inventoryItems));
+  }, [inventoryItems]);
+
+  // Handler functions
+  const handleManageInventory = () => {
+    setShowManageInventoryModal(true);
+  };
+
+  const handleUpdate = (item: any) => {
+    setSelectedItem(item);
+    setUpdateData({
+      stockLevel: item.stockLevel.toString(),
+      notes: "",
+    });
+    setShowUpdateModal(true);
+  };
+
+  const handleReorder = (item: any) => {
+    setSelectedItem(item);
+    setReorderData({
+      quantity: "",
+      supplier: "",
+      expectedDate: "",
+      notes: "",
+    });
+    setShowReorderModal(true);
+  };
+
+  const handleUrgentOrder = (item: any) => {
+    setSelectedItem(item);
+    setUrgentOrderData({
+      quantity: "",
+      supplier: "",
+      priority: "urgent",
+      notes: "",
+    });
+    setShowUrgentOrderModal(true);
+  };
+
+  const handleUpdateStock = () => {
+    if (selectedItem) {
+      const updatedItems = inventoryItems.map((item) =>
+        item.id === selectedItem.id
+          ? {
+              ...item,
+              stockLevel: parseInt(updateData.stockLevel) || 0,
+              status: getStatusFromStock(parseInt(updateData.stockLevel) || 0),
+              lastUpdated: new Date().toLocaleString(),
+            }
+          : item
+      );
+      setInventoryItems(updatedItems);
+      setShowUpdateModal(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleReorderSubmit = () => {
+    if (selectedItem) {
+      // In a real app, this would create a reorder request
+      console.log("Reorder submitted:", { selectedItem, reorderData });
+      setShowReorderModal(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleUrgentOrderSubmit = () => {
+    if (selectedItem) {
+      // In a real app, this would create an urgent order
+      console.log("Urgent order submitted:", { selectedItem, urgentOrderData });
+      setShowUrgentOrderModal(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const getStatusFromStock = (stock: number) => {
+    if (stock === 0) return "Out of Stock";
+    if (stock < 10) return "Low Stock";
+    return "In Stock";
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "In Stock":
+        return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
+      case "Low Stock":
+        return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
+      case "Out of Stock":
+        return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
+      default:
+        return "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200";
+    }
+  };
+
   const supportCards = [
     {
       title: "Open Tickets",
@@ -298,7 +462,10 @@ const SupportDashboard: React.FC = () => {
             Inventory Status
           </h3>
           <div className="flex items-center space-x-2">
-            <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+            <button
+              onClick={handleManageInventory}
+              className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
               Manage Inventory
             </button>
             <Package className="w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -329,82 +496,480 @@ const SupportDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                  Blood Collection Tubes
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  Supplies
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  45 units
-                </td>
-                <td className="py-4 px-4">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                    In Stock
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  2025-01-20 10:30
-                </td>
-                <td className="py-4 px-4">
-                  <button className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium">
-                    Update
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                  Microscope Slides
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  Supplies
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  8 units
-                </td>
-                <td className="py-4 px-4">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-                    Low Stock
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  2025-01-20 09:15
-                </td>
-                <td className="py-4 px-4">
-                  <button className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium">
-                    Reorder
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                  Lab Coats
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  Equipment
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  0 units
-                </td>
-                <td className="py-4 px-4">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                    Out of Stock
-                  </span>
-                </td>
-                <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                  2025-01-19 16:45
-                </td>
-                <td className="py-4 px-4">
-                  <button className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium">
-                    Urgent Order
-                  </button>
-                </td>
-              </tr>
+              {inventoryItems.map((item) => (
+                <tr
+                  key={item.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
+                    {item.name}
+                  </td>
+                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                    {item.category}
+                  </td>
+                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                    {item.stockLevel} units
+                  </td>
+                  <td className="py-4 px-4">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        item.status
+                      )}`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                    {item.lastUpdated}
+                  </td>
+                  <td className="py-4 px-4">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleUpdate(item)}
+                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
+                      >
+                        <Edit className="w-3 h-3" />
+                        <span>Update</span>
+                      </button>
+                      {item.status === "Low Stock" && (
+                        <button
+                          onClick={() => handleReorder(item)}
+                          className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reorder</span>
+                        </button>
+                      )}
+                      {item.status === "Out of Stock" && (
+                        <button
+                          onClick={() => handleUrgentOrder(item)}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+                        >
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>Urgent Order</span>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Manage Inventory Modal */}
+      {showManageInventoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Manage Inventory
+              </h2>
+              <button
+                onClick={() => setShowManageInventoryModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
+                        Item
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
+                        Category
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
+                        Stock Level
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
+                        Last Updated
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {inventoryItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
+                          {item.name}
+                        </td>
+                        <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                          {item.category}
+                        </td>
+                        <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                          {item.stockLevel} units
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                              item.status
+                            )}`}
+                          >
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                          {item.lastUpdated}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleUpdate(item)}
+                              className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
+                            >
+                              <Edit className="w-3 h-3" />
+                              <span>Update</span>
+                            </button>
+                            {item.status === "Low Stock" && (
+                              <button
+                                onClick={() => handleReorder(item)}
+                                className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Reorder</span>
+                              </button>
+                            )}
+                            {item.status === "Out of Stock" && (
+                              <button
+                                onClick={() => handleUrgentOrder(item)}
+                                className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+                              >
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>Urgent Order</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowManageInventoryModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Stock Modal */}
+      {showUpdateModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Update Stock Level
+              </h2>
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Item Details
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>{selectedItem.name}</strong>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Category: {selectedItem.category}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current Stock: {selectedItem.stockLevel} units
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New Stock Level
+                </label>
+                <input
+                  type="number"
+                  value={updateData.stockLevel}
+                  onChange={(e) =>
+                    setUpdateData({ ...updateData, stockLevel: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter new stock level"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={updateData.notes}
+                  onChange={(e) =>
+                    setUpdateData({ ...updateData, notes: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any notes about this update"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateStock}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Stock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reorder Modal */}
+      {showReorderModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Reorder Item
+              </h2>
+              <button
+                onClick={() => setShowReorderModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  Item Details
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  <strong>{selectedItem.name}</strong>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current Stock: {selectedItem.stockLevel} units (Low Stock)
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Quantity to Order
+                </label>
+                <input
+                  type="number"
+                  value={reorderData.quantity}
+                  onChange={(e) =>
+                    setReorderData({ ...reorderData, quantity: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter quantity to order"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Supplier
+                </label>
+                <input
+                  type="text"
+                  value={reorderData.supplier}
+                  onChange={(e) =>
+                    setReorderData({ ...reorderData, supplier: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter supplier name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Expected Delivery Date
+                </label>
+                <input
+                  type="date"
+                  value={reorderData.expectedDate}
+                  onChange={(e) =>
+                    setReorderData({
+                      ...reorderData,
+                      expectedDate: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={reorderData.notes}
+                  onChange={(e) =>
+                    setReorderData({ ...reorderData, notes: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any notes about this reorder"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowReorderModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReorderSubmit}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+              >
+                Submit Reorder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Urgent Order Modal */}
+      {showUrgentOrderModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Urgent Order
+              </h2>
+              <button
+                onClick={() => setShowUrgentOrderModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                <h3 className="font-medium text-red-900 dark:text-red-200 mb-2 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Urgent Order Required
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  <strong>{selectedItem.name}</strong> is currently out of stock
+                  and needs immediate attention.
+                </p>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  Current Stock: {selectedItem.stockLevel} units
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Quantity to Order
+                </label>
+                <input
+                  type="number"
+                  value={urgentOrderData.quantity}
+                  onChange={(e) =>
+                    setUrgentOrderData({
+                      ...urgentOrderData,
+                      quantity: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter quantity to order"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Supplier
+                </label>
+                <input
+                  type="text"
+                  value={urgentOrderData.supplier}
+                  onChange={(e) =>
+                    setUrgentOrderData({
+                      ...urgentOrderData,
+                      supplier: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter supplier name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority Level
+                </label>
+                <select
+                  value={urgentOrderData.priority}
+                  onChange={(e) =>
+                    setUrgentOrderData({
+                      ...urgentOrderData,
+                      priority: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="urgent">Urgent</option>
+                  <option value="critical">Critical</option>
+                  <option value="emergency">Emergency</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={urgentOrderData.notes}
+                  onChange={(e) =>
+                    setUrgentOrderData({
+                      ...urgentOrderData,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any notes about this urgent order"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowUrgentOrderModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUrgentOrderSubmit}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Submit Urgent Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </BaseDashboard>
   );
 };

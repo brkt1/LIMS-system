@@ -1,5 +1,5 @@
-import { MessageSquare, Plus, Search, Send, User } from "lucide-react";
-import React, { useState } from "react";
+import { MessageSquare, Plus, Search, Send, User, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 const Messages: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -8,7 +8,19 @@ const Messages: React.FC = () => {
   >(null);
   const [newMessage, setNewMessage] = useState("");
 
-  const conversations = [
+  // State management for modals
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+
+  // Form states
+  const [newConversationData, setNewConversationData] = useState({
+    recipient: "",
+    recipientRole: "",
+    subject: "",
+    message: "",
+    priority: "normal",
+  });
+
+  const [conversations, setConversations] = useState([
     {
       id: "CONV001",
       user: "Dr. Sarah Johnson",
@@ -51,9 +63,9 @@ const Messages: React.FC = () => {
       status: "active",
       priority: "medium",
     },
-  ];
+  ]);
 
-  const messages = [
+  const [messages, setMessages] = useState([
     {
       id: "MSG001",
       conversationId: "CONV001",
@@ -84,7 +96,68 @@ const Messages: React.FC = () => {
       timestamp: "2025-01-22 10:45 AM",
       isRead: false,
     },
-  ];
+  ]);
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedConversations = localStorage.getItem("supportConversations");
+    const savedMessages = localStorage.getItem("supportMessages");
+    if (savedConversations) {
+      setConversations(JSON.parse(savedConversations));
+    }
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    }
+  }, []);
+
+  // Save data to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem("supportConversations", JSON.stringify(conversations));
+  }, [conversations]);
+
+  useEffect(() => {
+    localStorage.setItem("supportMessages", JSON.stringify(messages));
+  }, [messages]);
+
+  // Handler functions
+  const handleNewMessage = () => {
+    setNewConversationData({
+      recipient: "",
+      recipientRole: "",
+      subject: "",
+      message: "",
+      priority: "normal",
+    });
+    setShowNewMessageModal(true);
+  };
+
+  const handleCreateConversation = () => {
+    const newConversation = {
+      id: `CONV${String(conversations.length + 1).padStart(3, "0")}`,
+      user: newConversationData.recipient,
+      userRole: newConversationData.recipientRole,
+      lastMessage: newConversationData.message,
+      lastMessageTime: new Date().toLocaleString(),
+      unreadCount: 0,
+      status: "active",
+      priority: newConversationData.priority,
+    };
+
+    const newMessageData = {
+      id: `MSG${String(messages.length + 1).padStart(3, "0")}`,
+      conversationId: newConversation.id,
+      sender: "support",
+      senderName: "Support Team",
+      message: newConversationData.message,
+      timestamp: new Date().toLocaleString(),
+      isRead: true,
+    };
+
+    setConversations([newConversation, ...conversations]);
+    setMessages([newMessageData, ...messages]);
+    setShowNewMessageModal(false);
+    setSelectedConversation(newConversation.id);
+  };
 
   const filteredConversations = conversations.filter(
     (conversation) =>
@@ -102,8 +175,31 @@ const Messages: React.FC = () => {
 
   const handleSendMessage = () => {
     if (newMessage.trim() && selectedConversation) {
-      // Here you would typically send the message to the backend
-      console.log("Sending message:", newMessage);
+      const newMessageData = {
+        id: `MSG${String(messages.length + 1).padStart(3, "0")}`,
+        conversationId: selectedConversation,
+        sender: "support",
+        senderName: "Support Team",
+        message: newMessage,
+        timestamp: new Date().toLocaleString(),
+        isRead: true,
+      };
+
+      // Update messages
+      setMessages([...messages, newMessageData]);
+
+      // Update conversation's last message
+      const updatedConversations = conversations.map((conv) =>
+        conv.id === selectedConversation
+          ? {
+              ...conv,
+              lastMessage: newMessage,
+              lastMessageTime: new Date().toLocaleString(),
+            }
+          : conv
+      );
+      setConversations(updatedConversations);
+
       setNewMessage("");
     }
   };
@@ -149,7 +245,10 @@ const Messages: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleNewMessage}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>New Message</span>
           </button>
@@ -320,6 +419,136 @@ const Messages: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* New Message Modal */}
+      {showNewMessageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                New Message
+              </h2>
+              <button
+                onClick={() => setShowNewMessageModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Recipient Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newConversationData.recipient}
+                    onChange={(e) =>
+                      setNewConversationData({
+                        ...newConversationData,
+                        recipient: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter recipient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Recipient Role *
+                  </label>
+                  <select
+                    value={newConversationData.recipientRole}
+                    onChange={(e) =>
+                      setNewConversationData({
+                        ...newConversationData,
+                        recipientRole: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select role</option>
+                    <option value="Doctor">Doctor</option>
+                    <option value="Technician">Technician</option>
+                    <option value="Tenant Admin">Tenant Admin</option>
+                    <option value="Super Admin">Super Admin</option>
+                    <option value="Support">Support</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={newConversationData.subject}
+                  onChange={(e) =>
+                    setNewConversationData({
+                      ...newConversationData,
+                      subject: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter message subject"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={newConversationData.priority}
+                  onChange={(e) =>
+                    setNewConversationData({
+                      ...newConversationData,
+                      priority: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Message *
+                </label>
+                <textarea
+                  value={newConversationData.message}
+                  onChange={(e) =>
+                    setNewConversationData({
+                      ...newConversationData,
+                      message: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter your message"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowNewMessageModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateConversation}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

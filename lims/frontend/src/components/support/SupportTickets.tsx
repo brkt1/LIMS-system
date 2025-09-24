@@ -5,15 +5,49 @@ import {
   Search,
   Ticket,
   TrendingUp,
+  X,
+  Eye,
+  UserPlus,
+  Edit,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const SupportTickets: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
 
-  const tickets = [
+  // State management for modals
+  const [showNewTicketModal, setShowNewTicketModal] = useState(false);
+  const [showViewTicketModal, setShowViewTicketModal] = useState(false);
+  const [showAssignTicketModal, setShowAssignTicketModal] = useState(false);
+  const [showUpdateTicketModal, setShowUpdateTicketModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+
+  // Form states
+  const [newTicket, setNewTicket] = useState({
+    title: "",
+    description: "",
+    category: "",
+    priority: "medium",
+    reporter: "",
+    reporterEmail: "",
+    tags: "",
+  });
+
+  const [assignData, setAssignData] = useState({
+    assignedTo: "",
+    notes: "",
+  });
+
+  const [updateData, setUpdateData] = useState({
+    status: "",
+    priority: "",
+    notes: "",
+  });
+
+  // Tickets data state
+  const [tickets, setTickets] = useState([
     {
       id: "TKT001",
       title: "Login Issues - User Cannot Access Dashboard",
@@ -90,7 +124,119 @@ const SupportTickets: React.FC = () => {
       lastUpdated: "2025-01-22 09:45 AM",
       tags: ["notifications", "email", "system"],
     },
-  ];
+  ]);
+
+  // Load tickets from localStorage on component mount
+  useEffect(() => {
+    const savedTickets = localStorage.getItem("supportTickets");
+    if (savedTickets) {
+      setTickets(JSON.parse(savedTickets));
+    }
+  }, []);
+
+  // Save tickets to localStorage whenever tickets change
+  useEffect(() => {
+    localStorage.setItem("supportTickets", JSON.stringify(tickets));
+  }, [tickets]);
+
+  // Handler functions
+  const handleNewTicket = () => {
+    setNewTicket({
+      title: "",
+      description: "",
+      category: "",
+      priority: "medium",
+      reporter: "",
+      reporterEmail: "",
+      tags: "",
+    });
+    setShowNewTicketModal(true);
+  };
+
+  const handleViewTicket = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setShowViewTicketModal(true);
+  };
+
+  const handleAssignTicket = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setAssignData({
+      assignedTo: ticket.assignedTo || "",
+      notes: "",
+    });
+    setShowAssignTicketModal(true);
+  };
+
+  const handleUpdateTicket = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setUpdateData({
+      status: ticket.status,
+      priority: ticket.priority,
+      notes: "",
+    });
+    setShowUpdateTicketModal(true);
+  };
+
+  const handleCreateTicket = () => {
+    const newTicketData = {
+      id: `TKT${String(tickets.length + 1).padStart(3, "0")}`,
+      title: newTicket.title,
+      description: newTicket.description,
+      status: "open",
+      priority: newTicket.priority,
+      category: newTicket.category,
+      reporter: newTicket.reporter,
+      reporterEmail: newTicket.reporterEmail,
+      assignedTo: "Unassigned",
+      createdDate: new Date().toLocaleDateString(),
+      createdTime: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      lastUpdated: new Date().toLocaleString(),
+      tags: newTicket.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag),
+    };
+    setTickets([newTicketData, ...tickets]);
+    setShowNewTicketModal(false);
+  };
+
+  const handleAssignSubmit = () => {
+    if (selectedTicket) {
+      const updatedTickets = tickets.map((ticket) =>
+        ticket.id === selectedTicket.id
+          ? {
+              ...ticket,
+              assignedTo: assignData.assignedTo,
+              lastUpdated: new Date().toLocaleString(),
+            }
+          : ticket
+      );
+      setTickets(updatedTickets);
+      setShowAssignTicketModal(false);
+      setSelectedTicket(null);
+    }
+  };
+
+  const handleUpdateSubmit = () => {
+    if (selectedTicket) {
+      const updatedTickets = tickets.map((ticket) =>
+        ticket.id === selectedTicket.id
+          ? {
+              ...ticket,
+              status: updateData.status,
+              priority: updateData.priority,
+              lastUpdated: new Date().toLocaleString(),
+            }
+          : ticket
+      );
+      setTickets(updatedTickets);
+      setShowUpdateTicketModal(false);
+      setSelectedTicket(null);
+    }
+  };
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
@@ -154,13 +300,6 @@ const SupportTickets: React.FC = () => {
     }
   };
 
-  const totalTickets = tickets.length;
-  const openTickets = tickets.filter((t) => t.status === "open").length;
-  const inProgressTickets = tickets.filter(
-    (t) => t.status === "in_progress"
-  ).length;
-  const resolvedTickets = tickets.filter((t) => t.status === "resolved").length;
-
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -174,7 +313,10 @@ const SupportTickets: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleNewTicket}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>New Ticket</span>
           </button>
@@ -218,58 +360,6 @@ const SupportTickets: React.FC = () => {
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Tickets
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalTickets}
-              </p>
-            </div>
-            <Ticket className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Open</p>
-              <p className="text-2xl font-bold text-red-600">{openTickets}</p>
-            </div>
-            <AlertCircle className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                In Progress
-              </p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {inProgressTickets}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Resolved
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {resolvedTickets}
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-green-600" />
-          </div>
         </div>
       </div>
 
@@ -377,14 +467,26 @@ const SupportTickets: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300">
-                        View
+                      <button
+                        onClick={() => handleViewTicket(ticket)}
+                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>View</span>
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
-                        Assign
+                      <button
+                        onClick={() => handleAssignTicket(ticket)}
+                        className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        <span>Assign</span>
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                        Update
+                      <button
+                        onClick={() => handleUpdateTicket(ticket)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        <Edit className="w-3 h-3" />
+                        <span>Update</span>
                       </button>
                     </div>
                   </td>
@@ -394,6 +496,461 @@ const SupportTickets: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* New Ticket Modal */}
+      {showNewTicketModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Create New Ticket
+              </h2>
+              <button
+                onClick={() => setShowNewTicketModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTicket.title}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, title: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter ticket title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={newTicket.category}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, category: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Authentication">Authentication</option>
+                    <option value="Reports">Reports</option>
+                    <option value="Equipment">Equipment</option>
+                    <option value="Data Export">Data Export</option>
+                    <option value="Notifications">Notifications</option>
+                    <option value="System">System</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description *
+                </label>
+                <textarea
+                  value={newTicket.description}
+                  onChange={(e) =>
+                    setNewTicket({ ...newTicket, description: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Describe the issue in detail"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Reporter Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTicket.reporter}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, reporter: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter reporter name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Reporter Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={newTicket.reporterEmail}
+                    onChange={(e) =>
+                      setNewTicket({
+                        ...newTicket,
+                        reporterEmail: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter reporter email"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={newTicket.priority}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, priority: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Tags
+                  </label>
+                  <input
+                    type="text"
+                    value={newTicket.tags}
+                    onChange={(e) =>
+                      setNewTicket({ ...newTicket, tags: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter tags separated by commas"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowNewTicketModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTicket}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Create Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Ticket Modal */}
+      {showViewTicketModal && selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Ticket Details - {selectedTicket.id}
+              </h2>
+              <button
+                onClick={() => setShowViewTicketModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedTicket.title}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {selectedTicket.description}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedTicket.status
+                    )}`}
+                  >
+                    {selectedTicket.status
+                      .replace("_", " ")
+                      .charAt(0)
+                      .toUpperCase() +
+                      selectedTicket.status.replace("_", " ").slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                      selectedTicket.priority
+                    )}`}
+                  >
+                    {selectedTicket.priority.charAt(0).toUpperCase() +
+                      selectedTicket.priority.slice(1)}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTicket.category}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Assigned To
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTicket.assignedTo}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Reporter
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTicket.reporter}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {selectedTicket.reporterEmail}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Created
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedTicket.createdDate}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {selectedTicket.createdTime}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Last Updated
+                </label>
+                <p className="text-sm text-gray-900 dark:text-white">
+                  {selectedTicket.lastUpdated}
+                </p>
+              </div>
+              {selectedTicket.tags && selectedTicket.tags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Tags
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTicket.tags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-full"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowViewTicketModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Ticket Modal */}
+      {showAssignTicketModal && selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Assign Ticket
+              </h2>
+              <button
+                onClick={() => setShowAssignTicketModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedTicket.id} - {selectedTicket.title}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current Assignment: {selectedTicket.assignedTo}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Assign To
+                </label>
+                <select
+                  value={assignData.assignedTo}
+                  onChange={(e) =>
+                    setAssignData({ ...assignData, assignedTo: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select assignee</option>
+                  <option value="Support Team">Support Team</option>
+                  <option value="Technical Support">Technical Support</option>
+                  <option value="Development Team">Development Team</option>
+                  <option value="System Admin">System Admin</option>
+                  <option value="Unassigned">Unassigned</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Assignment Notes (Optional)
+                </label>
+                <textarea
+                  value={assignData.notes}
+                  onChange={(e) =>
+                    setAssignData({ ...assignData, notes: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any notes about this assignment"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowAssignTicketModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignSubmit}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Assign Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Ticket Modal */}
+      {showUpdateTicketModal && selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Update Ticket
+              </h2>
+              <button
+                onClick={() => setShowUpdateTicketModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                  {selectedTicket.id} - {selectedTicket.title}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current Status: {selectedTicket.status} | Priority:{" "}
+                  {selectedTicket.priority}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Status
+                </label>
+                <select
+                  value={updateData.status}
+                  onChange={(e) =>
+                    setUpdateData({ ...updateData, status: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="open">Open</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={updateData.priority}
+                  onChange={(e) =>
+                    setUpdateData({ ...updateData, priority: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Update Notes (Optional)
+                </label>
+                <textarea
+                  value={updateData.notes}
+                  onChange={(e) =>
+                    setUpdateData({ ...updateData, notes: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any notes about this update"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => setShowUpdateTicketModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Update Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

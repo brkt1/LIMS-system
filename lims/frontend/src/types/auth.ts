@@ -238,8 +238,7 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
       title: 'SUPPORT',
       items: [
         { icon: 'MessageSquare', label: 'Messages', path: '/messages' },
-        { icon: 'FileText', label: 'Reports', path: '/reports' },
-        { icon: 'Settings', label: 'Settings', path: '/settings' }
+        { icon: 'FileText', label: 'Reports', path: '/reports' }
       ]
     }
   ],
