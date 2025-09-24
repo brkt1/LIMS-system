@@ -1,12 +1,39 @@
-import { Download, FileText, Plus, Search, TrendingUp } from "lucide-react";
-import React, { useState } from "react";
+import {
+  Download,
+  FileText,
+  Plus,
+  Search,
+  TrendingUp,
+  Eye,
+  Edit,
+  X,
+  Check,
+  Clock,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 const TestReports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("all");
 
-  const reports = [
+  // Modal states
+  const [showNewReportModal, setShowNewReportModal] = useState(false);
+  const [showViewReportModal, setShowViewReportModal] = useState(false);
+  const [showEditReportModal, setShowEditReportModal] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<any>(null);
+
+  // Form states
+  const [newReport, setNewReport] = useState({
+    patientName: "",
+    patientId: "",
+    testName: "",
+    sampleId: "",
+    priority: "normal",
+    notes: "",
+  });
+
+  const [reports, setReports] = useState([
     {
       id: "RPT001",
       patientName: "John Smith",
@@ -82,7 +109,155 @@ const TestReports: React.FC = () => {
       downloadCount: 5,
       priority: "high",
     },
-  ];
+  ]);
+
+  // Load reports from localStorage on component mount
+  useEffect(() => {
+    const savedReports = localStorage.getItem("technician-test-reports");
+    if (savedReports) {
+      try {
+        setReports(JSON.parse(savedReports));
+      } catch (error) {
+        console.error("Error loading saved reports:", error);
+      }
+    }
+  }, []);
+
+  // Save reports to localStorage whenever reports change
+  useEffect(() => {
+    localStorage.setItem("technician-test-reports", JSON.stringify(reports));
+  }, [reports]);
+
+  // CRUD Functions
+  const handleNewReport = () => {
+    setShowNewReportModal(true);
+  };
+
+  const handleViewReport = (report: any) => {
+    setSelectedReport(report);
+    setShowViewReportModal(true);
+  };
+
+  const handleEditReport = (report: any) => {
+    setSelectedReport(report);
+    setShowEditReportModal(true);
+  };
+
+  const handleDownloadReport = (report: any) => {
+    // Simulate download
+    const element = document.createElement("a");
+    const file = new Blob(
+      [
+        `Test Report: ${report.testName}\nPatient: ${report.patientName}\nStatus: ${report.status}\nGenerated: ${report.generatedDate} ${report.generatedTime}`,
+      ],
+      { type: "text/plain" }
+    );
+    element.href = URL.createObjectURL(file);
+    element.download = `report-${report.id}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+
+    // Update download count
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === report.id ? { ...r, downloadCount: r.downloadCount + 1 } : r
+      )
+    );
+  };
+
+  const handleCreateReport = () => {
+    const now = new Date();
+    const newReportData = {
+      id: `RPT${String(reports.length + 1).padStart(3, "0")}`,
+      ...newReport,
+      status: "processing",
+      generatedDate: now.toISOString().split("T")[0],
+      generatedTime: now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      technician: "Current Technician",
+      fileSize: "0 MB",
+      format: "PDF",
+      downloadCount: 0,
+    };
+
+    setReports((prev) => [...prev, newReportData]);
+    setNewReport({
+      patientName: "",
+      patientId: "",
+      testName: "",
+      sampleId: "",
+      priority: "normal",
+      notes: "",
+    });
+    setShowNewReportModal(false);
+  };
+
+  const handleUpdateReport = (updatedData: any) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === selectedReport.id ? { ...r, ...updatedData } : r
+      )
+    );
+    setShowEditReportModal(false);
+    setSelectedReport(null);
+  };
+
+  const handleExportAll = () => {
+    // Create CSV content
+    const headers = [
+      "Report ID",
+      "Patient Name",
+      "Patient ID",
+      "Test Name",
+      "Sample ID",
+      "Status",
+      "Priority",
+      "Technician",
+      "Generated Date",
+      "Generated Time",
+      "File Size",
+      "Format",
+      "Download Count",
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...reports.map((report) =>
+        [
+          report.id,
+          `"${report.patientName}"`,
+          report.patientId,
+          `"${report.testName}"`,
+          report.sampleId,
+          report.status,
+          report.priority,
+          `"${report.technician}"`,
+          report.generatedDate,
+          report.generatedTime,
+          report.fileSize,
+          report.format,
+          report.downloadCount,
+        ].join(",")
+      ),
+    ].join("\n");
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `test-reports-export-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
@@ -146,11 +321,17 @@ const TestReports: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleExportAll}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto justify-center"
+          >
             <Download className="w-4 h-4" />
             <span>Export All</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleNewReport}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>Generate Report</span>
           </button>
@@ -193,62 +374,6 @@ const TestReports: React.FC = () => {
             <option value="week">This Week</option>
             <option value="month">This Month</option>
           </select>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Reports
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalReports}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Completed
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {completedReports}
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Processing
-              </p>
-              <p className="text-2xl font-bold text-blue-600">
-                {processingReports}
-              </p>
-            </div>
-            <FileText className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Downloads
-              </p>
-              <p className="text-2xl font-bold text-purple-600">
-                {totalDownloads}
-              </p>
-            </div>
-            <Download className="w-8 h-8 text-purple-600" />
-          </div>
         </div>
       </div>
 
@@ -357,14 +482,26 @@ const TestReports: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                        View
+                      <button
+                        onClick={() => handleViewReport(report)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center space-x-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>View</span>
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                        Download
+                      <button
+                        onClick={() => handleDownloadReport(report)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center space-x-1"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Download</span>
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                        Edit
+                      <button
+                        onClick={() => handleEditReport(report)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center space-x-1"
+                      >
+                        <Edit className="w-3 h-3" />
+                        <span>Edit</span>
                       </button>
                     </div>
                   </td>
@@ -374,6 +511,355 @@ const TestReports: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* New Report Modal */}
+      {showNewReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Generate New Report
+              </h3>
+              <button
+                onClick={() => setShowNewReportModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Patient Name
+                </label>
+                <input
+                  type="text"
+                  value={newReport.patientName}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({
+                      ...prev,
+                      patientName: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter patient name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Patient ID
+                </label>
+                <input
+                  type="text"
+                  value={newReport.patientId}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({
+                      ...prev,
+                      patientId: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter patient ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Test Name
+                </label>
+                <input
+                  type="text"
+                  value={newReport.testName}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({
+                      ...prev,
+                      testName: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter test name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Sample ID
+                </label>
+                <input
+                  type="text"
+                  value={newReport.sampleId}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({
+                      ...prev,
+                      sampleId: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter sample ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={newReport.priority}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({
+                      ...prev,
+                      priority: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={newReport.notes}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter any additional notes"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowNewReportModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateReport}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Generate Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Report Modal */}
+      {showViewReportModal && selectedReport && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Report Details
+              </h3>
+              <button
+                onClick={() => setShowViewReportModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Report ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedReport.status
+                    )}`}
+                  >
+                    {selectedReport.status.charAt(0).toUpperCase() +
+                      selectedReport.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Patient Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.patientName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Patient ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.patientId}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Test Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.testName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Sample ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.sampleId}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Technician
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.technician}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Priority
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                      selectedReport.priority
+                    )}`}
+                  >
+                    {selectedReport.priority.charAt(0).toUpperCase() +
+                      selectedReport.priority.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Generated Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.generatedDate}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Generated Time
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.generatedTime}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    File Size
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.fileSize}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Download Count
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedReport.downloadCount}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowViewReportModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Report Modal */}
+      {showEditReportModal && selectedReport && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Report
+              </h3>
+              <button
+                onClick={() => setShowEditReportModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Status
+                </label>
+                <select
+                  value={selectedReport.status}
+                  onChange={(e) =>
+                    setSelectedReport((prev) => ({
+                      ...prev,
+                      status: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={selectedReport.priority}
+                  onChange={(e) =>
+                    setSelectedReport((prev) => ({
+                      ...prev,
+                      priority: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowEditReportModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUpdateReport(selectedReport)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Update Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

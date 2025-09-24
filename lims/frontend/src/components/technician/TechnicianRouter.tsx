@@ -7,6 +7,7 @@ import Equipment from "./Equipment";
 import Maintenance from "./Maintenance";
 import Samples from "./Samples";
 import TestReports from "./TestReports";
+import Profile from "../superadmin/Profile";
 
 const TechnicianRouter: React.FC = () => {
   return (
@@ -19,6 +20,7 @@ const TechnicianRouter: React.FC = () => {
       <Route path="/accept-samples" element={<AcceptSamples />} />
       <Route path="/calibrations" element={<Calibrations />} />
       <Route path="/maintenance" element={<Maintenance />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 };

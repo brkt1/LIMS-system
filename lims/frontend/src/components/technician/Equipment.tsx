@@ -1,12 +1,43 @@
-import { AlertTriangle, Plus, Search, Settings, Wrench } from "lucide-react";
-import React, { useState } from "react";
+import {
+  AlertTriangle,
+  Plus,
+  Search,
+  Settings,
+  Wrench,
+  Eye,
+  Edit,
+  X,
+  Check,
+  Play,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 const Equipment: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
 
-  const equipment = [
+  // Modal states
+  const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+  const [showViewEquipmentModal, setShowViewEquipmentModal] = useState(false);
+  const [showMaintainEquipmentModal, setShowMaintainEquipmentModal] =
+    useState(false);
+  const [showCalibrateEquipmentModal, setShowCalibrateEquipmentModal] =
+    useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+
+  // Form states
+  const [newEquipment, setNewEquipment] = useState({
+    name: "",
+    type: "",
+    manufacturer: "",
+    model: "",
+    serialNumber: "",
+    location: "",
+    notes: "",
+  });
+
+  const [equipment, setEquipment] = useState([
     {
       id: "EQP001",
       name: "Centrifuge Model CF-2000",
@@ -77,7 +108,114 @@ const Equipment: React.FC = () => {
       technician: "Lisa Wilson",
       notes: "Regular calibration completed",
     },
-  ];
+  ]);
+
+  // Load equipment from localStorage on component mount
+  useEffect(() => {
+    const savedEquipment = localStorage.getItem("technician-equipment");
+    if (savedEquipment) {
+      try {
+        setEquipment(JSON.parse(savedEquipment));
+      } catch (error) {
+        console.error("Error loading saved equipment:", error);
+      }
+    }
+  }, []);
+
+  // Save equipment to localStorage whenever equipment changes
+  useEffect(() => {
+    localStorage.setItem("technician-equipment", JSON.stringify(equipment));
+  }, [equipment]);
+
+  // CRUD Functions
+  const handleAddEquipment = () => {
+    setShowAddEquipmentModal(true);
+  };
+
+  const handleViewEquipment = (item: any) => {
+    setSelectedEquipment(item);
+    setShowViewEquipmentModal(true);
+  };
+
+  const handleMaintainEquipment = (item: any) => {
+    setSelectedEquipment(item);
+    setShowMaintainEquipmentModal(true);
+  };
+
+  const handleCalibrateEquipment = (item: any) => {
+    setSelectedEquipment(item);
+    setShowCalibrateEquipmentModal(true);
+  };
+
+  const handleCreateEquipment = () => {
+    const now = new Date();
+    const newEquipmentData = {
+      id: `EQP${String(equipment.length + 1).padStart(3, "0")}`,
+      ...newEquipment,
+      status: "operational",
+      lastMaintenance: now.toISOString().split("T")[0],
+      nextMaintenance: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0], // 30 days from now
+      technician: "Current Technician",
+    };
+
+    setEquipment((prev) => [...prev, newEquipmentData]);
+    setNewEquipment({
+      name: "",
+      type: "",
+      manufacturer: "",
+      model: "",
+      serialNumber: "",
+      location: "",
+      notes: "",
+    });
+    setShowAddEquipmentModal(false);
+  };
+
+  const handleMaintainEquipmentAction = () => {
+    const now = new Date();
+    setEquipment((prev) =>
+      prev.map((e) =>
+        e.id === selectedEquipment.id
+          ? {
+              ...e,
+              status: "maintenance",
+              lastMaintenance: now.toISOString().split("T")[0],
+              nextMaintenance: new Date(
+                now.getTime() + 30 * 24 * 60 * 60 * 1000
+              )
+                .toISOString()
+                .split("T")[0],
+            }
+          : e
+      )
+    );
+    setShowMaintainEquipmentModal(false);
+    setSelectedEquipment(null);
+  };
+
+  const handleCalibrateEquipmentAction = () => {
+    const now = new Date();
+    setEquipment((prev) =>
+      prev.map((e) =>
+        e.id === selectedEquipment.id
+          ? {
+              ...e,
+              status: "operational",
+              lastMaintenance: now.toISOString().split("T")[0],
+              nextMaintenance: new Date(
+                now.getTime() + 90 * 24 * 60 * 60 * 1000
+              )
+                .toISOString()
+                .split("T")[0], // 90 days from now
+            }
+          : e
+      )
+    );
+    setShowCalibrateEquipmentModal(false);
+    setSelectedEquipment(null);
+  };
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch =
@@ -142,7 +280,10 @@ const Equipment: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center">
+          <button
+            onClick={handleAddEquipment}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+          >
             <Plus className="w-4 h-4" />
             <span>Add Equipment</span>
           </button>
@@ -187,62 +328,6 @@ const Equipment: React.FC = () => {
             <option value="Incubator">Incubator</option>
             <option value="PCR Machine">PCR Machine</option>
           </select>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Total Equipment
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {totalEquipment}
-              </p>
-            </div>
-            <Settings className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Operational
-              </p>
-              <p className="text-2xl font-bold text-green-600">
-                {operationalEquipment}
-              </p>
-            </div>
-            <Settings className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Maintenance
-              </p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {maintenanceEquipment}
-              </p>
-            </div>
-            <Wrench className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Out of Service
-              </p>
-              <p className="text-2xl font-bold text-red-600">
-                {outOfServiceEquipment}
-              </p>
-            </div>
-            <AlertTriangle className="w-8 h-8 text-red-600" />
-          </div>
         </div>
       </div>
 
@@ -345,14 +430,26 @@ const Equipment: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                        View
+                      <button
+                        onClick={() => handleViewEquipment(item)}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center space-x-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>View</span>
                       </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                        Maintain
+                      <button
+                        onClick={() => handleMaintainEquipment(item)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center space-x-1"
+                      >
+                        <Wrench className="w-3 h-3" />
+                        <span>Maintain</span>
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left">
-                        Calibrate
+                      <button
+                        onClick={() => handleCalibrateEquipment(item)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center space-x-1"
+                      >
+                        <Settings className="w-3 h-3" />
+                        <span>Calibrate</span>
                       </button>
                     </div>
                   </td>
@@ -362,6 +459,417 @@ const Equipment: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Equipment Modal */}
+      {showAddEquipmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Equipment
+              </h3>
+              <button
+                onClick={() => setShowAddEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Equipment Name
+                </label>
+                <input
+                  type="text"
+                  value={newEquipment.name}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter equipment name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Type
+                </label>
+                <select
+                  value={newEquipment.type}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      type: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">Select equipment type</option>
+                  <option value="Centrifuge">Centrifuge</option>
+                  <option value="Microscope">Microscope</option>
+                  <option value="Analyzer">Analyzer</option>
+                  <option value="Incubator">Incubator</option>
+                  <option value="PCR Machine">PCR Machine</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Manufacturer
+                </label>
+                <input
+                  type="text"
+                  value={newEquipment.manufacturer}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      manufacturer: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter manufacturer"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  value={newEquipment.model}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      model: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter model"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Serial Number
+                </label>
+                <input
+                  type="text"
+                  value={newEquipment.serialNumber}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      serialNumber: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter serial number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={newEquipment.location}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter location"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={newEquipment.notes}
+                  onChange={(e) =>
+                    setNewEquipment((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter any additional notes"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowAddEquipmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateEquipment}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Add Equipment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Equipment Modal */}
+      {showViewEquipmentModal && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Equipment Details
+              </h3>
+              <button
+                onClick={() => setShowViewEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Equipment ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedEquipment.status
+                    )}`}
+                  >
+                    {selectedEquipment.status
+                      .replace("_", " ")
+                      .charAt(0)
+                      .toUpperCase() +
+                      selectedEquipment.status.replace("_", " ").slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Equipment Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.name}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.type}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Manufacturer
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.manufacturer}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Model
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.model}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Serial Number
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.serialNumber}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Location
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.location}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Technician
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.technician}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Last Maintenance
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.lastMaintenance}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Next Maintenance
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.nextMaintenance}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Notes
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedEquipment.notes}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowViewEquipmentModal(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintain Equipment Modal */}
+      {showMaintainEquipmentModal && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Maintain Equipment
+              </h3>
+              <button
+                onClick={() => setShowMaintainEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900 mb-4">
+                  <Wrench className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Start Maintenance
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Are you ready to start maintenance for{" "}
+                  <strong>{selectedEquipment.name}</strong>?
+                </p>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <strong>Type:</strong> {selectedEquipment.type}
+                    <br />
+                    <strong>Location:</strong> {selectedEquipment.location}
+                    <br />
+                    <strong>Serial Number:</strong>{" "}
+                    {selectedEquipment.serialNumber}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowMaintainEquipmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMaintainEquipmentAction}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
+              >
+                <Wrench className="w-4 h-4" />
+                <span>Start Maintenance</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calibrate Equipment Modal */}
+      {showCalibrateEquipmentModal && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Calibrate Equipment
+              </h3>
+              <button
+                onClick={() => setShowCalibrateEquipmentModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
+                  <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Start Calibration
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Are you ready to start calibration for{" "}
+                  <strong>{selectedEquipment.name}</strong>?
+                </p>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <strong>Type:</strong> {selectedEquipment.type}
+                    <br />
+                    <strong>Location:</strong> {selectedEquipment.location}
+                    <br />
+                    <strong>Serial Number:</strong>{" "}
+                    {selectedEquipment.serialNumber}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+              <button
+                onClick={() => setShowCalibrateEquipmentModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCalibrateEquipmentAction}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Start Calibration</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

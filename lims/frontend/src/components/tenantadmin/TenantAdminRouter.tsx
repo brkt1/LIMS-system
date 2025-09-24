@@ -18,6 +18,7 @@ import TenantSettings from "./TenantSettings";
 import TestPricing from "./TestPricing";
 import TestReports from "./TestReports";
 import UserManagement from "./UserManagement";
+import Profile from "../superadmin/Profile";
 
 const TenantAdminRouter: React.FC = () => {
   return (
@@ -41,6 +42,7 @@ const TenantAdminRouter: React.FC = () => {
       <Route path="/contracts" element={<ContractManagement />} />
       <Route path="/accounting" element={<Accounting />} />
       <Route path="/equipment" element={<Equipment />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 };
