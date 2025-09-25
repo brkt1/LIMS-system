@@ -1,65 +1,111 @@
-import { Calendar, Clock, FileText, Plus, Search, User } from "lucide-react";
-import React, { useState } from "react";
+import {
+  Calendar,
+  Clock,
+  FileText,
+  Plus,
+  Search,
+  User,
+  Eye,
+  Check,
+  X,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { testRequestAPI } from "../../services/api";
 
 const TestRequests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [testRequests, setTestRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const testRequests = [
-    {
-      id: "TR001",
-      patient: "John Smith",
-      patientId: "P001",
-      testType: "Blood Panel Complete",
-      priority: "High",
-      status: "Pending",
-      requestedDate: "2025-01-20",
-      requestedBy: "Dr. Sarah Johnson",
-      notes: "Patient showing signs of fatigue and weakness",
-    },
-    {
-      id: "TR002",
-      patient: "Sarah Johnson",
-      patientId: "P002",
-      testType: "X-Ray Chest",
-      priority: "Medium",
-      status: "Approved",
-      requestedDate: "2025-01-19",
-      requestedBy: "Dr. Mike Davis",
-      notes: "Chest pain and shortness of breath",
-    },
-    {
-      id: "TR003",
-      patient: "Mike Davis",
-      patientId: "P003",
-      testType: "MRI Brain",
-      priority: "Low",
-      status: "In Progress",
-      requestedDate: "2025-01-18",
-      requestedBy: "Dr. Lisa Wilson",
-      notes: "Headaches and dizziness",
-    },
-    {
-      id: "TR004",
-      patient: "Lisa Wilson",
-      patientId: "P004",
-      testType: "Urine Analysis",
-      priority: "Medium",
-      status: "Completed",
-      requestedDate: "2025-01-17",
-      requestedBy: "Dr. Robert Brown",
-      notes: "Routine checkup",
-    },
-  ];
+  // Modal states
+  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+
+  // New request form state
+  const [newRequest, setNewRequest] = useState({
+    patient_id: "",
+    patient_name: "",
+    test_type: "",
+    priority: "Normal",
+    notes: "",
+  });
+
+  // Fetch test requests on component mount
+  useEffect(() => {
+    fetchTestRequests();
+  }, []);
+
+  const fetchTestRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await testRequestAPI.getAll();
+      console.log("Test requests fetched:", response.data);
+      setTestRequests(response.data);
+    } catch (err: any) {
+      console.error("Error fetching test requests:", err);
+      setError(err.message || "Failed to fetch test requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler functions
+  const handleNewRequest = async () => {
+    try {
+      await testRequestAPI.create(newRequest);
+      setShowNewRequestModal(false);
+      setNewRequest({
+        patient_id: "",
+        patient_name: "",
+        test_type: "",
+        priority: "Normal",
+        notes: "",
+      });
+      fetchTestRequests(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error creating test request:", err);
+      setError(err.message || "Failed to create test request");
+    }
+  };
+
+  const handleViewRequest = (request: any) => {
+    setSelectedRequest(request);
+    setShowViewModal(true);
+  };
+
+  const handleApproveRequest = async (requestId: number) => {
+    try {
+      await testRequestAPI.update(requestId, { status: "Approved" });
+      fetchTestRequests(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error approving test request:", err);
+      setError(err.message || "Failed to approve test request");
+    }
+  };
+
+  const handleRejectRequest = async (requestId: number) => {
+    try {
+      await testRequestAPI.update(requestId, { status: "Rejected" });
+      fetchTestRequests(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error rejecting test request:", err);
+      setError(err.message || "Failed to reject test request");
+    }
+  };
 
   const filteredRequests = testRequests.filter((request) => {
     const matchesSearch =
-      request.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.testType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.id.toLowerCase().includes(searchTerm.toLowerCase());
+      request.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.test_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.id?.toString().includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" ||
-      request.status.toLowerCase() === filterStatus.toLowerCase();
+      (request.status || "Pending").toLowerCase() ===
+        filterStatus.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
@@ -106,7 +152,10 @@ const TestRequests: React.FC = () => {
               Manage and review test requests from patients
             </p>
           </div>
-          <button className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto">
+          <button
+            onClick={() => setShowNewRequestModal(true)}
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4" />
             <span>New Request</span>
           </button>
@@ -114,6 +163,19 @@ const TestRequests: React.FC = () => {
       </div>
 
       <div className="py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -244,47 +306,59 @@ const TestRequests: React.FC = () => {
                     <td className="px-2 sm:px-6 py-3 sm:py-4">
                       <div>
                         <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          {request.patient}
+                          {request.patient_name || "Unknown"}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          ID: {request.patientId}
+                          ID: {request.patient_id || "Unknown"}
                         </div>
                       </div>
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {request.testType}
+                      {request.test_type || "Unknown"}
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                          request.priority
+                          request.priority || "Normal"
                         )}`}
                       >
-                        {request.priority}
+                        {request.priority || "Normal"}
                       </span>
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          request.status
+                          request.status || "Pending"
                         )}`}
                       >
-                        {request.status}
+                        {request.status || "Pending"}
                       </span>
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {request.requestedDate}
+                      {request.date_requested || "Unknown"}
                     </td>
                     <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium">
                       <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left">
-                          View
+                        <button
+                          onClick={() => handleViewRequest(request)}
+                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View</span>
                         </button>
-                        <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left">
-                          Approve
+                        <button
+                          onClick={() => handleApproveRequest(request.id)}
+                          className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left transition-colors"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Approve</span>
                         </button>
-                        <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left">
-                          Reject
+                        <button
+                          onClick={() => handleRejectRequest(request.id)}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Reject</span>
                         </button>
                       </div>
                     </td>
@@ -295,6 +369,226 @@ const TestRequests: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* New Request Modal */}
+      {showNewRequestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Create New Test Request
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.patient_id}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        patient_id: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter patient ID"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.patient_name}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        patient_name: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter patient name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Test Type
+                  </label>
+                  <input
+                    type="text"
+                    value={newRequest.test_type}
+                    onChange={(e) =>
+                      setNewRequest({
+                        ...newRequest,
+                        test_type: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter test type"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={newRequest.priority}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, priority: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="Normal">Normal</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    value={newRequest.notes}
+                    onChange={(e) =>
+                      setNewRequest({ ...newRequest, notes: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter additional notes"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowNewRequestModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleNewRequest}
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                >
+                  Create Request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Request Modal */}
+      {showViewModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Test Request Details
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Request ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.id}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient Name
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.patient_name || "Unknown"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Patient ID
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.patient_id || "Unknown"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Test Type
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.test_type || "Unknown"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                      selectedRequest.priority || "Normal"
+                    )}`}
+                  >
+                    {selectedRequest.priority || "Normal"}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedRequest.status || "Pending"
+                    )}`}
+                  >
+                    {selectedRequest.status || "Pending"}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Requested Date
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.date_requested || "Unknown"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes
+                  </label>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.notes || "No notes provided"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

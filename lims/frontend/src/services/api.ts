@@ -65,11 +65,11 @@ export const authAPI = {
 };
 
 export const testRequestAPI = {
-  getAll: () => api.get('/test-requests/'),
-  getById: (id: number) => api.get(`/test-requests/${id}/`),
-  create: (data: any) => api.post('/test-requests/', data),
-  update: (id: number, data: any) => api.put(`/test-requests/${id}/`, data),
-  delete: (id: number) => api.delete(`/test-requests/${id}/`),
+  getAll: () => api.get('/test-requests/test-requests/'),
+  getById: (id: number) => api.get(`/test-requests/test-requests/${id}/`),
+  create: (data: any) => api.post('/test-requests/test-requests/', data),
+  update: (id: number, data: any) => api.put(`/test-requests/test-requests/${id}/`, data),
+  delete: (id: number) => api.delete(`/test-requests/test-requests/${id}/`),
 };
 
 export const sampleAPI = {
