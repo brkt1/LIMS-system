@@ -39,6 +39,7 @@ import {
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { ROLE_NAVIGATION } from "../types/auth";
 
 interface RoleBasedSidebarProps {
@@ -91,6 +92,7 @@ const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({
   onToggle,
 }) => {
   const { user, hasPermission } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -181,7 +183,7 @@ const RoleBasedSidebar: React.FC<RoleBasedSidebarProps> = ({
                           <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                           {isOpen && (
                             <span className="text-xs sm:text-sm font-medium truncate">
-                              {item.label}
+                              {t(item.labelKey)}
                             </span>
                           )}
                         </button>

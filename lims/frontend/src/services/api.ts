@@ -86,6 +86,17 @@ export const equipmentAPI = {
   create: (data: any) => api.post('/equipment/equipment/', data),
   update: (id: number, data: any) => api.put(`/equipment/equipment/${id}/`, data),
   delete: (id: number) => api.delete(`/equipment/equipment/${id}/`),
+  
+  // Maintenance endpoints
+  maintain: (id: number, data: any) => api.post(`/equipment/equipment/${id}/maintain/`, data),
+  getMaintenance: (id: number) => api.get(`/equipment/maintenance/?equipment=${id}`),
+  
+  // Calibration endpoints
+  calibrate: (id: number, data: any) => api.post(`/equipment/equipment/${id}/calibrate/`, data),
+  getCalibrations: (id: number) => api.get(`/equipment/calibrations/?equipment=${id}`),
+  
+  // Status update
+  updateStatus: (id: number, status: string) => api.post(`/equipment/equipment/${id}/update_status/`, { status }),
 };
 
 export const inventoryAPI = {
@@ -99,6 +110,7 @@ export const analyticsAPI = {
   getLabAnalytics: () => api.get('/analytics/lab-analytics/'),
   getTestCategoryAnalytics: () => api.get('/analytics/test-category-analytics/'),
   getSystemLogs: () => api.get('/analytics/system-logs/'),
+  getAnalyticsSummary: (params?: any) => api.get('/analytics/lab-analytics/summary/', { params }),
 };
 
 export const notificationAPI = {
@@ -129,6 +141,35 @@ export const profileAPI = {
   deleteProfilePicture: () => api.delete('/profile/picture/'),
   changePassword: (data: { old_password: string; new_password: string }) => 
     api.post('/profile/change-password/', data),
+};
+
+// Superadmin API endpoints
+export const superadminAPI = {
+  // Tenant Management
+  tenants: {
+    getAll: () => api.get('/superadmin/tenants/'),
+    getById: (id: number) => api.get(`/superadmin/tenants/${id}/`),
+    create: (data: any) => api.post('/superadmin/tenants/', data),
+    update: (id: number, data: any) => api.put(`/superadmin/tenants/${id}/`, data),
+    delete: (id: number) => api.delete(`/superadmin/tenants/${id}/`),
+    getCount: () => api.get('/superadmin/tenants/').then(res => ({ count: res.data.length })),
+  },
+  
+  // User Management (across all tenants)
+  users: {
+    getAll: () => api.get('/tenant/users/'),
+    getCount: () => api.get('/tenant/users/').then(res => ({ count: res.data.length })),
+    getById: (id: number) => api.get(`/tenant/users/${id}/`),
+    update: (id: number, data: any) => api.put(`/tenant/users/${id}/`, data),
+    delete: (id: number) => api.delete(`/tenant/users/${id}/`),
+  },
+  
+  // System Health & Monitoring
+  systemHealth: {
+    getStatus: () => api.get('/analytics/lab-analytics/summary/'),
+    getActiveSessions: () => api.get('/analytics/system-logs/?level=info&action__icontains=login'),
+    getSystemMetrics: () => api.get('/analytics/lab-analytics/'),
+  },
 };
 
 export default api;

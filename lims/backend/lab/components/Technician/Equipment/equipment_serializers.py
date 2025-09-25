@@ -4,13 +4,13 @@ from .equipment_models import Equipment, EquipmentCalibration, EquipmentMaintena
 class EquipmentCalibrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EquipmentCalibration
-        fields = ['id', 'calibration_date', 'next_calibration_date', 'calibrated_by', 
+        fields = ['id', 'equipment', 'calibration_date', 'next_calibration_date', 'calibrated_by', 
                  'notes', 'certificate_number', 'created_at']
 
 class EquipmentMaintenanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = EquipmentMaintenance
-        fields = ['id', 'maintenance_date', 'maintenance_type', 'performed_by', 
+        fields = ['id', 'equipment', 'maintenance_date', 'maintenance_type', 'performed_by', 
                  'description', 'parts_replaced', 'cost', 'next_maintenance_due', 'created_at']
 
 class EquipmentSerializer(serializers.ModelSerializer):

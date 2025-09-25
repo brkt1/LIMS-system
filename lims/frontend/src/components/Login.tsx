@@ -1,5 +1,5 @@
-import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
-import React, { useState } from "react";
+import { AlertCircle, Eye, EyeOff, Lock, Mail, X, Send } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
 const Login: React.FC = () => {
@@ -11,27 +11,47 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [showTestCredentials, setShowTestCredentials] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
 
   const testCredentials = [
     {
       role: "Super Admin",
       email: "superadmin@lims.com",
-      password: "superadmin123",
+      password: "123",
     },
     {
       role: "Tenant Admin",
       email: "tenantadmin@lims.com",
-      password: "tenantadmin123",
+      password: "123",
     },
-    { role: "Doctor", email: "doctor@lims.com", password: "doctor123" },
+    { role: "Doctor", email: "doctor@lims.com", password: "123" },
     {
       role: "Technician",
       email: "technician@lims.com",
-      password: "technician123",
+      password: "123",
     },
-    { role: "Support", email: "support@lims.com", password: "support123" },
-    { role: "Patient", email: "patient@lims.com", password: "patient123" },
+    { role: "Support", email: "support@lims.com", password: "123" },
+    { role: "Patient", email: "patient@lims.com", password: "123" },
   ];
+
+  // Load remembered credentials on component mount
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem("rememberedEmail");
+    const rememberedPassword = localStorage.getItem("rememberedPassword");
+    const isRemembered = localStorage.getItem("rememberMe") === "true";
+
+    if (isRemembered && rememberedEmail && rememberedPassword) {
+      setFormData({
+        email: rememberedEmail,
+        password: rememberedPassword,
+      });
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleTestLogin = (testEmail: string, testPassword: string) => {
     setFormData({
@@ -46,6 +66,17 @@ const Login: React.FC = () => {
 
     try {
       await login(formData);
+
+      // Handle remember me functionality
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", formData.email);
+        localStorage.setItem("rememberedPassword", formData.password);
+        localStorage.setItem("rememberMe", "true");
+      } else {
+        localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem("rememberedPassword");
+        localStorage.removeItem("rememberMe");
+      }
     } catch (err: any) {
       setError(err.message || "Login failed");
     }
@@ -56,6 +87,34 @@ const Login: React.FC = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordLoading(true);
+    setForgotPasswordMessage("");
+
+    try {
+      // Simulate API call for password reset
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      setForgotPasswordMessage(
+        "Password reset instructions have been sent to your email address."
+      );
+      setForgotPasswordEmail("");
+
+      // Auto-close modal after 3 seconds
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setForgotPasswordMessage("");
+      }, 3000);
+    } catch (err: any) {
+      setForgotPasswordMessage(
+        "Failed to send reset instructions. Please try again."
+      );
+    } finally {
+      setForgotPasswordLoading(false);
+    }
   };
 
   return (
@@ -151,6 +210,8 @@ const Login: React.FC = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
                 />
                 <label
@@ -162,12 +223,13 @@ const Login: React.FC = () => {
               </div>
 
               <div className="text-sm">
-                <a
-                  href="#"
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
                   className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
                 >
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </div>
 
@@ -184,21 +246,6 @@ const Login: React.FC = () => {
               ) : (
                 "Sign in"
               )}
-            </button>
-            
-            {/* Debug button */}
-            <button
-              type="button"
-              onClick={() => {
-                console.log('Current localStorage:', {
-                  access_token: localStorage.getItem('access_token'),
-                  user_data: localStorage.getItem('user_data'),
-                  tenant_data: localStorage.getItem('tenant_data')
-                });
-              }}
-              className="w-full mt-2 py-2 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-            >
-              Debug Auth State
             </button>
           </form>
 
@@ -241,12 +288,109 @@ const Login: React.FC = () => {
                 </div>
                 <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                   💡 Click any account above to auto-fill the login form
+                  <br />
+                  🔑 All test accounts use password: <strong>123</strong>
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Reset Password
+              </h3>
+              <button
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setForgotPasswordMessage("");
+                  setForgotPasswordEmail("");
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="forgot-email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                  </div>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    required
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                    placeholder="Enter your email address"
+                  />
+                </div>
+              </div>
+
+              {forgotPasswordMessage && (
+                <div
+                  className={`p-3 rounded-lg text-sm ${
+                    forgotPasswordMessage.includes("sent")
+                      ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+                      : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+                  }`}
+                >
+                  {forgotPasswordMessage}
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setForgotPasswordMessage("");
+                    setForgotPasswordEmail("");
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={forgotPasswordLoading || !forgotPasswordEmail}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center space-x-2"
+                >
+                  {forgotPasswordLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Send Reset Link</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+              💡 We'll send you instructions to reset your password via email.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

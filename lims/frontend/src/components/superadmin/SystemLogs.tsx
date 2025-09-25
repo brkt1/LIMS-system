@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Download,
-  Filter,
   RefreshCw,
   Search,
   XCircle,
@@ -164,8 +163,6 @@ const SystemLogs: React.FC = () => {
       "Details",
     ];
 
-    const currentDate = new Date().toISOString().split("T")[0];
-
     const rows = filteredLogs.map((log) => [
       log.timestamp,
       log.level,
@@ -275,17 +272,17 @@ const SystemLogs: React.FC = () => {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "authentication":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
       case "database":
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400";
       case "api":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400";
       case "system":
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white";
       case "security":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white";
     }
   };
 
@@ -325,35 +322,6 @@ const SystemLogs: React.FC = () => {
       </div>
 
       <div className="space-y-4 sm:space-y-6">
-        {/* Log Level Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {logLevels.map((level) => (
-            <div
-              key={level.id}
-              className={`bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border cursor-pointer transition-all ${
-                filterLevel === level.id
-                  ? "ring-2 ring-blue-500"
-                  : "hover:shadow-md"
-              }`}
-              onClick={() => setFilterLevel(level.id)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                    {level.name}
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    {level.count}
-                  </p>
-                </div>
-                <div className="flex-shrink-0 ml-2">
-                  {getLevelIcon(level.id)}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

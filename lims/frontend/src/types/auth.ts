@@ -94,6 +94,7 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
   items: Array<{
     icon: string;
     label: string;
+    labelKey: string;
     path: string;
     permission?: string;
   }>;
@@ -102,32 +103,32 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'MAIN MENU',
       items: [
-        { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
-        { icon: 'Building2', label: 'Manage Tenants', path: '/manage-tenants' },
-        { icon: 'Plus', label: 'Create Tenants', path: '/create-tenants' },
-        { icon: 'Users', label: 'All Tenants', path: '/all-tenants' }
+        { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
+        { icon: 'Building2', label: 'Manage Tenants', labelKey: 'nav.manageTenants', path: '/manage-tenants' },
+        { icon: 'Plus', label: 'Create Tenants', labelKey: 'nav.createTenants', path: '/create-tenants' },
+        { icon: 'Users', label: 'All Tenants', labelKey: 'nav.allTenants', path: '/all-tenants' }
       ]
     },
     {
       title: 'ANALYTICS & BILLING',
       items: [
-        { icon: 'BarChart3', label: 'Usage Analysis', path: '/usage-analysis' },
-        { icon: 'DollarSign', label: 'Billing and Plans', path: '/billing-plans' }
+        { icon: 'BarChart3', label: 'Usage Analysis', labelKey: 'nav.usageAnalysis', path: '/usage-analysis' },
+        { icon: 'DollarSign', label: 'Billing and Plans', labelKey: 'nav.billingPlans', path: '/billing-plans' }
       ]
     },
     {
       title: 'ADMINISTRATION',
       items: [
-        { icon: 'Users', label: 'Admin Management', path: '/admin-management' },
-        { icon: 'Activity', label: 'System Logs', path: '/system-logs' },
-        { icon: 'Bell', label: 'Global Notification', path: '/global-notification' },
-        { icon: 'Monitor', label: 'Monitor Online Users', path: '/monitor-users' }
+        { icon: 'Users', label: 'Admin Management', labelKey: 'nav.adminManagement', path: '/admin-management' },
+        { icon: 'Activity', label: 'System Logs', labelKey: 'nav.systemLogs', path: '/system-logs' },
+        { icon: 'Bell', label: 'Global Notification', labelKey: 'nav.globalNotification', path: '/global-notification' },
+        { icon: 'Monitor', label: 'Monitor Online Users', labelKey: 'nav.monitorUsers', path: '/monitor-users' }
       ]
     },
     {
       title: 'SYSTEM',
       items: [
-        { icon: 'Database', label: 'Backup Database', path: '/backup-database' }
+        { icon: 'Database', label: 'Backup Database', labelKey: 'nav.backupDatabase', path: '/backup-database' }
       ]
     }
   ],
@@ -135,54 +136,54 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'MAIN MENU',
       items: [
-        { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
-        { icon: 'Users', label: 'User Management', path: '/users' },
-        { icon: 'Building2', label: 'Tenant Settings', path: '/settings' },
-        { icon: 'Package', label: 'Inventory Management', path: '/inventory' }
+        { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
+        { icon: 'Users', label: 'User Management', labelKey: 'nav.userManagement', path: '/users' },
+        { icon: 'Building2', label: 'Tenant Settings', labelKey: 'nav.tenantSettings', path: '/settings' },
+        { icon: 'Package', label: 'Inventory Management', labelKey: 'nav.inventoryManagement', path: '/inventory' }
       ]
     },
     {
       title: 'TEST MANAGEMENT',
       items: [
-        { icon: 'TestTube', label: 'Manage Tests', path: '/manage-tests' },
-        { icon: 'Microscope', label: 'Cultures & Antibiotics', path: '/cultures-antibiotics' },
-        { icon: 'Calculator', label: 'Test & Cultures Pricing', path: '/test-pricing' }
+        { icon: 'TestTube', label: 'Manage Tests', labelKey: 'nav.manageTests', path: '/manage-tests' },
+        { icon: 'Microscope', label: 'Cultures & Antibiotics', labelKey: 'nav.culturesAntibiotics', path: '/cultures-antibiotics' },
+        { icon: 'Calculator', label: 'Test & Cultures Pricing', labelKey: 'nav.testPricing', path: '/test-pricing' }
       ]
     },
     {
       title: 'PEOPLE MANAGEMENT',
       items: [
-        { icon: 'UserCheck', label: 'Doctors Management', path: '/doctors' },
-        { icon: 'UserPlus', label: 'Patient Management', path: '/patients' }
+        { icon: 'UserCheck', label: 'Doctors Management', labelKey: 'nav.doctorsManagement', path: '/doctors' },
+        { icon: 'UserPlus', label: 'Patient Management', labelKey: 'nav.patientManagement', path: '/patients' }
       ]
     },
     {
       title: 'REPORTS & ANALYTICS',
       items: [
-        { icon: 'FileText', label: 'Test Reports', path: '/test-reports' },
-        { icon: 'BarChart3', label: 'Analysis Dashboard', path: '/analytics' }
+        { icon: 'FileText', label: 'Test Reports', labelKey: 'nav.testReports', path: '/test-reports' },
+        { icon: 'BarChart3', label: 'Analysis Dashboard', labelKey: 'nav.analysisDashboard', path: '/analytics' }
       ]
     },
     {
       title: 'SERVICES',
       items: [
-        { icon: 'Printer', label: 'Receipts Printing', path: '/receipts' },
-        { icon: 'Stethoscope', label: 'Home Visit Request', path: '/home-visit-requests' },
-        { icon: 'CalendarIcon', label: 'Home Visit Schedule', path: '/home-visit-schedule' }
+        { icon: 'Printer', label: 'Receipts Printing', labelKey: 'nav.receiptsPrinting', path: '/receipts' },
+        { icon: 'Stethoscope', label: 'Home Visit Request', labelKey: 'nav.homeVisitRequest', path: '/home-visit-requests' },
+        { icon: 'CalendarIcon', label: 'Home Visit Schedule', labelKey: 'nav.homeVisitSchedule', path: '/home-visit-schedule' }
       ]
     },
     {
       title: 'ORGANIZATION',
       items: [
-        { icon: 'MapPin', label: 'Branch Management', path: '/branches' },
-        { icon: 'FileContract', label: 'Contract Management', path: '/contracts' },
-        { icon: 'Receipt', label: 'Accounting', path: '/accounting' }
+        { icon: 'MapPin', label: 'Branch Management', labelKey: 'nav.branchManagement', path: '/branches' },
+        { icon: 'FileContract', label: 'Contract Management', labelKey: 'nav.contractManagement', path: '/contracts' },
+        { icon: 'Receipt', label: 'Accounting', labelKey: 'nav.accounting', path: '/accounting' }
       ]
     },
     {
       title: 'SYSTEM',
       items: [
-        { icon: 'Settings', label: 'Equipment', path: '/equipment' }
+        { icon: 'Settings', label: 'Equipment', labelKey: 'nav.equipment', path: '/equipment' }
       ]
     }
   ],
@@ -190,18 +191,18 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'MAIN MENU',
       items: [
-        { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
-        { icon: 'FileText', label: 'Test Requests', path: '/test-requests' },
-        { icon: 'Calendar', label: 'Appointments', path: '/appointments' },
-        { icon: 'Users', label: 'Patients', path: '/patients' }
+        { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
+        { icon: 'FileText', label: 'Test Requests', labelKey: 'nav.testRequests', path: '/test-requests' },
+        { icon: 'Calendar', label: 'Appointments', labelKey: 'nav.appointments', path: '/appointments' },
+        { icon: 'Users', label: 'Patients', labelKey: 'nav.patients', path: '/patients' }
       ]
     },
     {
       title: 'PATIENT CARE',
       items: [
-        { icon: 'ClipboardList', label: 'Test Results', path: '/test-results' },
-        { icon: 'User', label: 'Patient Records', path: '/patient-records' },
-        { icon: 'MessageSquare', label: 'Messages', path: '/messages' }
+        { icon: 'ClipboardList', label: 'Test Results', labelKey: 'nav.testResults', path: '/test-results' },
+        { icon: 'User', label: 'Patient Records', labelKey: 'nav.patientRecords', path: '/patient-records' },
+        { icon: 'MessageSquare', label: 'Messages', labelKey: 'nav.messages', path: '/messages' }
       ]
     }
   ],
@@ -209,18 +210,18 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'MAIN MENU',
       items: [
-        { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
-        { icon: 'TestTube', label: 'Samples', path: '/samples' },
-        { icon: 'Wrench', label: 'Equipment', path: '/equipment' },
-        { icon: 'FileText', label: 'Test Reports', path: '/test-reports' }
+        { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
+        { icon: 'TestTube', label: 'Samples', labelKey: 'nav.samples', path: '/samples' },
+        { icon: 'Wrench', label: 'Equipment', labelKey: 'nav.equipment', path: '/equipment' },
+        { icon: 'FileText', label: 'Test Reports', labelKey: 'nav.testReports', path: '/test-reports' }
       ]
     },
     {
       title: 'LAB WORK',
       items: [
-        { icon: 'ClipboardCheck', label: 'Accept Samples', path: '/accept-samples' },
-        { icon: 'Settings', label: 'Calibrations', path: '/calibrations' },
-        { icon: 'AlertTriangle', label: 'Maintenance', path: '/maintenance' }
+        { icon: 'ClipboardCheck', label: 'Accept Samples', labelKey: 'nav.acceptSamples', path: '/accept-samples' },
+        { icon: 'Settings', label: 'Calibrations', labelKey: 'nav.calibrations', path: '/calibrations' },
+        { icon: 'AlertTriangle', label: 'Maintenance', labelKey: 'nav.maintenance', path: '/maintenance' }
       ]
     }
   ],
@@ -228,18 +229,18 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'MAIN MENU',
       items: [
-        { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
-        { icon: 'Headphones', label: 'Support Tickets', path: '/support-tickets' },
-        { icon: 'Package', label: 'Inventory', path: '/inventory' },
-        { icon: 'Bell', label: 'Notifications', path: '/notifications' },
-        { icon: 'User', label: 'Profile', path: '/profile' }
+        { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
+        { icon: 'Headphones', label: 'Support Tickets', labelKey: 'nav.supportTickets', path: '/support-tickets' },
+        { icon: 'Package', label: 'Inventory', labelKey: 'nav.inventory', path: '/inventory' },
+        { icon: 'Bell', label: 'Notifications', labelKey: 'nav.notifications', path: '/notifications' },
+        { icon: 'User', label: 'Profile', labelKey: 'nav.profile', path: '/profile' }
       ]
     },
     {
       title: 'SUPPORT',
       items: [
-        { icon: 'MessageSquare', label: 'Messages', path: '/messages' },
-        { icon: 'FileText', label: 'Reports', path: '/reports' }
+        { icon: 'MessageSquare', label: 'Messages', labelKey: 'nav.messages', path: '/messages' },
+        { icon: 'FileText', label: 'Reports', labelKey: 'nav.reports', path: '/reports' }
       ]
     }
   ],
@@ -247,18 +248,18 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'MAIN MENU',
       items: [
-        { icon: 'LayoutDashboard', label: 'Dashboard', path: '/dashboard' },
-        { icon: 'Calendar', label: 'My Appointments', path: '/appointments' },
-        { icon: 'FileText', label: 'Test Results', path: '/test-results' },
-        { icon: 'User', label: 'Profile', path: '/profile' }
+        { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
+        { icon: 'Calendar', label: 'My Appointments', labelKey: 'nav.myAppointments', path: '/appointments' },
+        { icon: 'FileText', label: 'Test Results', labelKey: 'nav.testResults', path: '/test-results' },
+        { icon: 'User', label: 'Profile', labelKey: 'nav.profile', path: '/profile' }
       ]
     },
     {
       title: 'SERVICES',
       items: [
-        { icon: 'BookOpen', label: 'FAQ', path: '/faq' },
-        { icon: 'MessageSquare', label: 'Support', path: '/support' },
-        { icon: 'HelpCircle', label: 'Help', path: '/help' }
+        { icon: 'BookOpen', label: 'FAQ', labelKey: 'nav.faq', path: '/faq' },
+        { icon: 'MessageSquare', label: 'Support', labelKey: 'nav.support', path: '/support' },
+        { icon: 'HelpCircle', label: 'Help', labelKey: 'nav.help', path: '/help' }
       ]
     }
   ]

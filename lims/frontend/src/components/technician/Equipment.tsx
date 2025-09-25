@@ -11,6 +11,7 @@ import {
   Play,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { equipmentAPI } from "../../services/api";
 
 const Equipment: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,95 +38,54 @@ const Equipment: React.FC = () => {
     notes: "",
   });
 
-  const [equipment, setEquipment] = useState([
-    {
-      id: "EQP001",
-      name: "Centrifuge Model CF-2000",
-      type: "Centrifuge",
-      manufacturer: "LabTech Industries",
-      model: "CF-2000",
-      serialNumber: "CF2000-001234",
-      status: "operational",
-      location: "Lab Room A",
-      lastMaintenance: "2025-01-15",
-      nextMaintenance: "2025-02-15",
-      technician: "Mike Davis",
-      notes: "Routine maintenance completed",
-    },
-    {
-      id: "EQP002",
-      name: "Microscope Olympus BX51",
-      type: "Microscope",
-      manufacturer: "Olympus",
-      model: "BX51",
-      serialNumber: "OLY-BX51-567890",
-      status: "maintenance",
-      location: "Lab Room B",
-      lastMaintenance: "2025-01-10",
-      nextMaintenance: "2025-01-25",
-      technician: "Lisa Wilson",
-      notes: "Lens cleaning required",
-    },
-    {
-      id: "EQP003",
-      name: "Blood Analyzer Sysmex XN-1000",
-      type: "Analyzer",
-      manufacturer: "Sysmex",
-      model: "XN-1000",
-      serialNumber: "SYS-XN1000-789012",
-      status: "operational",
-      location: "Lab Room A",
-      lastMaintenance: "2025-01-20",
-      nextMaintenance: "2025-03-20",
-      technician: "Robert Brown",
-      notes: "Calibrated and working perfectly",
-    },
-    {
-      id: "EQP004",
-      name: "Incubator Thermo Scientific",
-      type: "Incubator",
-      manufacturer: "Thermo Scientific",
-      model: "Heratherm IGS180",
-      serialNumber: "TS-HER180-345678",
-      status: "out_of_service",
-      location: "Lab Room C",
-      lastMaintenance: "2024-12-01",
-      nextMaintenance: "2025-01-30",
-      technician: "Mike Davis",
-      notes: "Temperature sensor malfunction",
-    },
-    {
-      id: "EQP005",
-      name: "PCR Machine Applied Biosystems",
-      type: "PCR Machine",
-      manufacturer: "Applied Biosystems",
-      model: "7500 Fast",
-      serialNumber: "AB-7500-901234",
-      status: "operational",
-      location: "Lab Room B",
-      lastMaintenance: "2025-01-18",
-      nextMaintenance: "2025-04-18",
-      technician: "Lisa Wilson",
-      notes: "Regular calibration completed",
-    },
-  ]);
+  const [equipment, setEquipment] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load equipment from localStorage on component mount
+  // Fetch equipment from API on component mount
   useEffect(() => {
-    const savedEquipment = localStorage.getItem("technician-equipment");
-    if (savedEquipment) {
+    const fetchEquipment = async () => {
       try {
-        setEquipment(JSON.parse(savedEquipment));
-      } catch (error) {
-        console.error("Error loading saved equipment:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
+        console.log("Fetching equipment data...");
+        const response = await equipmentAPI.getAll();
+        console.log("Equipment API response:", response.data);
 
-  // Save equipment to localStorage whenever equipment changes
-  useEffect(() => {
-    localStorage.setItem("technician-equipment", JSON.stringify(equipment));
-  }, [equipment]);
+        // Transform backend data to match frontend format
+        const transformedEquipment = response.data.map((item: any) => ({
+          id: item.id.toString(),
+          name: item.name,
+          type: item.department || "Unknown",
+          manufacturer: item.supplier || "Unknown",
+          model: item.model,
+          serialNumber: item.serial_number,
+          status: item.status,
+          location: item.location || "Unknown",
+          lastMaintenance: item.last_maintenance?.maintenance_date || "N/A",
+          nextMaintenance: item.last_maintenance?.next_maintenance_due || "N/A",
+          technician: "System",
+          notes: item.notes || "",
+        }));
+
+        setEquipment(transformedEquipment);
+      } catch (error: any) {
+        console.error("Error fetching equipment:", error);
+        console.error("Error details:", error.response?.data || error.message);
+        setError(
+          `Failed to load equipment data: ${
+            error.response?.data?.detail || error.message || "Unknown error"
+          }`
+        );
+        // Fallback to empty array
+        setEquipment([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEquipment();
+  }, []);
 
   // CRUD Functions
   const handleAddEquipment = () => {
@@ -173,48 +133,112 @@ const Equipment: React.FC = () => {
     setShowAddEquipmentModal(false);
   };
 
-  const handleMaintainEquipmentAction = () => {
-    const now = new Date();
-    setEquipment((prev) =>
-      prev.map((e) =>
-        e.id === selectedEquipment.id
-          ? {
-              ...e,
-              status: "maintenance",
-              lastMaintenance: now.toISOString().split("T")[0],
-              nextMaintenance: new Date(
-                now.getTime() + 30 * 24 * 60 * 60 * 1000
-              )
-                .toISOString()
-                .split("T")[0],
-            }
-          : e
-      )
-    );
-    setShowMaintainEquipmentModal(false);
-    setSelectedEquipment(null);
+  const handleMaintainEquipmentAction = async () => {
+    try {
+      const now = new Date();
+      const maintenanceData = {
+        maintenance_date: now.toISOString().split("T")[0],
+        maintenance_type: "Preventive",
+        performed_by: "Current User", // You can get this from auth context
+        description: "Routine maintenance performed",
+        parts_replaced: "",
+        cost: 0,
+        next_maintenance_due: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+      };
+
+      // Send maintenance record to backend
+      await equipmentAPI.maintain(
+        parseInt(selectedEquipment.id),
+        maintenanceData
+      );
+
+      // Update equipment status to maintenance
+      await equipmentAPI.updateStatus(
+        parseInt(selectedEquipment.id),
+        "maintenance"
+      );
+
+      // Refresh equipment list from backend
+      const response = await equipmentAPI.getAll();
+      const transformedEquipment = response.data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name,
+        type: item.department || "Unknown",
+        manufacturer: item.supplier || "Unknown",
+        model: item.model,
+        serialNumber: item.serial_number,
+        status: item.status,
+        location: item.location || "Unknown",
+        lastMaintenance: item.last_maintenance?.maintenance_date || "N/A",
+        nextMaintenance: item.last_maintenance?.next_maintenance_due || "N/A",
+        technician: "System",
+        notes: item.notes || "",
+      }));
+      setEquipment(transformedEquipment);
+
+      console.log("Maintenance recorded successfully!");
+      setShowMaintainEquipmentModal(false);
+      setSelectedEquipment(null);
+    } catch (error) {
+      console.error("Error recording maintenance:", error);
+      alert("Failed to record maintenance. Please try again.");
+    }
   };
 
-  const handleCalibrateEquipmentAction = () => {
-    const now = new Date();
-    setEquipment((prev) =>
-      prev.map((e) =>
-        e.id === selectedEquipment.id
-          ? {
-              ...e,
-              status: "operational",
-              lastMaintenance: now.toISOString().split("T")[0],
-              nextMaintenance: new Date(
-                now.getTime() + 90 * 24 * 60 * 60 * 1000
-              )
-                .toISOString()
-                .split("T")[0], // 90 days from now
-            }
-          : e
-      )
-    );
-    setShowCalibrateEquipmentModal(false);
-    setSelectedEquipment(null);
+  const handleCalibrateEquipmentAction = async () => {
+    try {
+      const now = new Date();
+      const calibrationData = {
+        calibration_date: now.toISOString().split("T")[0],
+        next_calibration_date: new Date(
+          now.getTime() + 90 * 24 * 60 * 60 * 1000
+        )
+          .toISOString()
+          .split("T")[0],
+        calibrated_by: "Current User", // You can get this from auth context
+        notes: "Equipment calibrated successfully",
+        certificate_number: `CAL-${Date.now()}`,
+      };
+
+      // Send calibration record to backend
+      await equipmentAPI.calibrate(
+        parseInt(selectedEquipment.id),
+        calibrationData
+      );
+
+      // Update equipment status to operational
+      await equipmentAPI.updateStatus(
+        parseInt(selectedEquipment.id),
+        "operational"
+      );
+
+      // Refresh equipment list from backend
+      const response = await equipmentAPI.getAll();
+      const transformedEquipment = response.data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name,
+        type: item.department || "Unknown",
+        manufacturer: item.supplier || "Unknown",
+        model: item.model,
+        serialNumber: item.serial_number,
+        status: item.status,
+        location: item.location || "Unknown",
+        lastMaintenance: item.last_maintenance?.maintenance_date || "N/A",
+        nextMaintenance: item.last_maintenance?.next_maintenance_due || "N/A",
+        technician: "System",
+        notes: item.notes || "",
+      }));
+      setEquipment(transformedEquipment);
+
+      console.log("Calibration recorded successfully!");
+      setShowCalibrateEquipmentModal(false);
+      setSelectedEquipment(null);
+    } catch (error) {
+      console.error("Error recording calibration:", error);
+      alert("Failed to record calibration. Please try again.");
+    }
   };
 
   const filteredEquipment = equipment.filter((item) => {
@@ -266,6 +290,42 @@ const Equipment: React.FC = () => {
   const outOfServiceEquipment = equipment.filter(
     (e) => e.status === "out_of_service"
   ).length;
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="text-gray-600 dark:text-gray-300 mt-4">
+              Loading equipment...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

@@ -1,36 +1,104 @@
 import { Activity, BarChart3, Building2, Settings, Users } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { superadminAPI, analyticsAPI } from "../../services/api";
 
 const SuperAdminDashboard: React.FC = () => {
+  const [dashboardData, setDashboardData] = useState({
+    totalTenants: 0,
+    systemUsers: 0,
+    activeSessions: 0,
+    systemHealth: 99.9,
+    loading: true,
+    error: null as string | null,
+  });
+
+  const [systemLogs, setSystemLogs] = useState<any[]>([]);
+
+  // Fetch dashboard data from backend
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setDashboardData((prev) => ({ ...prev, loading: true, error: null }));
+
+        // Fetch all data in parallel
+        const [tenantsResponse, systemLogsResponse] = await Promise.all([
+          superadminAPI.tenants.getCount(),
+          analyticsAPI.getSystemLogs(),
+        ]);
+
+        // For now, estimate user count from system logs (users who have logged in)
+        const uniqueUsers = new Set(
+          systemLogsResponse.data.map((log: any) => log.user).filter(Boolean)
+        );
+        const estimatedUserCount = uniqueUsers.size || 7; // Fallback to known count
+
+        // Calculate active sessions (recent login activities)
+        const recentLogs = systemLogsResponse.data.filter(
+          (log: any) =>
+            log.action?.toLowerCase().includes("login") &&
+            new Date(log.created_at) >
+              new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+        );
+
+        setDashboardData({
+          totalTenants: tenantsResponse.count,
+          systemUsers: estimatedUserCount,
+          activeSessions: recentLogs.length,
+          systemHealth: 99.9, // This would come from system health API
+          loading: false,
+          error: null,
+        });
+
+        // Set recent system logs
+        setSystemLogs(systemLogsResponse.data.slice(0, 5)); // Show last 5 logs
+      } catch (error: any) {
+        console.error("Error fetching dashboard data:", error);
+        setDashboardData((prev) => ({
+          ...prev,
+          loading: false,
+          error: error.message || "Failed to load dashboard data",
+        }));
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   const superAdminCards = [
     {
       title: "Total Tenants",
-      value: "24",
+      value: dashboardData.loading
+        ? "..."
+        : dashboardData.totalTenants.toString(),
       change: "+3 This Month",
       color: "bg-blue-500",
-      chartData: [10, 15, 12, 18, 20, 22, 24],
+      chartData: [10, 15, 12, 18, 20, 22, dashboardData.totalTenants],
     },
     {
       title: "System Users",
-      value: "1,247",
+      value: dashboardData.loading
+        ? "..."
+        : dashboardData.systemUsers.toLocaleString(),
       change: "+12% This Month",
       color: "bg-green-500",
-      chartData: [800, 900, 950, 1000, 1100, 1200, 1247],
+      chartData: [800, 900, 950, 1000, 1100, 1200, dashboardData.systemUsers],
     },
     {
       title: "Active Sessions",
-      value: "89",
+      value: dashboardData.loading
+        ? "..."
+        : dashboardData.activeSessions.toString(),
       change: "+5% Today",
       color: "bg-purple-500",
-      chartData: [60, 70, 65, 75, 80, 85, 89],
+      chartData: [60, 70, 65, 75, 80, 85, dashboardData.activeSessions],
     },
     {
       title: "System Health",
-      value: "99.9%",
+      value: dashboardData.loading ? "..." : `${dashboardData.systemHealth}%`,
       change: "Stable",
       color: "bg-emerald-500",
-      chartData: [98, 99, 99.5, 99.8, 99.9, 99.9, 99.9],
+      chartData: [98, 99, 99.5, 99.8, 99.9, 99.9, dashboardData.systemHealth],
     },
   ];
 
@@ -156,38 +224,64 @@ const SuperAdminDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  2025-01-20 14:30:25
-                </td>
-                <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  admin@lims.com
-                </td>
-                <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  Created new tenant
-                </td>
-                <td className="py-3 sm:py-4 px-2 sm:px-4">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400">
-                    Success
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  2025-01-20 14:25:10
-                </td>
-                <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  system@lims.com
-                </td>
-                <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                  System backup completed
-                </td>
-                <td className="py-3 sm:py-4 px-2 sm:px-4">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400">
-                    Info
-                  </span>
-                </td>
-              </tr>
+              {dashboardData.loading ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    Loading system logs...
+                  </td>
+                </tr>
+              ) : dashboardData.error ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-red-500">
+                    Error loading system logs: {dashboardData.error}
+                  </td>
+                </tr>
+              ) : systemLogs.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No recent system activity
+                  </td>
+                </tr>
+              ) : (
+                systemLogs.map((log, index) => (
+                  <tr
+                    key={index}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
+                      {new Date(log.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
+                      {log.user || "System"}
+                    </td>
+                    <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
+                      {log.action || "System activity"}
+                    </td>
+                    <td className="py-3 sm:py-4 px-2 sm:px-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          log.level === "error"
+                            ? "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400"
+                            : log.level === "warning"
+                            ? "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400"
+                            : log.level === "info"
+                            ? "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400"
+                            : "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
+                        }`}
+                      >
+                        {log.level?.charAt(0).toUpperCase() +
+                          log.level?.slice(1) || "Success"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

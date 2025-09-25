@@ -1,9 +1,11 @@
 import { ArrowLeft, Edit, Save, X, Eye, EyeOff } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -178,10 +180,10 @@ const Profile: React.FC = () => {
             </button>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Profile Settings
+                {t("profile.title")}
               </h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-                Manage your personal information and preferences
+                {t("profile.subtitle")}
               </p>
             </div>
           </div>
@@ -192,7 +194,7 @@ const Profile: React.FC = () => {
                 className="flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Edit className="w-4 h-4" />
-                <span>Edit Profile</span>
+                <span>{t("profile.editProfile")}</span>
               </button>
             ) : (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
@@ -201,14 +203,14 @@ const Profile: React.FC = () => {
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                 >
                   <X className="w-4 h-4" />
-                  <span>Cancel</span>
+                  <span>{t("common.cancel")}</span>
                 </button>
                 <button
                   onClick={handleSave}
                   className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save Changes</span>
+                  <span>{t("profile.saveChanges")}</span>
                 </button>
               </div>
             )}
