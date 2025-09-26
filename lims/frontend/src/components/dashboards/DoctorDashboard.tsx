@@ -142,7 +142,6 @@ const DoctorDashboard: React.FC = () => {
 
   // Calculate dynamic statistics from test requests data
   const getDashboardStats = () => {
-    const today = new Date().toISOString().split("T")[0];
     const thisWeek = new Date();
     thisWeek.setDate(thisWeek.getDate() - 7);
     const thisMonth = new Date();
@@ -453,7 +452,7 @@ const DoctorDashboard: React.FC = () => {
                     case "Critical":
                       return "High";
                     case "Urgent":
-                      return "High";
+                      return "Medium";
                     case "Normal":
                       return "Low";
                     default:
@@ -537,22 +536,22 @@ const DoctorDashboard: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                   Patient
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                   Test Type
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                   Priority
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                   Requested Date
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                   Status
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                   Actions
                 </th>
               </tr>

@@ -490,7 +490,7 @@ const Appointments: React.FC = () => {
                   Patient:
                 </span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                  {selectedAppointment.patient}
+                  {selectedAppointment.patient_name}
                 </span>
               </div>
               <div>
@@ -498,7 +498,7 @@ const Appointments: React.FC = () => {
                   Patient ID:
                 </span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                  {selectedAppointment.patientId}
+                  {selectedAppointment.patient_id}
                 </span>
               </div>
               <div>
@@ -506,7 +506,8 @@ const Appointments: React.FC = () => {
                   Date & Time:
                 </span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                  {selectedAppointment.date} at {selectedAppointment.time}
+                  {selectedAppointment.appointment_date} at{" "}
+                  {selectedAppointment.appointment_time}
                 </span>
               </div>
               <div>
@@ -514,7 +515,7 @@ const Appointments: React.FC = () => {
                   Duration:
                 </span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                  {selectedAppointment.duration}
+                  {selectedAppointment.duration} minutes
                 </span>
               </div>
               <div>
@@ -523,10 +524,10 @@ const Appointments: React.FC = () => {
                 </span>
                 <span
                   className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                    selectedAppointment.type
+                    selectedAppointment.appointment_type
                   )}`}
                 >
-                  {selectedAppointment.type}
+                  {selectedAppointment.appointment_type}
                 </span>
               </div>
               <div>
@@ -572,7 +573,7 @@ const Appointments: React.FC = () => {
             <div className="mb-4">
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 Are you sure you want to confirm this appointment for{" "}
-                <strong>{selectedAppointment.patient}</strong>?
+                <strong>{selectedAppointment.patient_name}</strong>?
               </p>
             </div>
             <form
@@ -627,7 +628,7 @@ const Appointments: React.FC = () => {
             <div className="mb-4">
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 Are you sure you want to cancel this appointment for{" "}
-                <strong>{selectedAppointment.patient}</strong>?
+                <strong>{selectedAppointment.patient_name}</strong>?
               </p>
             </div>
             <form

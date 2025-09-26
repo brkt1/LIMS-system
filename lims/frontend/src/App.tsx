@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter as Router } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import Header from "./components/Header";
 import Login from "./components/Login";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
@@ -9,13 +13,25 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
+// Component to handle routing logic inside Router context
+function RouterContent() {
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Auto-redirect to dashboard when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && location.pathname === "/") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, user, location.pathname, navigate]);
+
+  return <RoleBasedDashboard />;
+}
+
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
 
   // Handle desktop sidebar behavior
   useEffect(() => {
@@ -84,7 +100,7 @@ function AppContent() {
           {/* Main Content Area */}
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
             <div className="min-h-full">
-              <RoleBasedDashboard />
+              <RouterContent />
             </div>
           </main>
         </div>
