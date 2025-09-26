@@ -1,16 +1,6 @@
-import {
-  Calendar,
-  Clock,
-  Plus,
-  Search,
-  User,
-  Users,
-  Eye,
-  Check,
-  X,
-  Edit,
-} from "lucide-react";
-import React, { useState } from "react";
+import { Clock, Plus, Search, Eye, Check, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { appointmentAPI } from "../../services/api";
 
 const Appointments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,63 +17,32 @@ const Appointments: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
 
   // Appointments data with state management
-  const [appointments, setAppointments] = useState([
-    {
-      id: "APT001",
-      patient: "John Smith",
-      patientId: "P001",
-      time: "09:00 AM",
-      duration: "30 min",
-      type: "Follow-up",
-      status: "Confirmed",
-      date: "2025-01-22",
-      notes: "Review blood test results",
-    },
-    {
-      id: "APT002",
-      patient: "Sarah Johnson",
-      patientId: "P002",
-      time: "10:30 AM",
-      duration: "45 min",
-      type: "New Patient",
-      status: "Confirmed",
-      date: "2025-01-22",
-      notes: "Initial consultation",
-    },
-    {
-      id: "APT003",
-      patient: "Mike Davis",
-      patientId: "P003",
-      time: "02:00 PM",
-      duration: "30 min",
-      type: "Consultation",
-      status: "Pending",
-      date: "2025-01-22",
-      notes: "Chest pain evaluation",
-    },
-    {
-      id: "APT004",
-      patient: "Lisa Wilson",
-      patientId: "P004",
-      time: "03:30 PM",
-      duration: "30 min",
-      type: "Test Review",
-      status: "Confirmed",
-      date: "2025-01-22",
-      notes: "MRI results discussion",
-    },
-    {
-      id: "APT005",
-      patient: "Robert Brown",
-      patientId: "P005",
-      time: "04:45 PM",
-      duration: "30 min",
-      type: "Follow-up",
-      status: "Cancelled",
-      date: "2025-01-22",
-      notes: "Patient cancelled",
-    },
-  ]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(
+    null
+  );
+
+  // Fetch appointments from backend
+  const fetchAppointments = async () => {
+    setAppointmentsLoading(true);
+    setAppointmentsError(null);
+    try {
+      const response = await appointmentAPI.getAll();
+      console.log("🔍 Appointments fetched:", response.data);
+      setAppointments(response.data);
+    } catch (err: any) {
+      console.error("Error fetching appointments:", err);
+      setAppointmentsError(err.message || "Failed to fetch appointments");
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  };
+
+  // Load appointments on component mount
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   // CRUD operation functions
   const handleNewAppointment = () => {
@@ -105,42 +64,65 @@ const Appointments: React.FC = () => {
     setShowCancelModal(true);
   };
 
-  const handleCreateAppointment = (newAppointment: any) => {
-    const appointment = {
-      id: `APT${String(appointments.length + 1).padStart(3, "0")}`,
-      ...newAppointment,
-      status: "Pending",
-    };
-    // Add new appointment at the end (bottom) of the list
-    setAppointments([...appointments, appointment]);
-    setShowNewAppointmentModal(false);
+  const handleCreateAppointment = async (newAppointment: any) => {
+    try {
+      const appointmentData = {
+        patient_id: newAppointment.patientId,
+        patient_name: newAppointment.patient,
+        appointment_date: newAppointment.date,
+        appointment_time: newAppointment.time,
+        duration: parseInt(newAppointment.duration),
+        appointment_type: newAppointment.type,
+        status: "Scheduled",
+        notes: newAppointment.notes,
+      };
+
+      await appointmentAPI.create(appointmentData);
+      setShowNewAppointmentModal(false);
+      fetchAppointments(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error creating appointment:", err);
+      setAppointmentsError(err.message || "Failed to create appointment");
+    }
   };
 
-  const handleUpdateAppointmentStatus = (
+  const handleUpdateAppointmentStatus = async (
     appointmentId: string,
     newStatus: string,
     notes?: string
   ) => {
-    setAppointments(
-      appointments.map((apt) =>
-        apt.id === appointmentId
-          ? { ...apt, status: newStatus, notes: notes || apt.notes }
-          : apt
-      )
-    );
-    setShowConfirmModal(false);
-    setShowCancelModal(false);
+    try {
+      const appointment = appointments.find((apt) => apt.id === appointmentId);
+      if (appointment) {
+        const updateData = {
+          ...appointment,
+          status: newStatus,
+          notes: notes || appointment.notes,
+        };
+        await appointmentAPI.update(parseInt(appointmentId), updateData);
+        setShowConfirmModal(false);
+        setShowCancelModal(false);
+        fetchAppointments(); // Refresh the list
+      }
+    } catch (err: any) {
+      console.error("Error updating appointment:", err);
+      setAppointmentsError(err.message || "Failed to update appointment");
+    }
   };
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
-      appointment.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.id.toLowerCase().includes(searchTerm.toLowerCase());
+      appointment.patient_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      appointment.appointment_type
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      appointment.id?.toString().includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" ||
-      appointment.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchesDate = appointment.date === selectedDate;
+      appointment.status?.toLowerCase() === filterStatus.toLowerCase();
+    const matchesDate = appointment.appointment_date === selectedDate;
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -249,7 +231,15 @@ const Appointments: React.FC = () => {
             </h3>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredAppointments.length === 0 ? (
+            {appointmentsLoading ? (
+              <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
+                Loading appointments...
+              </div>
+            ) : appointmentsError ? (
+              <div className="p-4 sm:p-6 text-center text-red-500 dark:text-red-400 text-sm sm:text-base">
+                Error: {appointmentsError}
+              </div>
+            ) : filteredAppointments.length === 0 ? (
               <div className="p-4 sm:p-6 text-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
                 No appointments found for the selected date and filters.
               </div>
@@ -269,23 +259,24 @@ const Appointments: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                           <h4 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
-                            {appointment.patient}
+                            {appointment.patient_name}
                           </h4>
                           <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                            ID: {appointment.patientId}
+                            ID: {appointment.patient_id}
                           </span>
                         </div>
                         <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           <span className="flex items-center">
                             <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                            {appointment.time} ({appointment.duration})
+                            {appointment.appointment_time} (
+                            {appointment.duration} min)
                           </span>
                           <span
                             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                              appointment.type
+                              appointment.appointment_type
                             )}`}
                           >
-                            {appointment.type}
+                            {appointment.appointment_type}
                           </span>
                         </div>
                         {appointment.notes && (

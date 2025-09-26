@@ -8,7 +8,8 @@ import {
   Share2,
   FileDown,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { testRequestAPI } from "../../services/api";
 
 const TestResults: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,56 +22,45 @@ const TestResults: React.FC = () => {
   const [selectedResult, setSelectedResult] = useState<any>(null);
 
   // Test results data with state management
-  const [testResults, setTestResults] = useState([
-    {
-      id: "TR001",
-      patient: "John Smith",
-      patientId: "P001",
-      testType: "Blood Panel Complete",
-      result: "Normal",
-      priority: "Low",
-      completedDate: "2025-01-20",
-      doctor: "Dr. Sarah Johnson",
-      status: "Completed",
-      notes: "All values within normal range",
-    },
-    {
-      id: "TR002",
-      patient: "Sarah Johnson",
-      patientId: "P002",
-      testType: "X-Ray Chest",
-      result: "Abnormal",
-      priority: "High",
-      completedDate: "2025-01-19",
-      doctor: "Dr. Mike Davis",
-      status: "Completed",
-      notes: "Shows signs of pneumonia in left lung",
-    },
-    {
-      id: "TR003",
-      patient: "Mike Davis",
-      patientId: "P003",
-      testType: "MRI Brain",
-      result: "Pending",
-      priority: "Medium",
-      completedDate: "2025-01-18",
-      doctor: "Dr. Lisa Wilson",
-      status: "In Progress",
-      notes: "Scan completed, analysis in progress",
-    },
-    {
-      id: "TR004",
-      patient: "Lisa Wilson",
-      patientId: "P004",
-      testType: "Urine Analysis",
-      result: "Normal",
-      priority: "Low",
-      completedDate: "2025-01-17",
-      doctor: "Dr. Robert Brown",
-      status: "Completed",
-      notes: "No abnormalities detected",
-    },
-  ]);
+  const [testResults, setTestResults] = useState<any[]>([]);
+  const [testResultsLoading, setTestResultsLoading] = useState(false);
+  const [testResultsError, setTestResultsError] = useState<string | null>(null);
+
+  // Fetch test results from backend
+  const fetchTestResults = async () => {
+    setTestResultsLoading(true);
+    setTestResultsError(null);
+    try {
+      const response = await testRequestAPI.getAll();
+      console.log("🔍 Test results fetched:", response.data);
+
+      // Transform test requests into test results format
+      const results = response.data.map((request: any) => ({
+        id: request.id,
+        patient: request.patient_name,
+        patientId: request.patient_id,
+        testType: request.test_type,
+        result: request.status === "Completed" ? "Normal" : "Pending",
+        priority: request.priority,
+        completedDate: request.date_requested,
+        doctor: "Dr. Current Doctor", // Mock data
+        status: request.status,
+        notes: request.notes || "No notes available",
+      }));
+
+      setTestResults(results);
+    } catch (err: any) {
+      console.error("Error fetching test results:", err);
+      setTestResultsError(err.message || "Failed to fetch test results");
+    } finally {
+      setTestResultsLoading(false);
+    }
+  };
+
+  // Load test results on component mount
+  useEffect(() => {
+    fetchTestResults();
+  }, []);
 
   // CRUD operation functions
   const handleViewResult = (result: any) => {
@@ -297,81 +287,110 @@ const TestResults: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredResults.map((result) => (
-                  <tr
-                    key={result.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <td className="px-2 sm:px-6 py-3 sm:py-4">
-                      <div>
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          {result.patient}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          ID: {result.patientId}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {result.testType}
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 sm:py-4">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getResultColor(
-                          result.result
-                        )}`}
-                      >
-                        {result.result}
-                      </span>
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 sm:py-4">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                          result.priority
-                        )}`}
-                      >
-                        {result.priority}
-                      </span>
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 sm:py-4">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          result.status
-                        )}`}
-                      >
-                        {result.status}
-                      </span>
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {result.completedDate}
-                    </td>
-                    <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium">
-                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button
-                          onClick={() => handleViewResult(result)}
-                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left transition-colors"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>View</span>
-                        </button>
-                        <button
-                          onClick={() => handleDownloadResult(result)}
-                          className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left transition-colors"
-                        >
-                          <FileDown className="w-3 h-3" />
-                          <span>Download</span>
-                        </button>
-                        <button
-                          onClick={() => handleShareResult(result)}
-                          className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left transition-colors"
-                        >
-                          <Share2 className="w-3 h-3" />
-                          <span>Share</span>
-                        </button>
-                      </div>
+                {testResultsLoading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      Loading test results...
                     </td>
                   </tr>
-                ))}
+                ) : testResultsError ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-4 text-center text-red-500 dark:text-red-400"
+                    >
+                      Error: {testResultsError}
+                    </td>
+                  </tr>
+                ) : filteredResults.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      No test results found matching your criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredResults.map((result) => (
+                    <tr
+                      key={result.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <td className="px-2 sm:px-6 py-3 sm:py-4">
+                        <div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                            {result.patient}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                            ID: {result.patientId}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
+                        {result.testType}
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 sm:py-4">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getResultColor(
+                            result.result
+                          )}`}
+                        >
+                          {result.result}
+                        </span>
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 sm:py-4">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                            result.priority
+                          )}`}
+                        >
+                          {result.priority}
+                        </span>
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 sm:py-4">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                            result.status
+                          )}`}
+                        >
+                          {result.status}
+                        </span>
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white">
+                        {result.completedDate}
+                      </td>
+                      <td className="px-2 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium">
+                        <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                          <button
+                            onClick={() => handleViewResult(result)}
+                            className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left transition-colors"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>View</span>
+                          </button>
+                          <button
+                            onClick={() => handleDownloadResult(result)}
+                            className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left transition-colors"
+                          >
+                            <FileDown className="w-3 h-3" />
+                            <span>Download</span>
+                          </button>
+                          <button
+                            onClick={() => handleShareResult(result)}
+                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left transition-colors"
+                          >
+                            <Share2 className="w-3 h-3" />
+                            <span>Share</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

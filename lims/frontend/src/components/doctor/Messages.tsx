@@ -7,7 +7,8 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { messageAPI } from "../../services/api";
 
 const Messages: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,79 +24,77 @@ const Messages: React.FC = () => {
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
 
   // Conversations data with state management
-  const [conversations, setConversations] = useState([
-    {
-      id: "CONV001",
-      patient: "John Smith",
-      patientId: "P001",
-      lastMessage:
-        "Thank you for the test results. When should I schedule my next appointment?",
-      lastMessageTime: "2025-01-22 10:30 AM",
-      unreadCount: 2,
-      status: "active",
-    },
-    {
-      id: "CONV002",
-      patient: "Sarah Johnson",
-      patientId: "P002",
-      lastMessage: "I have some questions about my X-ray results.",
-      lastMessageTime: "2025-01-21 3:45 PM",
-      unreadCount: 1,
-      status: "active",
-    },
-    {
-      id: "CONV003",
-      patient: "Mike Davis",
-      patientId: "P003",
-      lastMessage: "The MRI appointment is confirmed for tomorrow.",
-      lastMessageTime: "2025-01-20 2:15 PM",
-      unreadCount: 0,
-      status: "active",
-    },
-    {
-      id: "CONV004",
-      patient: "Lisa Wilson",
-      patientId: "P004",
-      lastMessage: "Thank you for the consultation.",
-      lastMessageTime: "2025-01-19 11:20 AM",
-      unreadCount: 0,
-      status: "archived",
-    },
-  ]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [conversationsError, setConversationsError] = useState<string | null>(
+    null
+  );
 
   // Messages data with state management
-  const [messages, setMessages] = useState([
-    {
-      id: "MSG001",
-      conversationId: "CONV001",
-      sender: "patient",
-      senderName: "John Smith",
-      message:
-        "Hello Dr. Johnson, I received my blood test results. Could you please explain what they mean?",
-      timestamp: "2025-01-22 09:15 AM",
-      isRead: true,
-    },
-    {
-      id: "MSG002",
-      conversationId: "CONV001",
-      sender: "doctor",
-      senderName: "Dr. Sarah Johnson",
-      message:
-        "Hello John! Your blood test results look good overall. All values are within normal range. I'll send you a detailed breakdown shortly.",
-      timestamp: "2025-01-22 09:30 AM",
-      isRead: true,
-    },
-    {
-      id: "MSG003",
-      conversationId: "CONV001",
-      sender: "patient",
-      senderName: "John Smith",
-      message:
-        "Thank you for the test results. When should I schedule my next appointment?",
-      timestamp: "2025-01-22 10:30 AM",
-      isRead: false,
-    },
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
+
+  // Fetch messages from backend
+  const fetchMessages = async () => {
+    setMessagesLoading(true);
+    setMessagesError(null);
+    try {
+      const response = await messageAPI.getAll();
+      console.log("🔍 Messages fetched:", response.data);
+      setMessages(response.data);
+
+      // Transform messages into conversations format
+      const conversationMap = new Map();
+      response.data.forEach((message: any) => {
+        const key =
+          message.sender_id === "DOC001"
+            ? message.recipient_id
+            : message.sender_id;
+        const patientName =
+          message.sender_id === "DOC001"
+            ? message.recipient_name
+            : message.sender_name;
+
+        if (!conversationMap.has(key)) {
+          conversationMap.set(key, {
+            id: key,
+            patient: patientName,
+            patientId: key,
+            lastMessage: message.message_body,
+            lastMessageTime: new Date(message.created_at).toLocaleString(),
+            unreadCount: message.status === "Unread" ? 1 : 0,
+            status: "active",
+          });
+        } else {
+          const existing = conversationMap.get(key);
+          if (
+            new Date(message.created_at) > new Date(existing.lastMessageTime)
+          ) {
+            existing.lastMessage = message.message_body;
+            existing.lastMessageTime = new Date(
+              message.created_at
+            ).toLocaleString();
+            if (message.status === "Unread") {
+              existing.unreadCount += 1;
+            }
+          }
+        }
+      });
+
+      setConversations(Array.from(conversationMap.values()));
+    } catch (err: any) {
+      console.error("Error fetching messages:", err);
+      setMessagesError(err.message || "Failed to fetch messages");
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
+
+  // Load messages on component mount
+  useEffect(() => {
+    fetchMessages();
+  }, []);
 
   // CRUD operation functions
   const handleNewMessage = () => {
@@ -112,15 +111,27 @@ const Messages: React.FC = () => {
     setShowDeleteModal(true);
   };
 
-  const handleCreateConversation = (newConversation: any) => {
-    const conversation = {
-      id: `CONV${String(conversations.length + 1).padStart(3, "0")}`,
-      ...newConversation,
-      unreadCount: 0,
-      status: "active",
-    };
-    setConversations([...conversations, conversation]);
-    setShowNewMessageModal(false);
+  const handleCreateConversation = async (newConversation: any) => {
+    try {
+      const messageData = {
+        sender_id: "DOC001",
+        sender_name: "Dr. Johnson",
+        recipient_id: newConversation.patientId,
+        recipient_name: newConversation.patient,
+        subject: newConversation.subject,
+        message_body: newConversation.message,
+        message_type: newConversation.type || "General",
+        status: "Unread",
+        is_urgent: newConversation.isUrgent || false,
+      };
+
+      await messageAPI.create(messageData);
+      setShowNewMessageModal(false);
+      fetchMessages(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error creating message:", err);
+      setMessagesError(err.message || "Failed to create message");
+    }
   };
 
   const handleUpdateMessage = (messageId: string, updatedData: any) => {
@@ -135,19 +146,33 @@ const Messages: React.FC = () => {
     setShowDeleteModal(false);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim() && selectedConversation) {
-      const newMsg = {
-        id: `MSG${String(messages.length + 1).padStart(3, "0")}`,
-        conversationId: selectedConversation,
-        sender: "doctor",
-        senderName: "Dr. Sarah Johnson",
-        message: newMessage.trim(),
-        timestamp: new Date().toLocaleString(),
-        isRead: true,
-      };
-      setMessages([...messages, newMsg]);
-      setNewMessage("");
+      try {
+        const conversation = conversations.find(
+          (c) => c.id === selectedConversation
+        );
+        if (conversation) {
+          const messageData = {
+            sender_id: "DOC001",
+            sender_name: "Dr. Johnson",
+            recipient_id: conversation.patientId,
+            recipient_name: conversation.patient,
+            subject: "New Message",
+            message_body: newMessage.trim(),
+            message_type: "General",
+            status: "Unread",
+            is_urgent: false,
+          };
+
+          await messageAPI.create(messageData);
+          setNewMessage("");
+          fetchMessages(); // Refresh the list
+        }
+      } catch (err: any) {
+        console.error("Error sending message:", err);
+        setMessagesError(err.message || "Failed to send message");
+      }
     }
   };
 
@@ -213,43 +238,57 @@ const Messages: React.FC = () => {
                 </h3>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto h-64 sm:h-80">
-                {filteredConversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    onClick={() => setSelectedConversation(conversation.id)}
-                    className={`p-3 sm:p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                      selectedConversation === conversation.id
-                        ? "bg-primary-50 dark:bg-primary-900 border-r-2 border-primary-600 dark:border-primary-400"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start space-x-2 sm:space-x-3">
-                      <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400" />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                            {conversation.patient}
+                {conversationsLoading ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    Loading conversations...
+                  </div>
+                ) : conversationsError ? (
+                  <div className="p-4 text-center text-red-500 dark:text-red-400">
+                    Error: {conversationsError}
+                  </div>
+                ) : filteredConversations.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    No conversations found.
+                  </div>
+                ) : (
+                  filteredConversations.map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      onClick={() => setSelectedConversation(conversation.id)}
+                      className={`p-3 sm:p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        selectedConversation === conversation.id
+                          ? "bg-primary-50 dark:bg-primary-900 border-r-2 border-primary-600 dark:border-primary-400"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-start space-x-2 sm:space-x-3">
+                        <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                            <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400" />
                           </div>
-                          {conversation.unreadCount > 0 && (
-                            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-200">
-                              {conversation.unreadCount}
-                            </span>
-                          )}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {conversation.lastMessage}
-                        </div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {conversation.lastMessageTime}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                              {conversation.patient}
+                            </div>
+                            {conversation.unreadCount > 0 && (
+                              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-200">
+                                {conversation.unreadCount}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                            {conversation.lastMessage}
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            {conversation.lastMessageTime}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

@@ -12,6 +12,9 @@ from .components.Technician.Equipment.equipment_models import Equipment, Equipme
 from .components.Doctor.NewTestRequest.NewTestRequest_models import TestRequest
 from .components.tenantadmin.ManageUsers.manage_users_model import TenantUser
 from .components.superadmin.CreateTenant.create_tenant_model import Tenant
+from .components.Doctor.DocterAppointment.appointment_models import Appointment
+from .components.Doctor.PatientManagement.patient_models import Patient
+from .components.Doctor.MessageSystem.message_models import Message
 
 # Register Tenant model
 @admin.register(Tenant)
@@ -82,6 +85,30 @@ class TenantUserAdmin(admin.ModelAdmin):
     list_display = ['name', 'email', 'role', 'tenant', 'created_at']
     list_filter = ['role', 'tenant', 'created_at']
     search_fields = ['name', 'email']
+
+# Register Appointment model
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+    list_display = ['patient_name', 'appointment_date', 'appointment_time', 'appointment_type', 'status', 'created_at']
+    list_filter = ['appointment_type', 'status', 'appointment_date', 'created_at']
+    search_fields = ['patient_name', 'patient_id', 'notes']
+    ordering = ['appointment_date', 'appointment_time']
+
+# Register Patient model
+@admin.register(Patient)
+class PatientAdmin(admin.ModelAdmin):
+    list_display = ['name', 'patient_id', 'age', 'gender', 'phone', 'status', 'last_visit', 'created_at']
+    list_filter = ['gender', 'status', 'created_at']
+    search_fields = ['name', 'patient_id', 'phone', 'email']
+    ordering = ['name']
+
+# Register Message model
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ['sender_name', 'recipient_name', 'subject', 'message_type', 'status', 'is_urgent', 'created_at']
+    list_filter = ['message_type', 'status', 'is_urgent', 'created_at']
+    search_fields = ['sender_name', 'recipient_name', 'subject', 'message_body']
+    ordering = ['-created_at']
 
 # Customize admin site
 admin.site.site_header = "LIMS Administration"

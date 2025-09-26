@@ -8,9 +8,9 @@ import {
   Eye,
   Edit,
   X,
-  Play,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { testRequestAPI } from "../../services/api";
 
 const Samples: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,7 +20,6 @@ const Samples: React.FC = () => {
   // Modal states
   const [showAddSampleModal, setShowAddSampleModal] = useState(false);
   const [showViewSampleModal, setShowViewSampleModal] = useState(false);
-  const [showProcessSampleModal, setShowProcessSampleModal] = useState(false);
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
   const [selectedSample, setSelectedSample] = useState<any>(null);
 
@@ -34,95 +33,112 @@ const Samples: React.FC = () => {
     notes: "",
   });
 
-  const [samples, setSamples] = useState([
-    {
-      id: "SMP001",
-      patientName: "John Smith",
-      patientId: "P001",
-      testType: "Complete Blood Count",
-      sampleType: "Blood",
-      collectionDate: "2025-01-22",
-      collectionTime: "09:30 AM",
-      status: "processing",
-      priority: "normal",
-      technician: "Mike Davis",
-      expectedCompletion: "2025-01-22 2:00 PM",
-      notes: "Routine checkup sample",
-    },
-    {
-      id: "SMP002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      testType: "X-Ray Chest",
-      sampleType: "Imaging",
-      collectionDate: "2025-01-22",
-      collectionTime: "10:15 AM",
-      status: "completed",
-      priority: "high",
-      technician: "Lisa Wilson",
-      expectedCompletion: "2025-01-22 12:00 PM",
-      notes: "Chest pain evaluation",
-    },
-    {
-      id: "SMP003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      testType: "MRI Brain",
-      sampleType: "Imaging",
-      collectionDate: "2025-01-21",
-      collectionTime: "2:30 PM",
-      status: "pending",
-      priority: "urgent",
-      technician: "Robert Brown",
-      expectedCompletion: "2025-01-22 4:00 PM",
-      notes: "Headache and dizziness symptoms",
-    },
-    {
-      id: "SMP004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      testType: "Urine Analysis",
-      sampleType: "Urine",
-      collectionDate: "2025-01-22",
-      collectionTime: "11:45 AM",
-      status: "processing",
-      priority: "normal",
-      technician: "Mike Davis",
-      expectedCompletion: "2025-01-22 1:30 PM",
-      notes: "Routine checkup",
-    },
-    {
-      id: "SMP005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      testType: "COVID-19 PCR Test",
-      sampleType: "Nasal Swab",
-      collectionDate: "2025-01-22",
-      collectionTime: "08:20 AM",
-      status: "completed",
-      priority: "high",
-      technician: "Lisa Wilson",
-      expectedCompletion: "2025-01-22 10:00 AM",
-      notes: "Travel requirement",
-    },
-  ]);
+  // API Integration - Fetch test requests from backend
+  const [samples, setSamples] = useState<any[]>([]);
+  const [samplesLoading, setSamplesLoading] = useState(false);
+  const [samplesError, setSamplesError] = useState<string | null>(null);
 
-  // Load samples from localStorage on component mount
-  useEffect(() => {
-    const savedSamples = localStorage.getItem("technician-samples");
-    if (savedSamples) {
-      try {
-        setSamples(JSON.parse(savedSamples));
-      } catch (error) {
-        console.error("Error loading saved samples:", error);
-      }
+  // Fetch test requests from backend
+  const fetchTestRequests = async () => {
+    setSamplesLoading(true);
+    setSamplesError(null);
+    try {
+      const response = await testRequestAPI.getAll();
+      // Filter for approved test requests that technicians can process
+      const approvedRequests = response.data.filter(
+        (request: any) =>
+          request.status === "Approved" || request.status === "In Progress"
+      );
+
+      // Transform test requests to samples format
+      const transformedSamples = approvedRequests.map((request: any) => ({
+        id: `TR-${request.id}`,
+        patientName: request.patient_name,
+        patientId: request.patient_id,
+        testType: request.test_type,
+        sampleType: getSampleType(request.test_type),
+        collectionDate: request.date_requested,
+        collectionTime: new Date(request.created_at).toLocaleTimeString(
+          "en-US",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }
+        ),
+        status: mapStatus(request.status),
+        priority: request.priority.toLowerCase(),
+        technician: "Current Technician",
+        expectedCompletion: getExpectedCompletion(
+          request.date_requested,
+          request.priority
+        ),
+        notes: request.notes || "No additional notes",
+        originalRequest: request, // Keep reference to original request
+      }));
+
+      setSamples(transformedSamples);
+    } catch (error) {
+      console.error("Error fetching test requests:", error);
+      setSamplesError("Failed to load test requests");
+    } finally {
+      setSamplesLoading(false);
     }
-  }, []);
+  };
 
-  // Save samples to localStorage whenever samples change
+  // Helper functions
+  const getSampleType = (testType: string) => {
+    if (testType.toLowerCase().includes("blood")) return "Blood";
+    if (testType.toLowerCase().includes("urine")) return "Urine";
+    if (
+      testType.toLowerCase().includes("x-ray") ||
+      testType.toLowerCase().includes("mri") ||
+      testType.toLowerCase().includes("ct")
+    )
+      return "Imaging";
+    if (
+      testType.toLowerCase().includes("pcr") ||
+      testType.toLowerCase().includes("covid")
+    )
+      return "Nasal Swab";
+    return "Other";
+  };
+
+  const mapStatus = (status: string) => {
+    switch (status) {
+      case "Approved":
+        return "pending";
+      case "In Progress":
+        return "processing";
+      case "Completed":
+        return "completed";
+      default:
+        return "pending";
+    }
+  };
+
+  const getExpectedCompletion = (dateRequested: string, priority: string) => {
+    const date = new Date(dateRequested);
+    const hours =
+      priority.toLowerCase() === "urgent"
+        ? 2
+        : priority.toLowerCase() === "critical"
+        ? 1
+        : 4;
+    date.setHours(date.getHours() + hours);
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Load test requests on component mount
   useEffect(() => {
-    localStorage.setItem("technician-samples", JSON.stringify(samples));
-  }, [samples]);
+    fetchTestRequests();
+  }, []);
 
   // CRUD Functions
   const handleAddSample = () => {
@@ -134,14 +150,39 @@ const Samples: React.FC = () => {
     setShowViewSampleModal(true);
   };
 
-  const handleProcessSample = (sample: any) => {
-    setSelectedSample(sample);
-    setShowProcessSampleModal(true);
-  };
-
   const handleUpdateStatus = (sample: any) => {
     setSelectedSample(sample);
     setShowUpdateStatusModal(true);
+  };
+
+  // Update test request status in backend
+  const handleUpdateTestRequestStatus = async (
+    sample: any,
+    newStatus: string
+  ) => {
+    try {
+      if (sample.originalRequest) {
+        const updatedRequest = {
+          ...sample.originalRequest,
+          status:
+            newStatus === "processing"
+              ? "In Progress"
+              : newStatus === "completed"
+              ? "Completed"
+              : "Approved",
+        };
+
+        await testRequestAPI.update(sample.originalRequest.id, updatedRequest);
+
+        // Refresh the samples list
+        await fetchTestRequests();
+
+        console.log(`Test request ${sample.id} status updated to ${newStatus}`);
+      }
+    } catch (error) {
+      console.error("Error updating test request status:", error);
+      setSamplesError("Failed to update test request status");
+    }
   };
 
   const handleCreateSample = () => {
@@ -176,24 +217,18 @@ const Samples: React.FC = () => {
     setShowAddSampleModal(false);
   };
 
-  const handleProcessSampleAction = () => {
-    setSamples((prev) =>
-      prev.map((s) =>
-        s.id === selectedSample.id ? { ...s, status: "processing" } : s
-      )
-    );
-    setShowProcessSampleModal(false);
-    setSelectedSample(null);
-  };
+  const handleUpdateSampleStatus = async (updatedData: any) => {
+    try {
+      // Update the test request status in the backend
+      await handleUpdateTestRequestStatus(selectedSample, updatedData.status);
 
-  const handleUpdateSampleStatus = (updatedData: any) => {
-    setSamples((prev) =>
-      prev.map((s) =>
-        s.id === selectedSample.id ? { ...s, ...updatedData } : s
-      )
-    );
-    setShowUpdateStatusModal(false);
-    setSelectedSample(null);
+      // Close the modal
+      setShowUpdateStatusModal(false);
+      setSelectedSample(null);
+    } catch (error) {
+      console.error("Error updating sample status:", error);
+      setSamplesError("Failed to update sample status");
+    }
   };
 
   const filteredSamples = samples.filter((sample) => {
@@ -360,19 +395,48 @@ const Samples: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredSamples.length === 0 ? (
+              {samplesLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                      <span className="ml-2 text-gray-600 dark:text-gray-400">
+                        Loading test requests...
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ) : samplesError ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Error loading test requests
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      {samplesError}
+                    </p>
+                    <button
+                      onClick={fetchTestRequests}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </td>
+                </tr>
+              ) : filteredSamples.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
                     <TestTube className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      No samples found
+                      No test requests found
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400">
                       {searchTerm ||
                       filterStatus !== "all" ||
                       filterPriority !== "all"
                         ? "Try adjusting your search or filter criteria."
-                        : "No samples have been added yet."}
+                        : "No approved test requests are available for processing."}
                     </p>
                   </td>
                 </tr>
@@ -451,13 +515,6 @@ const Samples: React.FC = () => {
                         >
                           <Eye className="w-3 h-3" />
                           <span>View</span>
-                        </button>
-                        <button
-                          onClick={() => handleProcessSample(sample)}
-                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 flex items-center space-x-1"
-                        >
-                          <Play className="w-3 h-3" />
-                          <span>Process</span>
                         </button>
                         <button
                           onClick={() => handleUpdateStatus(sample)}
@@ -577,13 +634,6 @@ const Samples: React.FC = () => {
                 >
                   <Eye className="w-3 h-3" />
                   <span>View Details</span>
-                </button>
-                <button
-                  onClick={() => handleProcessSample(sample)}
-                  className="flex-1 px-3 py-2 text-sm text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 border border-green-200 dark:border-green-700 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center justify-center space-x-1"
-                >
-                  <Play className="w-3 h-3" />
-                  <span>Process Sample</span>
                 </button>
                 <button
                   onClick={() => handleUpdateStatus(sample)}
@@ -872,63 +922,6 @@ const Samples: React.FC = () => {
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Process Sample Modal */}
-      {showProcessSampleModal && selectedSample && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Process Sample
-              </h3>
-              <button
-                onClick={() => setShowProcessSampleModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 mb-4">
-                  <Play className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Start Processing Sample
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Are you ready to start processing sample{" "}
-                  <strong>{selectedSample.id}</strong>?
-                </p>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    <strong>Patient:</strong> {selectedSample.patientName}
-                    <br />
-                    <strong>Test Type:</strong> {selectedSample.testType}
-                    <br />
-                    <strong>Sample Type:</strong> {selectedSample.sampleType}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
-              <button
-                onClick={() => setShowProcessSampleModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleProcessSampleAction}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-              >
-                <Play className="w-4 h-4" />
-                <span>Start Processing</span>
               </button>
             </div>
           </div>

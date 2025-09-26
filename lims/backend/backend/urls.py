@@ -30,6 +30,9 @@ urlpatterns = [
     # Doctor endpoints
     path('api/test-requests/', include('lab.components.Doctor.NewTestRequest.NewTestRequest_urls')),
     path('api/doctor-appointments/', include('lab.components.Doctor.DocterAppointment.DocterAppointment_urls')),
+    path('api/appointments/', include('lab.components.Doctor.DocterAppointment.appointment_urls')),
+    path('api/patients/', include('lab.components.Doctor.PatientManagement.patient_urls')),
+    path('api/messages/', include('lab.components.Doctor.MessageSystem.message_urls')),
     
     # Patient Portal endpoints
     path('api/patient-appointments/', include('lab.components.PatientPortal.PatientAppointment.PatientAppointment_urls')),

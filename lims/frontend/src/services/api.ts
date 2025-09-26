@@ -172,4 +172,36 @@ export const superadminAPI = {
   },
 };
 
+// New API endpoints for Doctor Dashboard integration
+export const appointmentAPI = {
+  getAll: () => api.get('/appointments/appointments/'),
+  getById: (id: number) => api.get(`/appointments/appointments/${id}/`),
+  create: (data: any) => api.post('/appointments/appointments/', data),
+  update: (id: number, data: any) => api.put(`/appointments/appointments/${id}/`, data),
+  delete: (id: number) => api.delete(`/appointments/appointments/${id}/`),
+  getByDate: (date: string) => api.get(`/appointments/appointments/?appointment_date=${date}`),
+  getByPatient: (patientId: string) => api.get(`/appointments/appointments/?patient_id=${patientId}`),
+};
+
+export const patientAPI = {
+  getAll: () => api.get('/patients/patients/'),
+  getById: (id: number) => api.get(`/patients/patients/${id}/`),
+  create: (data: any) => api.post('/patients/patients/', data),
+  update: (id: number, data: any) => api.put(`/patients/patients/${id}/`, data),
+  delete: (id: number) => api.delete(`/patients/patients/${id}/`),
+  getByPatientId: (patientId: string) => api.get(`/patients/patients/?patient_id=${patientId}`),
+  search: (query: string) => api.get(`/patients/patients/?search=${query}`),
+};
+
+export const messageAPI = {
+  getAll: () => api.get('/messages/messages/'),
+  getById: (id: number) => api.get(`/messages/messages/${id}/`),
+  create: (data: any) => api.post('/messages/messages/', data),
+  update: (id: number, data: any) => api.put(`/messages/messages/${id}/`, data),
+  delete: (id: number) => api.delete(`/messages/messages/${id}/`),
+  getByRecipient: (recipientId: string) => api.get(`/messages/messages/?recipient_id=${recipientId}`),
+  getBySender: (senderId: string) => api.get(`/messages/messages/?sender_id=${senderId}`),
+  markAsRead: (id: number) => api.post(`/messages/messages/${id}/mark_read/`),
+};
+
 export default api;

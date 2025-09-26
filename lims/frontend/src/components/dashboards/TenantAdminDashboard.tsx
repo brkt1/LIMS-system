@@ -1,5 +1,4 @@
 import {
-  Activity,
   BarChart3,
   Package,
   Settings,
@@ -10,9 +9,12 @@ import {
   Eye,
   Calendar,
   Wrench,
+  TestTube,
+  ClipboardList,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { testRequestAPI } from "../../services/api";
 
 const TenantAdminDashboard: React.FC = () => {
   // State management
@@ -21,6 +23,14 @@ const TenantAdminDashboard: React.FC = () => {
     useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+
+  // Test Request Management States
+  const [showTestRequestsModal, setShowTestRequestsModal] = useState(false);
+  const [testRequests, setTestRequests] = useState<any[]>([]);
+  const [testRequestsLoading, setTestRequestsLoading] = useState(false);
+  const [testRequestsError, setTestRequestsError] = useState<string | null>(
+    null
+  );
 
   // Form states
   const [newUser, setNewUser] = useState({
@@ -114,7 +124,47 @@ const TenantAdminDashboard: React.FC = () => {
     if (savedEquipment) {
       setEquipment(JSON.parse(savedEquipment));
     }
+
+    // Load test requests on component mount
+    fetchAllTestRequests();
   }, []);
+
+  // Test Request Management Functions
+  const fetchAllTestRequests = async () => {
+    setTestRequestsLoading(true);
+    setTestRequestsError(null);
+    try {
+      const response = await testRequestAPI.getAll();
+      setTestRequests(response.data);
+    } catch (error) {
+      console.error("Error fetching test requests:", error);
+      setTestRequestsError("Failed to load test requests");
+    } finally {
+      setTestRequestsLoading(false);
+    }
+  };
+
+  const handleManageTestRequests = () => {
+    setShowTestRequestsModal(true);
+    fetchAllTestRequests();
+  };
+
+  const handleUpdateTestRequestStatus = async (
+    requestId: number,
+    newStatus: string
+  ) => {
+    try {
+      const request = testRequests.find((r) => r.id === requestId);
+      if (request) {
+        const updatedRequest = { ...request, status: newStatus };
+        await testRequestAPI.update(requestId, updatedRequest);
+        await fetchAllTestRequests(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error updating test request:", error);
+      setTestRequestsError("Failed to update test request");
+    }
+  };
 
   // Handler functions
   const handleAddUser = () => {
@@ -180,24 +230,27 @@ const TenantAdminDashboard: React.FC = () => {
   const tenantAdminCards = [
     {
       title: "Total Users",
-      value: "47",
+      value: users.length.toString(),
       change: "+5 This Month",
       color: "bg-blue-500",
-      chartData: [30, 35, 38, 42, 45, 46, 47],
+      chartData: [30, 35, 38, 42, 45, 46, users.length],
     },
     {
       title: "Active Equipment",
-      value: "23",
+      value: equipment.length.toString(),
       change: "+2 This Month",
       color: "bg-green-500",
-      chartData: [18, 19, 20, 21, 22, 22, 23],
+      chartData: [18, 19, 20, 21, 22, 22, equipment.length],
     },
     {
-      title: "Pending Tests",
-      value: "12",
-      change: "-3 Today",
+      title: "Test Requests",
+      value: testRequests.length.toString(),
+      change: `${
+        testRequests.filter((r) => r.status === "Pending").length
+      } Pending`,
       color: "bg-orange-500",
-      chartData: [15, 18, 16, 14, 12, 13, 12],
+      chartData: [15, 18, 16, 14, 12, 13, testRequests.length],
+      onClick: handleManageTestRequests,
     },
     {
       title: "Monthly Revenue",
@@ -213,7 +266,15 @@ const TenantAdminDashboard: React.FC = () => {
       {/* Tenant Admin specific cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {tenantAdminCards.map((card, index) => (
-          <div key={index} className="card">
+          <div
+            key={index}
+            className={`card ${
+              card.onClick
+                ? "cursor-pointer hover:shadow-lg transition-shadow"
+                : ""
+            }`}
+            onClick={card.onClick}
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 {card.title}
@@ -223,7 +284,7 @@ const TenantAdminDashboard: React.FC = () => {
               >
                 {index === 0 && <Users className="w-4 h-4 text-white" />}
                 {index === 1 && <Package className="w-4 h-4 text-white" />}
-                {index === 2 && <Activity className="w-4 h-4 text-white" />}
+                {index === 2 && <TestTube className="w-4 h-4 text-white" />}
                 {index === 3 && <TrendingUp className="w-4 h-4 text-white" />}
               </div>
             </div>
@@ -689,6 +750,148 @@ const TenantAdminDashboard: React.FC = () => {
                 >
                   Schedule
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Test Requests Management Modal */}
+        {showTestRequestsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <ClipboardList className="w-5 h-5 mr-2" />
+                  Test Requests Management
+                </h3>
+                <button
+                  onClick={() => setShowTestRequestsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6">
+                {testRequestsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Loading test requests...
+                    </p>
+                  </div>
+                ) : testRequestsError ? (
+                  <div className="text-center py-12">
+                    <TestTube className="w-12 h-12 mx-auto text-red-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Error loading test requests
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      {testRequestsError}
+                    </p>
+                    <button
+                      onClick={fetchAllTestRequests}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : testRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <TestTube className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No test requests found.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Patient
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Test Type
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Priority
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Date Requested
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {testRequests.map((request) => (
+                          <tr
+                            key={request.id}
+                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                              {request.patient_name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {request.test_type}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  request.priority === "Critical"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                    : request.priority === "Urgent"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                    : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                }`}
+                              >
+                                {request.priority}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={request.status}
+                                onChange={(e) =>
+                                  handleUpdateTestRequestStatus(
+                                    request.id,
+                                    e.target.value
+                                  )
+                                }
+                                className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {new Date(
+                                request.date_requested
+                              ).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button
+                                onClick={() => {
+                                  // You could add a view details modal here
+                                  console.log("View request details:", request);
+                                }}
+                                className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-3"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -9,7 +9,8 @@ import {
   Edit,
   Printer,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { patientAPI, testRequestAPI } from "../../services/api";
 
 const PatientRecords: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,72 +23,58 @@ const PatientRecords: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
   // Patients data with state management
-  const [patients, setPatients] = useState([
-    {
-      id: "P001",
-      name: "John Smith",
-      age: 45,
-      gender: "Male",
-      phone: "+1 (555) 123-4567",
-      email: "john.smith@email.com",
-      lastVisit: "2025-01-15",
-      totalRecords: 8,
-    },
-    {
-      id: "P002",
-      name: "Sarah Johnson",
-      age: 32,
-      gender: "Female",
-      phone: "+1 (555) 234-5678",
-      email: "sarah.johnson@email.com",
-      lastVisit: "2025-01-18",
-      totalRecords: 5,
-    },
-    {
-      id: "P003",
-      name: "Mike Davis",
-      age: 58,
-      gender: "Male",
-      phone: "+1 (555) 345-6789",
-      email: "mike.davis@email.com",
-      lastVisit: "2025-01-10",
-      totalRecords: 12,
-    },
-  ]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
+  const [testRequests, setTestRequests] = useState<any[]>([]);
+
+  // Fetch patients and test requests from backend
+  const fetchPatientRecords = async () => {
+    setPatientsLoading(true);
+    setPatientsError(null);
+    try {
+      const [patientsResponse, testRequestsResponse] = await Promise.all([
+        patientAPI.getAll(),
+        testRequestAPI.getAll(),
+      ]);
+
+      console.log("🔍 Patient records fetched:", patientsResponse.data);
+      console.log("🔍 Test requests fetched:", testRequestsResponse.data);
+
+      setPatients(patientsResponse.data);
+      setTestRequests(testRequestsResponse.data);
+    } catch (err: any) {
+      console.error("Error fetching patient records:", err);
+      setPatientsError(err.message || "Failed to fetch patient records");
+    } finally {
+      setPatientsLoading(false);
+    }
+  };
+
+  // Load patient records on component mount
+  useEffect(() => {
+    fetchPatientRecords();
+  }, []);
 
   // Medical records data with state management
-  const [medicalRecords, setMedicalRecords] = useState([
-    {
-      id: "MR001",
-      patientId: "P001",
-      date: "2025-01-15",
-      type: "Consultation",
-      doctor: "Dr. Sarah Johnson",
-      diagnosis: "Hypertension",
-      treatment: "Prescribed medication and lifestyle changes",
-      notes: "Patient shows improvement with current treatment plan",
-    },
-    {
-      id: "MR002",
-      patientId: "P001",
-      date: "2025-01-10",
-      type: "Follow-up",
-      doctor: "Dr. Mike Davis",
-      diagnosis: "Diabetes Type 2",
-      treatment: "Insulin therapy and diet modification",
-      notes: "Blood sugar levels stabilizing",
-    },
-    {
-      id: "MR003",
-      patientId: "P002",
-      date: "2025-01-18",
-      type: "Initial Consultation",
-      doctor: "Dr. Lisa Wilson",
-      diagnosis: "Chest Pain",
-      treatment: "Further testing recommended",
-      notes: "Patient experiencing chest pain, ordered X-ray",
-    },
-  ]);
+  const [medicalRecords, setMedicalRecords] = useState<any[]>([]);
+
+  // Transform test requests into medical records format
+  useEffect(() => {
+    if (testRequests.length > 0) {
+      const records = testRequests.map((request: any) => ({
+        id: `MR${request.id}`,
+        patientId: request.patient_id,
+        date: request.date_requested,
+        type: "Test Request",
+        doctor: "Dr. Current Doctor",
+        diagnosis: request.test_type,
+        treatment: request.status,
+        notes: request.notes || "No notes available",
+      }));
+      setMedicalRecords(records);
+    }
+  }, [testRequests]);
 
   // CRUD operation functions
   const handleAddRecord = () => {
@@ -180,9 +167,9 @@ const PatientRecords: React.FC = () => {
 
   const filteredPatients = patients.filter(
     (patient) =>
-      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.id.toLowerCase().includes(searchTerm.toLowerCase())
+      patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.patient_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const patientRecords = selectedPatient
@@ -237,36 +224,55 @@ const PatientRecords: React.FC = () => {
                 </h3>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
-                {filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    onClick={() => setSelectedPatient(patient.id)}
-                    className={`p-3 sm:p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                      selectedPatient === patient.id
-                        ? "bg-primary-50 dark:bg-primary-900 border-r-2 border-primary-600 dark:border-primary-400"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400" />
+                {patientsLoading ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    Loading patients...
+                  </div>
+                ) : patientsError ? (
+                  <div className="p-4 text-center text-red-500 dark:text-red-400">
+                    Error: {patientsError}
+                  </div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    No patients found.
+                  </div>
+                ) : (
+                  filteredPatients.map((patient) => (
+                    <div
+                      key={patient.id}
+                      onClick={() => setSelectedPatient(patient.id)}
+                      className={`p-3 sm:p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        selectedPatient === patient.id
+                          ? "bg-primary-50 dark:bg-primary-900 border-r-2 border-primary-600 dark:border-primary-400"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                            <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 dark:text-primary-400" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          {patient.name}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          ID: {patient.id} • {patient.age} years
-                        </div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {patient.totalRecords} records
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                            {patient.name}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                            ID: {patient.patient_id} • {patient.age} years
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            {
+                              medicalRecords.filter(
+                                (r) => r.patientId === patient.patient_id
+                              ).length
+                            }{" "}
+                            records
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

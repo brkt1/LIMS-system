@@ -11,8 +11,9 @@ import {
   Search,
   Edit,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { testRequestAPI } from "../../services/api";
 
 const DoctorDashboard: React.FC = () => {
   // State for modals and CRUD operations
@@ -23,41 +24,31 @@ const DoctorDashboard: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   // Test requests data with state management
-  const [testRequests, setTestRequests] = useState([
-    {
-      id: 1,
-      patient: "John Smith",
-      testType: "Blood Panel Complete",
-      priority: "High",
-      requestedDate: "2025-01-20",
-      status: "Pending",
-      patientId: "P001",
-      doctorNotes: "",
-      results: null,
-    },
-    {
-      id: 2,
-      patient: "Sarah Johnson",
-      testType: "X-Ray Chest",
-      priority: "Medium",
-      requestedDate: "2025-01-19",
-      status: "Approved",
-      patientId: "P002",
-      doctorNotes: "Chest pain and shortness of breath",
-      results: "Clear lungs, no abnormalities detected",
-    },
-    {
-      id: 3,
-      patient: "Mike Davis",
-      testType: "MRI Brain",
-      priority: "Low",
-      requestedDate: "2025-01-18",
-      status: "In Progress",
-      patientId: "P003",
-      doctorNotes: "Headaches and dizziness",
-      results: null,
-    },
-  ]);
+  const [testRequests, setTestRequests] = useState<any[]>([]);
+  const [testRequestsLoading, setTestRequestsLoading] = useState(true);
+  const [testRequestsError, setTestRequestsError] = useState<string | null>(
+    null
+  );
+
+  // Fetch test requests on component mount
+  useEffect(() => {
+    fetchTestRequests();
+  }, []);
+
+  const fetchTestRequests = async () => {
+    try {
+      setTestRequestsLoading(true);
+      setTestRequestsError(null);
+      const response = await testRequestAPI.getAll();
+      console.log("🔍 Test Requests fetched:", response.data);
+      setTestRequests(response.data);
+    } catch (err: any) {
+      console.error("Error fetching test requests:", err);
+      setTestRequestsError(err.message || "Failed to fetch test requests");
+    } finally {
+      setTestRequestsLoading(false);
+    }
+  };
 
   // CRUD operation functions
   const handleNewRequest = () => {
@@ -79,25 +70,46 @@ const DoctorDashboard: React.FC = () => {
     setShowTrackModal(true);
   };
 
-  const handleCreateRequest = (newRequest: any) => {
-    const request = {
-      id: testRequests.length + 1,
-      ...newRequest,
-      status: "Pending",
-      results: null,
-    };
-    setTestRequests([...testRequests, request]);
-    setShowNewRequestModal(false);
+  const handleCreateRequest = async (newRequest: any) => {
+    try {
+      const requestData = {
+        patient_id: newRequest.patientId,
+        patient_name: newRequest.patient,
+        test_type: newRequest.testType,
+        priority: newRequest.priority,
+        notes: newRequest.doctorNotes || "",
+        date_requested: newRequest.requestedDate,
+        status: "Pending",
+      };
+
+      await testRequestAPI.create(requestData);
+      setShowNewRequestModal(false);
+      fetchTestRequests(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error creating test request:", err);
+      setTestRequestsError(err.message || "Failed to create test request");
+    }
   };
 
-  const handleUpdateRequest = (updatedRequest: any) => {
-    setTestRequests(
-      testRequests.map((req) =>
-        req.id === updatedRequest.id ? updatedRequest : req
-      )
-    );
-    setShowReviewModal(false);
-    setShowViewModal(false);
+  const handleUpdateRequest = async (updatedRequest: any) => {
+    try {
+      const updateData = {
+        patient_id: updatedRequest.patient_id,
+        patient_name: updatedRequest.patient_name,
+        test_type: updatedRequest.test_type,
+        priority: updatedRequest.priority,
+        notes: updatedRequest.notes,
+        status: updatedRequest.status,
+      };
+
+      await testRequestAPI.update(updatedRequest.id, updateData);
+      setShowReviewModal(false);
+      setShowViewModal(false);
+      fetchTestRequests(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error updating test request:", err);
+      setTestRequestsError(err.message || "Failed to update test request");
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -117,47 +129,105 @@ const DoctorDashboard: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "High":
+      case "Critical":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
-      case "Medium":
+      case "Urgent":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
-      case "Low":
+      case "Normal":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       default:
         return "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200";
     }
   };
 
-  const doctorCards = [
-    {
-      title: "Today's Appointments",
-      value: "8",
-      change: "+2 This Week",
-      color: "bg-blue-500",
-      chartData: [5, 6, 7, 8, 6, 7, 8],
-    },
-    {
-      title: "Pending Test Requests",
-      value: "15",
-      change: "-3 Today",
-      color: "bg-orange-500",
-      chartData: [18, 20, 17, 15, 16, 18, 15],
-    },
-    {
-      title: "Completed Tests",
-      value: "42",
-      change: "+12 This Week",
-      color: "bg-green-500",
-      chartData: [30, 32, 35, 38, 40, 41, 42],
-    },
-    {
-      title: "Active Patients",
-      value: "127",
-      change: "+5 This Month",
-      color: "bg-purple-500",
-      chartData: [110, 115, 120, 122, 125, 126, 127],
-    },
-  ];
+  // Calculate dynamic statistics from test requests data
+  const getDashboardStats = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const thisWeek = new Date();
+    thisWeek.setDate(thisWeek.getDate() - 7);
+    const thisMonth = new Date();
+    thisMonth.setMonth(thisMonth.getMonth() - 1);
+
+    // Calculate statistics from test requests
+    const pendingRequests = testRequests.filter(
+      (req) => req.status === "Pending"
+    ).length;
+    const completedRequests = testRequests.filter(
+      (req) => req.status === "Completed"
+    ).length;
+    const approvedRequests = testRequests.filter(
+      (req) => req.status === "Approved"
+    ).length;
+    const inProgressRequests = testRequests.filter(
+      (req) => req.status === "In Progress"
+    ).length;
+
+    // Get unique patients from test requests
+    const uniquePatients = new Set(testRequests.map((req) => req.patient_id))
+      .size;
+
+    // Calculate changes (mock data for now - would be real data in production)
+    const pendingChange =
+      pendingRequests > 0
+        ? `-${Math.floor(pendingRequests * 0.2)} Today`
+        : "0 Today";
+    const completedChange =
+      completedRequests > 0
+        ? `+${Math.floor(completedRequests * 0.3)} This Week`
+        : "0 This Week";
+    const patientsChange =
+      uniquePatients > 0
+        ? `+${Math.floor(uniquePatients * 0.1)} This Month`
+        : "0 This Month";
+
+    return [
+      {
+        title: `Today's Appointments - ${new Date().toLocaleDateString(
+          "en-US",
+          {
+            month: "short",
+            day: "numeric",
+            weekday: "long",
+          }
+        )}`,
+        value: (approvedRequests + inProgressRequests).toString(),
+        change: "+2 This Week",
+        color: "bg-blue-500",
+        chartData: [
+          5,
+          6,
+          7,
+          approvedRequests + inProgressRequests,
+          6,
+          7,
+          approvedRequests + inProgressRequests,
+        ],
+      },
+      {
+        title: "Pending Test Requests",
+        value: pendingRequests.toString(),
+        change: pendingChange,
+        color: "bg-orange-500",
+        chartData: [18, 20, 17, pendingRequests, 16, 18, pendingRequests],
+      },
+      {
+        title: "Completed Tests",
+        value: completedRequests.toString(),
+        change: completedChange,
+        color: "bg-green-500",
+        chartData: [30, 32, 35, 38, 40, 41, completedRequests],
+      },
+      {
+        title: "Active Patients",
+        value: uniquePatients.toString(),
+        change: patientsChange,
+        color: "bg-purple-500",
+        chartData: [110, 115, 120, 122, 125, 126, uniquePatients],
+      },
+    ];
+  };
+
+  const doctorCards = getDashboardStats();
 
   return (
     <BaseDashboard>
@@ -209,74 +279,106 @@ const DoctorDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Today's Schedule
+              Today's Schedule -{" "}
+              {new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                weekday: "long",
+              })}
             </h3>
             <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
-            {[
-              {
-                time: "09:00 AM",
-                patient: "John Smith",
-                type: "Follow-up",
-                status: "Confirmed",
-              },
-              {
-                time: "10:30 AM",
-                patient: "Sarah Johnson",
-                type: "New Patient",
-                status: "Confirmed",
-              },
-              {
-                time: "02:00 PM",
-                patient: "Mike Davis",
-                type: "Consultation",
-                status: "Pending",
-              },
-              {
-                time: "03:30 PM",
-                patient: "Lisa Wilson",
-                type: "Test Review",
-                status: "Confirmed",
-              },
-              {
-                time: "04:45 PM",
-                patient: "Robert Brown",
-                type: "Follow-up",
-                status: "Confirmed",
-              },
-            ].map((appointment, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-primary-600" />
+            {(() => {
+              // Generate today's schedule from test requests data
+              const today = new Date().toISOString().split("T")[0];
+              const todaysRequests = testRequests.filter(
+                (req) => req.date_requested === today
+              );
+
+              // If no requests for today, show mock data
+              if (todaysRequests.length === 0) {
+                return [
+                  {
+                    time: "09:00 AM",
+                    patient: "No appointments",
+                    type: "No scheduled tests",
+                    status: "No Data",
+                  },
+                ].map((appointment, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          {appointment.time}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {appointment.patient}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          {appointment.type}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
+                      {appointment.status}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {appointment.time}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {appointment.patient}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                      {appointment.type}
-                    </p>
+                ));
+              }
+
+              // Transform test requests into appointment format
+              return todaysRequests.slice(0, 5).map((request, index) => {
+                const appointmentTime = new Date(request.created_at);
+                const timeString = appointmentTime.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+
+                return (
+                  <div
+                    key={request.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-primary-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {timeString}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {request.patient_name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {request.test_type}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        request.status === "Approved" ||
+                        request.status === "In Progress"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                          : request.status === "Completed"
+                          ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                      }`}
+                    >
+                      {request.status}
+                    </span>
                   </div>
-                </div>
-                <span
-                  className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    appointment.status === "Confirmed"
-                      ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                      : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
-                  }`}
-                >
-                  {appointment.status}
-                </span>
-              </div>
-            ))}
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -288,80 +390,128 @@ const DoctorDashboard: React.FC = () => {
             <ClipboardList className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
-            {[
-              {
-                patient: "John Smith",
-                test: "Blood Panel",
-                result: "Normal",
-                priority: "Low",
-              },
-              {
-                patient: "Sarah Johnson",
-                test: "X-Ray Chest",
-                result: "Abnormal",
-                priority: "High",
-              },
-              {
-                patient: "Mike Davis",
-                test: "Urine Analysis",
-                result: "Normal",
-                priority: "Low",
-              },
-              {
-                patient: "Lisa Wilson",
-                test: "MRI Brain",
-                result: "Pending",
-                priority: "Medium",
-              },
-            ].map((test, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
+            {(() => {
+              // Get recent test results from test requests data
+              const recentResults = testRequests
+                .filter(
+                  (req) =>
+                    req.status === "Completed" || req.status === "In Progress"
+                )
+                .slice(0, 4);
+
+              // If no recent results, show mock data
+              if (recentResults.length === 0) {
+                return [
+                  {
+                    patient: "No recent results",
+                    test: "No completed tests",
+                    result: "No Data",
+                    priority: "Low",
+                  },
+                ].map((test, index) => (
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      test.priority === "High"
-                        ? "bg-red-100 dark:bg-red-900"
-                        : test.priority === "Medium"
-                        ? "bg-yellow-100 dark:bg-yellow-900"
-                        : "bg-green-100 dark:bg-green-900"
-                    }`}
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                   >
-                    <Stethoscope
-                      className={`w-4 h-4 ${
-                        test.priority === "High"
-                          ? "text-red-600 dark:text-red-400"
-                          : test.priority === "Medium"
-                          ? "text-yellow-600 dark:text-yellow-400"
-                          : "text-green-600 dark:text-green-400"
-                      }`}
-                    />
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-600">
+                        <Stethoscope className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          {test.patient}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {test.test}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
+                        {test.result}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {test.patient}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {test.test}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      test.result === "Normal"
-                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                        : test.result === "Abnormal"
-                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
-                        : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
-                    }`}
+                ));
+              }
+
+              // Transform test requests into test results format
+              return recentResults.map((request, index) => {
+                const getResultStatus = (status: string) => {
+                  switch (status) {
+                    case "Completed":
+                      return "Normal";
+                    case "In Progress":
+                      return "Processing";
+                    default:
+                      return "Pending";
+                  }
+                };
+
+                const getPriorityLevel = (priority: string) => {
+                  switch (priority) {
+                    case "Critical":
+                      return "High";
+                    case "Urgent":
+                      return "High";
+                    case "Normal":
+                      return "Low";
+                    default:
+                      return "Low";
+                  }
+                };
+
+                return (
+                  <div
+                    key={request.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                   >
-                    {test.result}
-                  </span>
-                </div>
-              </div>
-            ))}
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          getPriorityLevel(request.priority) === "High"
+                            ? "bg-red-100 dark:bg-red-900"
+                            : getPriorityLevel(request.priority) === "Medium"
+                            ? "bg-yellow-100 dark:bg-yellow-900"
+                            : "bg-green-100 dark:bg-green-900"
+                        }`}
+                      >
+                        <Stethoscope
+                          className={`w-4 h-4 ${
+                            getPriorityLevel(request.priority) === "High"
+                              ? "text-red-600 dark:text-red-400"
+                              : getPriorityLevel(request.priority) === "Medium"
+                              ? "text-yellow-600 dark:text-yellow-400"
+                              : "text-green-600 dark:text-green-400"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {request.patient_name}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {request.test_type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                          getResultStatus(request.status) === "Normal"
+                            ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                            : getResultStatus(request.status) === "Processing"
+                            ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                            : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                        }`}
+                      >
+                        {getResultStatus(request.status)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
@@ -408,68 +558,99 @@ const DoctorDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {testRequests.map((request) => (
-                <tr key={request.id}>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    {request.patient}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {request.testType}
-                  </td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                        request.priority
-                      )}`}
-                    >
-                      {request.priority}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {request.requestedDate}
-                  </td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        request.status
-                      )}`}
-                    >
-                      {request.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-2">
-                      {request.status === "Pending" && (
-                        <button
-                          onClick={() => handleReviewRequest(request)}
-                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
-                        >
-                          <Edit className="w-3 h-3" />
-                          <span>Review</span>
-                        </button>
-                      )}
-                      {request.status === "Approved" && (
-                        <button
-                          onClick={() => handleViewRequest(request)}
-                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>View</span>
-                        </button>
-                      )}
-                      {request.status === "In Progress" && (
-                        <button
-                          onClick={() => handleTrackRequest(request)}
-                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
-                        >
-                          <Search className="w-3 h-3" />
-                          <span>Track</span>
-                        </button>
-                      )}
+              {testRequestsLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                      <span className="ml-2 text-gray-600 dark:text-gray-400">
+                        Loading test requests...
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : testRequestsError ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-red-600 dark:text-red-400"
+                  >
+                    Error: {testRequestsError}
+                  </td>
+                </tr>
+              ) : testRequests.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No test requests found
+                  </td>
+                </tr>
+              ) : (
+                testRequests.map((request) => (
+                  <tr key={request.id}>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
+                      {request.patient_name}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {request.test_type}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                          request.priority
+                        )}`}
+                      >
+                        {request.priority}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {request.date_requested}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          request.status
+                        )}`}
+                      >
+                        {request.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        {request.status === "Pending" && (
+                          <button
+                            onClick={() => handleReviewRequest(request)}
+                            className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Review</span>
+                          </button>
+                        )}
+                        {request.status === "Approved" && (
+                          <button
+                            onClick={() => handleViewRequest(request)}
+                            className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>View</span>
+                          </button>
+                        )}
+                        {request.status === "In Progress" && (
+                          <button
+                            onClick={() => handleTrackRequest(request)}
+                            className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
+                          >
+                            <Search className="w-3 h-3" />
+                            <span>Track</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -536,9 +717,9 @@ const DoctorDashboard: React.FC = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
                   >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Critical">Critical</option>
                   </select>
                 </div>
                 <div>
@@ -695,8 +876,8 @@ const DoctorDashboard: React.FC = () => {
                 const formData = new FormData(e.target as HTMLFormElement);
                 handleUpdateRequest({
                   ...selectedRequest,
-                  status: formData.get("status"),
-                  doctorNotes: formData.get("doctorNotes"),
+                  priority: formData.get("priority"),
+                  notes: formData.get("notes"),
                 });
               }}
             >
@@ -706,7 +887,7 @@ const DoctorDashboard: React.FC = () => {
                     Patient:
                   </span>
                   <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                    {selectedRequest.patient}
+                    {selectedRequest.patient_name}
                   </span>
                 </div>
                 <div>
@@ -714,32 +895,40 @@ const DoctorDashboard: React.FC = () => {
                     Test Type:
                   </span>
                   <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                    {selectedRequest.testType}
+                    {selectedRequest.test_type}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Current Status:
+                  </span>
+                  <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                    {selectedRequest.status}
                   </span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Status
+                    Priority Level
                   </label>
                   <select
-                    name="status"
-                    defaultValue={selectedRequest.status}
+                    name="priority"
+                    defaultValue={selectedRequest.priority}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Critical">Critical</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Doctor Notes
+                    Review Notes
                   </label>
                   <textarea
-                    name="doctorNotes"
-                    defaultValue={selectedRequest.doctorNotes}
+                    name="notes"
+                    defaultValue={selectedRequest.notes || ""}
                     rows={3}
+                    placeholder="Add review notes or comments..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
                   />
                 </div>

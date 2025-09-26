@@ -6,20 +6,77 @@ import {
   TrendingUp,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { testRequestAPI } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const TestResults: React.FC = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Test results data state
-  const [testResults, setTestResults] = useState([
-    {
-      id: "TR001",
-      testName: "Complete Blood Count (CBC)",
-      testDate: "2025-01-20",
-      doctor: "Dr. Sarah Johnson",
-      status: "completed",
-      results: [
+  // API Integration - Fetch patient's test requests
+  const [testResults, setTestResults] = useState<any[]>([]);
+  const [testResultsLoading, setTestResultsLoading] = useState(false);
+  const [testResultsError, setTestResultsError] = useState<string | null>(null);
+
+  // Fetch patient's test requests from backend
+  const fetchPatientTestRequests = async () => {
+    setTestResultsLoading(true);
+    setTestResultsError(null);
+    try {
+      const response = await testRequestAPI.getAll();
+      // Filter for current patient's test requests
+      const patientRequests = response.data.filter(
+        (request: any) =>
+          request.patient_id === user?.id || request.patient_name === user?.name
+      );
+
+      // Transform test requests to test results format
+      const transformedResults = patientRequests.map((request: any) => ({
+        id: `TR-${request.id}`,
+        testName: request.test_type,
+        testDate: request.date_requested,
+        doctor: "Dr. Current Doctor", // This could be enhanced with actual doctor info
+        status: mapTestStatus(request.status),
+        results: generateMockResults(request.test_type, request.status),
+        notes: request.notes || "Test request submitted",
+        reportUrl: request.status === "Completed" ? "#" : null,
+        originalRequest: request, // Keep reference to original request
+      }));
+
+      setTestResults(transformedResults);
+    } catch (error) {
+      console.error("Error fetching patient test requests:", error);
+      setTestResultsError("Failed to load test results");
+    } finally {
+      setTestResultsLoading(false);
+    }
+  };
+
+  // Helper functions
+  const mapTestStatus = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "pending";
+      case "Approved":
+        return "pending";
+      case "In Progress":
+        return "processing";
+      case "Completed":
+        return "completed";
+      case "Rejected":
+        return "cancelled";
+      default:
+        return "pending";
+    }
+  };
+
+  const generateMockResults = (testType: string, status: string) => {
+    if (status !== "Completed") return [];
+
+    // Generate mock results based on test type
+    if (testType.toLowerCase().includes("blood")) {
+      return [
         {
           parameter: "Hemoglobin",
           value: "14.2",
@@ -41,141 +98,17 @@ const TestResults: React.FC = () => {
           normal: "150-450",
           status: "normal",
         },
-        {
-          parameter: "Hematocrit",
-          value: "42.5",
-          unit: "%",
-          normal: "36-46",
-          status: "normal",
-        },
-      ],
-      notes: "All values within normal range. No immediate concerns.",
-      reportUrl: "#",
-    },
-    {
-      id: "TR002",
-      testName: "Lipid Panel",
-      testDate: "2025-01-18",
-      doctor: "Dr. Michael Chen",
-      status: "completed",
-      results: [
-        {
-          parameter: "Total Cholesterol",
-          value: "220",
-          unit: "mg/dL",
-          normal: "<200",
-          status: "high",
-        },
-        {
-          parameter: "HDL Cholesterol",
-          value: "45",
-          unit: "mg/dL",
-          normal: ">40",
-          status: "normal",
-        },
-        {
-          parameter: "LDL Cholesterol",
-          value: "155",
-          unit: "mg/dL",
-          normal: "<100",
-          status: "high",
-        },
-        {
-          parameter: "Triglycerides",
-          value: "180",
-          unit: "mg/dL",
-          normal: "<150",
-          status: "high",
-        },
-      ],
-      notes:
-        "Elevated cholesterol levels detected. Recommend dietary changes and follow-up in 3 months.",
-      reportUrl: "#",
-    },
-    {
-      id: "TR003",
-      testName: "Thyroid Function Test",
-      testDate: "2025-01-15",
-      doctor: "Dr. Emily Rodriguez",
-      status: "completed",
-      results: [
-        {
-          parameter: "TSH",
-          value: "2.5",
-          unit: "mIU/L",
-          normal: "0.4-4.0",
-          status: "normal",
-        },
-        {
-          parameter: "Free T4",
-          value: "1.2",
-          unit: "ng/dL",
-          normal: "0.8-1.8",
-          status: "normal",
-        },
-        {
-          parameter: "Free T3",
-          value: "3.1",
-          unit: "pg/mL",
-          normal: "2.3-4.2",
-          status: "normal",
-        },
-      ],
-      notes:
-        "Thyroid function appears normal. Continue current medication as prescribed.",
-      reportUrl: "#",
-    },
-    {
-      id: "TR004",
-      testName: "Blood Glucose Test",
-      testDate: "2025-01-12",
-      doctor: "Dr. David Wilson",
-      status: "completed",
-      results: [
-        {
-          parameter: "Fasting Glucose",
-          value: "95",
-          unit: "mg/dL",
-          normal: "70-100",
-          status: "normal",
-        },
-        {
-          parameter: "HbA1c",
-          value: "5.4",
-          unit: "%",
-          normal: "<5.7",
-          status: "normal",
-        },
-      ],
-      notes:
-        "Blood glucose levels are within normal range. No signs of diabetes.",
-      reportUrl: "#",
-    },
-    {
-      id: "TR005",
-      testName: "Liver Function Test",
-      testDate: "2025-01-10",
-      doctor: "Dr. Lisa Anderson",
-      status: "pending",
-      results: [],
-      notes:
-        "Test results are being processed. You will be notified when available.",
-      reportUrl: "#",
-    },
-  ]);
-
-  // Load test results from localStorage on component mount
-  useEffect(() => {
-    const savedTestResults = localStorage.getItem("patientTestResults");
-    if (savedTestResults) {
-      setTestResults(JSON.parse(savedTestResults));
+      ];
     }
-  }, []);
+    return [];
+  };
 
-  // Save test results to localStorage whenever testResults change
+  // Load test results on component mount
   useEffect(() => {
-    localStorage.setItem("patientTestResults", JSON.stringify(testResults));
-  }, [testResults]);
+    if (user) {
+      fetchPatientTestRequests();
+    }
+  }, [user]);
 
   // Handler functions
   const handleDownloadResult = (result: any) => {
@@ -412,101 +345,132 @@ ${allReportsContent}
 
       {/* Test Results List */}
       <div className="space-y-6">
-        {filteredResults.map((result) => (
-          <div
-            key={result.id}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    {result.testName}
-                  </h3>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
-                    <span>Test Date: {result.testDate}</span>
-                    <span>Doctor: {result.doctor}</span>
-                    <span>ID: {result.id}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                      result.status
-                    )}`}
-                  >
-                    {getStatusText(result.status)}
-                  </span>
-                  {result.status === "completed" && (
-                    <button
-                      onClick={() => handleDownloadResult(result)}
-                      className="flex items-center space-x-1 px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
-                    >
-                      <Download className="w-3 h-3" />
-                      <span>Download</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {result.status === "completed" && result.results.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                    Test Results:
-                  </h4>
-                  <div className="space-y-2">
-                    {result.results.map((testResult, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {testResult.parameter}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span
-                            className={`text-sm font-semibold ${getResultStatusColor(
-                              testResult.status
-                            )}`}
-                          >
-                            {testResult.value} {testResult.unit}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Normal: {testResult.normal}
-                          </span>
-                          {getResultStatusIcon(testResult.status)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {result.notes && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Notes:
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {result.notes}
-                  </p>
-                </div>
-              )}
+        {testResultsLoading ? (
+          <div className="text-center py-12">
+            <div className="flex items-center justify-center mb-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
             </div>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading your test results...
+            </p>
           </div>
-        ))}
-      </div>
+        ) : testResultsError ? (
+          <div className="text-center py-12">
+            <FileText className="w-12 h-12 mx-auto text-red-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              Error loading test results
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              {testResultsError}
+            </p>
+            <button
+              onClick={fetchPatientTestRequests}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          filteredResults.map((result) => (
+            <div
+              key={result.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg transition-shadow"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                      {result.testName}
+                    </h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
+                      <span>Test Date: {result.testDate}</span>
+                      <span>Doctor: {result.doctor}</span>
+                      <span>ID: {result.id}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        result.status
+                      )}`}
+                    >
+                      {getStatusText(result.status)}
+                    </span>
+                    {result.status === "completed" && (
+                      <button
+                        onClick={() => handleDownloadResult(result)}
+                        className="flex items-center space-x-1 px-3 py-1 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Download</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-      {filteredResults.length === 0 && (
-        <div className="text-center py-12">
-          <FileText className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">
-            No test results found matching your search criteria.
-          </p>
-        </div>
-      )}
+                {result.status === "completed" && result.results.length > 0 && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Test Results:
+                    </h4>
+                    <div className="space-y-2">
+                      {result.results.map((testResult, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {testResult.parameter}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span
+                              className={`text-sm font-semibold ${getResultStatusColor(
+                                testResult.status
+                              )}`}
+                            >
+                              {testResult.value} {testResult.unit}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Normal: {testResult.normal}
+                            </span>
+                            {getResultStatusIcon(testResult.status)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {result.notes && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      Notes:
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      {result.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+
+        {!testResultsLoading &&
+          !testResultsError &&
+          filteredResults.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">
+                {searchTerm || filterStatus !== "all"
+                  ? "No test results found matching your search criteria."
+                  : "No test results available yet."}
+              </p>
+            </div>
+          )}
+      </div>
     </div>
   );
 };
