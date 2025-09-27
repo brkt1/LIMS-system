@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { testReportAPI, appointmentAPI, messageAPI } from "../../services/api";
 
 const PatientDashboard: React.FC = () => {
   // State management for modals
@@ -46,101 +47,52 @@ const PatientDashboard: React.FC = () => {
   });
 
   // Messages data state
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      from: "Dr. Sarah Johnson",
-      subject: "Test Results Discussion",
-      message:
-        "Your recent blood panel results look excellent. All values are within normal range. We should continue with the current treatment plan and schedule a follow-up in 3 months.",
-      time: "2 hours ago",
-      unread: true,
-    },
-    {
-      id: 2,
-      from: "Lab Technician Mike",
-      subject: "Sample Collection Reminder",
-      message:
-        "Please remember to fast for 12 hours before your blood test tomorrow. You can drink water but avoid food, coffee, and other beverages.",
-      time: "1 day ago",
-      unread: false,
-    },
-    {
-      id: 3,
-      from: "Nurse Lisa",
-      subject: "Appointment Confirmation",
-      message:
-        "Your appointment for tomorrow at 10:00 AM has been confirmed. Please arrive 15 minutes early and bring your insurance card.",
-      time: "2 days ago",
-      unread: false,
-    },
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
 
   // Test results data state
-  const [testResults, setTestResults] = useState([
-    {
-      id: 1,
-      test: "Blood Panel Complete",
-      date: "Jan 18, 2025",
-      result: "Normal",
-      status: "Available",
-      details:
-        "All blood parameters are within normal ranges. Hemoglobin: 14.2 g/dL, White Blood Cells: 7.2 K/μL, Platelets: 285 K/μL.",
-      fileUrl: "blood_panel_jan18.pdf",
-    },
-    {
-      id: 2,
-      test: "X-Ray Chest",
-      date: "Jan 15, 2025",
-      result: "Clear",
-      status: "Available",
-      details:
-        "Chest X-ray shows clear lung fields with no signs of abnormalities. Heart size is normal.",
-      fileUrl: "chest_xray_jan15.pdf",
-    },
-    {
-      id: 3,
-      test: "Urine Analysis",
-      date: "Jan 12, 2025",
-      result: "Normal",
-      status: "Available",
-      details:
-        "Urine analysis shows normal values. No signs of infection or abnormalities detected.",
-      fileUrl: "urine_analysis_jan12.pdf",
-    },
-    {
-      id: 4,
-      test: "MRI Brain",
-      date: "Jan 10, 2025",
-      result: "Pending",
-      status: "Processing",
-      details:
-        "MRI scan is currently being processed by our radiologist. Results will be available within 2-3 business days.",
-      fileUrl: null,
-    },
-  ]);
+  const [testResults, setTestResults] = useState<any[]>([]);
+  const [testResultsLoading, setTestResultsLoading] = useState(true);
+  const [testResultsError, setTestResultsError] = useState<string | null>(null);
 
-  // Load data from localStorage on component mount
+  // Load data on component mount
   useEffect(() => {
-    const savedMessages = localStorage.getItem("patientMessages");
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
-
-    const savedTestResults = localStorage.getItem("patientTestResults");
-    if (savedTestResults) {
-      setTestResults(JSON.parse(savedTestResults));
-    }
+    fetchMessages();
+    fetchTestResults();
   }, []);
 
-  // Save data to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("patientMessages", JSON.stringify(messages));
-  }, [messages]);
+  const fetchMessages = async () => {
+    try {
+      setMessagesLoading(true);
+      setMessagesError(null);
+      // For now, get all messages - in a real app, this would be filtered by patient ID
+      const response = await messageAPI.getAll();
+      console.log("💬 Messages fetched:", response.data);
+      setMessages(response.data);
+    } catch (err: any) {
+      console.error("Error fetching messages:", err);
+      setMessagesError(err.message || "Failed to fetch messages");
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    localStorage.setItem("patientTestResults", JSON.stringify(testResults));
-  }, [testResults]);
+  const fetchTestResults = async () => {
+    try {
+      setTestResultsLoading(true);
+      setTestResultsError(null);
+      // For now, get all test reports - in a real app, this would be filtered by patient ID
+      const response = await testReportAPI.getAll();
+      console.log("📊 Test Results fetched:", response.data);
+      setTestResults(response.data);
+    } catch (err: any) {
+      console.error("Error fetching test results:", err);
+      setTestResultsError(err.message || "Failed to fetch test results");
+    } finally {
+      setTestResultsLoading(false);
+    }
+  };
 
   // Handler functions
   const handleNewMessage = () => {
@@ -153,11 +105,14 @@ const PatientDashboard: React.FC = () => {
     setShowNewMessageModal(true);
   };
 
-  const handleMarkAsRead = (messageId: number) => {
-    const updatedMessages = messages.map((msg) =>
-      msg.id === messageId ? { ...msg, unread: false } : msg
-    );
-    setMessages(updatedMessages);
+  const handleMarkAsRead = async (messageId: number) => {
+    try {
+      await messageAPI.markAsRead(messageId);
+      // Refresh messages to get updated status
+      fetchMessages();
+    } catch (err: any) {
+      console.error("Error marking message as read:", err);
+    }
   };
 
   const handleReply = (message: any) => {
@@ -166,30 +121,50 @@ const PatientDashboard: React.FC = () => {
     setShowReplyModal(true);
   };
 
-  const handleSendNewMessage = () => {
-    const newMessageData = {
-      id: messages.length + 1,
-      from: "You",
-      subject: newMessage.subject,
-      message: newMessage.message,
-      time: "Just now",
-      unread: false,
-    };
-    setMessages([newMessageData, ...messages]);
-    setShowNewMessageModal(false);
+  const handleSendNewMessage = async () => {
+    try {
+      const messageData = {
+        sender_id: "P001", // In real app, this would come from user context
+        sender_name: "Current Patient",
+        recipient_id: newMessage.to,
+        recipient_name: newMessage.to,
+        subject: newMessage.subject,
+        message_body: newMessage.message,
+        message_type: "General",
+        status: "Unread",
+        is_urgent: newMessage.priority === "urgent",
+      };
+
+      await messageAPI.create(messageData);
+      setShowNewMessageModal(false);
+      fetchMessages(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error sending message:", err);
+      alert("Failed to send message. Please try again.");
+    }
   };
 
-  const handleSendReply = () => {
-    const replyData = {
-      id: messages.length + 1,
-      from: "You",
-      subject: `Re: ${selectedMessage.subject}`,
-      message: replyMessage.message,
-      time: "Just now",
-      unread: false,
-    };
-    setMessages([replyData, ...messages]);
-    setShowReplyModal(false);
+  const handleSendReply = async () => {
+    try {
+      const replyData = {
+        sender_id: "P001", // In real app, this would come from user context
+        sender_name: "Current Patient",
+        recipient_id: selectedMessage.sender_id,
+        recipient_name: selectedMessage.sender_name,
+        subject: `Re: ${selectedMessage.subject}`,
+        message_body: replyMessage.message,
+        message_type: "General",
+        status: "Unread",
+        is_urgent: false,
+      };
+
+      await messageAPI.create(replyData);
+      setShowReplyModal(false);
+      fetchMessages(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error sending reply:", err);
+      alert("Failed to send reply. Please try again.");
+    }
   };
 
   const handleBookNow = () => {
@@ -203,13 +178,30 @@ const PatientDashboard: React.FC = () => {
     setShowBookAppointmentModal(true);
   };
 
-  const handleBookAppointment = () => {
-    // Simulate booking appointment
-    console.log("Booking appointment:", appointmentData);
-    setShowBookAppointmentModal(false);
-    alert(
-      "Appointment request submitted successfully! You will receive a confirmation soon."
-    );
+  const handleBookAppointment = async () => {
+    try {
+      console.log("Booking appointment:", appointmentData);
+
+      const appointmentPayload = {
+        patient_name: "Current Patient", // In real app, this would come from user context
+        patient_id: "P001", // In real app, this would come from user context
+        doctor_name: appointmentData.doctor,
+        appointment_date: appointmentData.date,
+        appointment_time: appointmentData.time,
+        appointment_type: appointmentData.type,
+        reason: appointmentData.reason,
+        status: "Pending",
+      };
+
+      await appointmentAPI.create(appointmentPayload);
+      setShowBookAppointmentModal(false);
+      alert(
+        "Appointment request submitted successfully! You will receive a confirmation soon."
+      );
+    } catch (err: any) {
+      console.error("Error booking appointment:", err);
+      alert("Failed to book appointment. Please try again.");
+    }
   };
 
   const handleViewResult = (test: any) => {
@@ -390,59 +382,93 @@ const PatientDashboard: React.FC = () => {
             <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
-            {testResults.map((test, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      test.status === "Available"
-                        ? "bg-green-100 dark:bg-green-900"
-                        : "bg-yellow-100 dark:bg-yellow-900"
-                    }`}
-                  >
-                    <FileText
-                      className={`w-4 h-4 ${
-                        test.status === "Available"
-                          ? "text-green-600"
-                          : "text-yellow-600"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {test.test}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {test.date}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      test.result === "Normal" || test.result === "Clear"
-                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                        : test.result === "Pending"
-                        ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
-                        : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
-                    }`}
-                  >
-                    {test.result}
-                  </span>
-                  {test.status === "Available" && (
-                    <button
-                      onClick={() => handleViewResult(test)}
-                      className="text-blue-600 hover:text-blue-700 text-xs font-medium"
-                    >
-                      View
-                    </button>
-                  )}
+            {testResultsLoading ? (
+              <div className="flex items-center justify-center p-6">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Loading test results...
+                  </p>
                 </div>
               </div>
-            ))}
+            ) : testResultsError ? (
+              <div className="flex items-center justify-center p-6">
+                <div className="text-center">
+                  <FileText className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                  <p className="text-sm text-red-500 dark:text-red-400">
+                    {testResultsError}
+                  </p>
+                </div>
+              </div>
+            ) : testResults.length === 0 ? (
+              <div className="flex items-center justify-center p-6">
+                <div className="text-center">
+                  <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No test results available
+                  </p>
+                </div>
+              </div>
+            ) : (
+              testResults.map((test, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        test.status === "Completed" ||
+                        test.status === "Available"
+                          ? "bg-green-100 dark:bg-green-900"
+                          : "bg-yellow-100 dark:bg-yellow-900"
+                      }`}
+                    >
+                      <FileText
+                        className={`w-4 h-4 ${
+                          test.status === "Completed" ||
+                          test.status === "Available"
+                            ? "text-green-600"
+                            : "text-yellow-600"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {test.test_name || test.test_type}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(test.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        test.status === "Completed" ||
+                        test.status === "Available"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                          : test.status === "Pending" ||
+                            test.status === "Processing"
+                          ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                          : "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+                      }`}
+                    >
+                      {test.status}
+                    </span>
+                    {(test.status === "Completed" ||
+                      test.status === "Available") && (
+                      <button
+                        onClick={() => handleViewResult(test)}
+                        className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                      >
+                        View
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -464,53 +490,82 @@ const PatientDashboard: React.FC = () => {
           </div>
         </div>
         <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg border ${
-                message.unread
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                  : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {message.from}
-                      </p>
-                      {message.unread && (
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-1">
-                      {message.subject}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {message.message}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      {message.time}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() =>
-                    message.unread
-                      ? handleMarkAsRead(message.id)
-                      : handleReply(message)
-                  }
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                >
-                  {message.unread ? "Mark as Read" : "Reply"}
-                </button>
+          {messagesLoading ? (
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Loading messages...
+                </p>
               </div>
             </div>
-          ))}
+          ) : messagesError ? (
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <MessageSquare className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                <p className="text-sm text-red-500 dark:text-red-400">
+                  {messagesError}
+                </p>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No messages available
+                </p>
+              </div>
+            </div>
+          ) : (
+            messages.map((message, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-lg border ${
+                  message.status === "Unread"
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                    : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {message.sender_name}
+                        </p>
+                        {message.status === "Unread" && (
+                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-1">
+                        {message.subject}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {message.message_body}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        {new Date(message.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      message.status === "Unread"
+                        ? handleMarkAsRead(message.id)
+                        : handleReply(message)
+                    }
+                    className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  >
+                    {message.status === "Unread" ? "Mark as Read" : "Reply"}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

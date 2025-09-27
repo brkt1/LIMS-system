@@ -8,6 +8,7 @@ import {
   XCircle,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { superadminAPI } from "../../services/api";
 
 const SystemLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,118 +33,37 @@ const SystemLogs: React.FC = () => {
     { id: "security", name: "Security" },
   ];
 
-  const [systemLogs, setSystemLogs] = useState([
-    {
-      id: "1",
-      timestamp: "2025-01-20 14:30:25",
-      level: "info",
-      category: "authentication",
-      message: "User john.smith@lims.com logged in successfully",
-      user: "john.smith@lims.com",
-      ip: "192.168.1.100",
-      tenant: "Research Institute",
-      details: {
-        userAgent:
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        sessionId: "sess_abc123",
-        duration: "2.3s",
-      },
-    },
-    {
-      id: "2",
-      timestamp: "2025-01-20 14:28:15",
-      level: "warning",
-      category: "database",
-      message: "Database connection pool near capacity (85% usage)",
-      user: "system",
-      ip: "127.0.0.1",
-      tenant: "System",
-      details: {
-        connectionCount: 85,
-        maxConnections: 100,
-        recommendation: "Consider increasing pool size",
-      },
-    },
-    {
-      id: "3",
-      timestamp: "2025-01-20 14:25:42",
-      level: "error",
-      category: "api",
-      message: "API rate limit exceeded for tenant medlab.lims.com",
-      user: "api_user",
-      ip: "203.0.113.45",
-      tenant: "MedLab Solutions",
-      details: {
-        endpoint: "/api/v1/test-results",
-        rateLimit: "1000/hour",
-        currentUsage: "1000",
-        resetTime: "2025-01-20 15:00:00",
-      },
-    },
-    {
-      id: "4",
-      timestamp: "2025-01-20 14:20:18",
-      level: "info",
-      category: "system",
-      message: "Scheduled backup completed successfully",
-      user: "system",
-      ip: "127.0.0.1",
-      tenant: "System",
-      details: {
-        backupSize: "2.3 GB",
-        duration: "15 minutes",
-        location: "/backups/2025-01-20-14-20-18.tar.gz",
-      },
-    },
-    {
-      id: "5",
-      timestamp: "2025-01-20 14:15:33",
-      level: "error",
-      category: "security",
-      message: "Failed login attempt for user admin@lims.com",
-      user: "admin@lims.com",
-      ip: "198.51.100.42",
-      tenant: "System",
-      details: {
-        reason: "Invalid password",
-        attemptCount: 3,
-        blocked: true,
-        blockDuration: "15 minutes",
-      },
-    },
-    {
-      id: "6",
-      timestamp: "2025-01-20 14:10:07",
-      level: "info",
-      category: "api",
-      message: "New tenant created: Private Clinic Network",
-      user: "sarah.johnson@lims.com",
-      ip: "192.168.1.50",
-      tenant: "System",
-      details: {
-        tenantId: "tenant_pcn_001",
-        plan: "Basic",
-        adminEmail: "admin@pcn.com",
-      },
-    },
-  ]);
+  const [systemLogs, setSystemLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load logs from localStorage on component mount
+  // Load logs from backend API
   useEffect(() => {
-    const savedLogs = localStorage.getItem("superadmin-system-logs");
-    if (savedLogs) {
+    const fetchLogs = async () => {
       try {
-        setSystemLogs(JSON.parse(savedLogs));
-      } catch (error) {
-        console.error("Error loading saved logs:", error);
+        setLoading(true);
+        setError(null);
+        const response = await superadminAPI.logs.getAll();
+        setSystemLogs(response.data);
+      } catch (error: any) {
+        console.error("Error fetching system logs:", error);
+        setError(error.message || "Failed to load system logs");
+        // Fallback to localStorage if API fails
+        const savedLogs = localStorage.getItem("superadmin-system-logs");
+        if (savedLogs) {
+          try {
+            setSystemLogs(JSON.parse(savedLogs));
+          } catch (parseError) {
+            console.error("Error parsing saved logs:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save logs to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("superadmin-system-logs", JSON.stringify(systemLogs));
-  }, [systemLogs]);
+    fetchLogs();
+  }, []);
 
   // Export functionality
   const handleExportLogs = () => {
@@ -288,6 +208,28 @@ const SystemLogs: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading system logs...
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">

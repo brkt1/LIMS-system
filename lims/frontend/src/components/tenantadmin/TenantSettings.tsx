@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { profileAPI } from "../../services/api";
 
 const TenantSettings: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -46,22 +47,51 @@ const TenantSettings: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState("general");
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
     "idle"
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Load settings from localStorage on component mount
+  // Load settings from backend API
   useEffect(() => {
-    const savedSettings = localStorage.getItem("tenant-settings");
-    if (savedSettings) {
+    const fetchSettings = async () => {
       try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setSettings(parsedSettings);
-      } catch (error) {
-        console.error("Error loading settings:", error);
+        setLoading(true);
+        setError(null);
+        const response = await profileAPI.getProfile();
+        if (response.data) {
+          setSettings({
+            ...settings,
+            organizationName:
+              response.data.organizationName || settings.organizationName,
+            organizationType:
+              response.data.organizationType || settings.organizationType,
+            address: response.data.address || settings.address,
+            phone: response.data.phone || settings.phone,
+            email: response.data.email || settings.email,
+            website: response.data.website || settings.website,
+          });
+        }
+      } catch (error: any) {
+        console.error("Error fetching settings:", error);
+        setError(error.message || "Failed to load settings");
+        // Fallback to localStorage if API fails
+        const savedSettings = localStorage.getItem("tenant-settings");
+        if (savedSettings) {
+          try {
+            setSettings(JSON.parse(savedSettings));
+          } catch (parseError) {
+            console.error("Error parsing saved settings:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchSettings();
   }, []);
 
   // Save settings to localStorage whenever settings change
@@ -103,11 +133,19 @@ const TenantSettings: React.FC = () => {
     setSaveStatus("idle");
 
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Save to localStorage (in a real app, this would be an API call)
-      localStorage.setItem("tenant-settings", JSON.stringify(settings));
+      // Save to backend API
+      await profileAPI.updateProfile({
+        organizationName: settings.organizationName,
+        organizationType: settings.organizationType,
+        address: settings.address,
+        phone: settings.phone,
+        email: settings.email,
+        website: settings.website,
+        timezone: settings.timezone,
+        language: settings.language,
+        dateFormat: settings.dateFormat,
+        currency: settings.currency,
+      });
 
       // Simulate success
       setSaveStatus("success");
@@ -119,9 +157,10 @@ const TenantSettings: React.FC = () => {
       }, 3000);
 
       console.log("Settings saved successfully:", settings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving settings:", error);
       setSaveStatus("error");
+      setError(error.message || "Failed to save settings");
 
       // Reset error status after 5 seconds
       setTimeout(() => {

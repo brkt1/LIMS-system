@@ -12,6 +12,7 @@ import {
   Save,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { notificationAPI } from "../../services/api";
 
 const GlobalNotification: React.FC = () => {
   const [activeTab, setActiveTab] = useState("compose");
@@ -147,46 +148,36 @@ const GlobalNotification: React.FC = () => {
     },
   ]);
 
-  // Load data from localStorage on component mount
+  // Load data from API on component mount
   useEffect(() => {
-    const savedTemplates = localStorage.getItem(
-      "superadmin-notification-templates"
-    );
-    const savedNotifications = localStorage.getItem(
-      "superadmin-notification-history"
-    );
-
-    if (savedTemplates) {
-      try {
-        setNotificationTemplates(JSON.parse(savedTemplates));
-      } catch (error) {
-        console.error("Error loading saved templates:", error);
-      }
-    }
-
-    if (savedNotifications) {
-      try {
-        setRecentNotifications(JSON.parse(savedNotifications));
-      } catch (error) {
-        console.error("Error loading saved notifications:", error);
-      }
-    }
+    loadNotifications();
   }, []);
 
-  // Save data to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(
-      "superadmin-notification-templates",
-      JSON.stringify(notificationTemplates)
-    );
-  }, [notificationTemplates]);
+  const loadNotifications = async () => {
+    try {
+      const response = await notificationAPI.getAll();
+      const notifications = response.data;
 
-  useEffect(() => {
-    localStorage.setItem(
-      "superadmin-notification-history",
-      JSON.stringify(recentNotifications)
-    );
-  }, [recentNotifications]);
+      // Convert API notifications to the format expected by the component
+      const formattedNotifications = notifications.map((notification: any) => ({
+        id: notification.id,
+        subject: notification.title,
+        message: notification.message,
+        type: notification.notification_type,
+        recipients: notification.is_global ? "All Users" : "Specific Users",
+        sentDate: notification.created_at,
+        status: notification.is_read ? "Read" : "Unread",
+        priority: notification.priority,
+      }));
+
+      setRecentNotifications(formattedNotifications);
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+      // Keep the default data if API fails
+    }
+  };
+
+  // No need to save to localStorage anymore - data comes from API
 
   // Handler functions
   const handleComposeNotification = () => {
@@ -207,29 +198,35 @@ const GlobalNotification: React.FC = () => {
     });
   };
 
-  const handleSendNotification = () => {
-    // Send notification functionality
-    const newNotification = {
-      id: (recentNotifications.length + 1).toString(),
-      subject: composeNotification.subject,
-      type: composeNotification.type,
-      status: "sent",
-      recipients: composeNotification.recipients === "all" ? 1247 : 100,
-      sentAt: new Date().toISOString().replace("T", " ").substring(0, 16),
-      openRate: 0,
-      clickRate: 0,
-    };
+  const handleSendNotification = async () => {
+    try {
+      const notificationData = {
+        title: composeNotification.subject,
+        message: composeNotification.message,
+        notification_type: composeNotification.type,
+        priority: "medium",
+        is_global: composeNotification.recipients === "all",
+        tenant: null, // For global notifications
+      };
 
-    setRecentNotifications((prev: any) => [newNotification, ...prev]);
-    setShowComposeModal(false);
-    setComposeNotification({
-      subject: "",
-      message: "",
-      type: "general",
-      recipients: "all",
-      scheduledDate: "",
-      scheduledTime: "",
-    });
+      await notificationAPI.sendGlobal(notificationData);
+
+      // Reload notifications to get the updated list
+      await loadNotifications();
+
+      setShowComposeModal(false);
+      setComposeNotification({
+        subject: "",
+        message: "",
+        type: "general",
+        recipients: "all",
+        scheduledDate: "",
+        scheduledTime: "",
+      });
+    } catch (error) {
+      console.error("Failed to send notification:", error);
+      // Handle error - could show a toast or error message
+    }
   };
 
   const handleCreateTemplate = () => {

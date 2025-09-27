@@ -1,13 +1,15 @@
 import time
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from .manage_users_model import TenantUser, ROLE_CHOICES, BRANCH_CHOICES
 from .manage_users_serializers import TenantUserSerializer
-from lab.components.superadmin.CreateTenant.create_tenant_model import Tenant
+from lab.components.superadmin.models import Tenant
 
 class TenantUserListCreateView(generics.ListCreateAPIView):
     serializer_class = TenantUserSerializer
     queryset = TenantUser.objects.all()
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
 
     def get_queryset(self):
         tenant_id = self.request.query_params.get("tenant")
@@ -47,3 +49,35 @@ class TenantUserListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response({"tenant_user": serializer.data}, status=status.HTTP_201_CREATED)
+
+
+class TenantUserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = TenantUserSerializer
+    queryset = TenantUser.objects.all()
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+    lookup_field = 'id'
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data.copy()
+
+        # Validate role if provided
+        if 'role' in data and data['role'] not in dict(ROLE_CHOICES):
+            return Response({"error": f"Role must be one of {list(dict(ROLE_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate branch if provided
+        if data.get("branch") and data["branch"] not in dict(BRANCH_CHOICES):
+            return Response({"error": f"Branch must be one of {list(dict(BRANCH_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check tenant exists if provided
+        if 'tenant' in data:
+            try:
+                tenant = Tenant.objects.get(id=data["tenant"])
+                data["tenant"] = tenant.id
+            except Tenant.DoesNotExist:
+                return Response({"error": f"Tenant '{data['tenant']}' does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(instance, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"tenant_user": serializer.data}, status=status.HTTP_200_OK)

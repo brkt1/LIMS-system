@@ -9,7 +9,7 @@ from django.conf import settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
-from lab.components.superadmin.CreateTenant.create_tenant_model import Tenant
+from lab.components.superadmin.models import Tenant
 from lab.components.Analytics.analytics_models import SystemLog
 from lab.components.TenantAccessAuth.Login.models import User
 from datetime import datetime, timedelta

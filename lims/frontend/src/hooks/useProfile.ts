@@ -21,7 +21,7 @@ export interface ProfileData {
 }
 
 export const useProfile = () => {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const [originalData, setOriginalData] = useState<ProfileData>({
     firstName: user?.first_name || '',
     lastName: user?.last_name || '',
@@ -101,7 +101,9 @@ export const useProfile = () => {
         bio: data.bio || '',
         timezone: data.timezone || 'UTC',
         language: data.language || 'en',
-        profilePicture: data.profile_picture || '',
+        profilePicture: data.profile_picture ? 
+          (data.profile_picture.startsWith('http') ? data.profile_picture : `http://127.0.0.1:8000${data.profile_picture}`) 
+          : '',
         notifications: {
           email: data.email_notifications ?? true,
           sms: data.sms_notifications ?? false,
@@ -162,9 +164,6 @@ export const useProfile = () => {
       const response = await profileAPI.updateProfile(updateData);
       const updatedUser = response.data;
       
-      // Update the user context
-      setUser(prev => prev ? { ...prev, ...updatedUser } : null);
-      
       // Update local state
       const newProfileData = { ...profileData, ...data };
       setProfileData(newProfileData);
@@ -197,22 +196,31 @@ export const useProfile = () => {
       const response = await profileAPI.uploadProfilePicture(file);
       const { profile_picture } = response.data;
       
+      // Construct full URL for the profile picture
+      const fullUrl = profile_picture.startsWith('http') 
+        ? profile_picture 
+        : `http://127.0.0.1:8000${profile_picture}`;
+      
       // Update profile data with new picture URL
-      setProfileData(prev => ({ ...prev, profilePicture: profile_picture }));
-      setOriginalData(prev => ({ ...prev, profilePicture: profile_picture }));
+      setProfileData(prev => ({ ...prev, profilePicture: fullUrl }));
+      setOriginalData(prev => ({ ...prev, profilePicture: fullUrl }));
       
-      // Update user context
-      setUser(prev => prev ? { ...prev, profile_picture: profile_picture } : null);
-      
-      return profile_picture;
+      return fullUrl;
     } catch (err: any) {
       console.error('Failed to upload profile picture:', err);
-      // Use mock upload when API fails
-      const mockUrl = URL.createObjectURL(file);
-      setProfileData(prev => ({ ...prev, profilePicture: mockUrl }));
-      setOriginalData(prev => ({ ...prev, profilePicture: mockUrl }));
-      setUser(prev => prev ? { ...prev, profile_picture: mockUrl } : null);
-      return mockUrl;
+      // Use data URL for mock upload when API fails to avoid blob URL security issues
+      const reader = new FileReader();
+      return new Promise<string>((resolve) => {
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          if (result) {
+            setProfileData(prev => ({ ...prev, profilePicture: result }));
+            setOriginalData(prev => ({ ...prev, profilePicture: result }));
+            resolve(result);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     } finally {
       setLoading(false);
     }
@@ -228,15 +236,11 @@ export const useProfile = () => {
       // Remove profile picture from state
       setProfileData(prev => ({ ...prev, profilePicture: '' }));
       setOriginalData(prev => ({ ...prev, profilePicture: '' }));
-      
-      // Update user context
-      setUser(prev => prev ? { ...prev, profile_picture: '' } : null);
     } catch (err: any) {
       console.error('Failed to delete profile picture:', err);
       // Use mock delete when API fails
       setProfileData(prev => ({ ...prev, profilePicture: '' }));
       setOriginalData(prev => ({ ...prev, profilePicture: '' }));
-      setUser(prev => prev ? { ...prev, profile_picture: '' } : null);
     } finally {
       setLoading(false);
     }

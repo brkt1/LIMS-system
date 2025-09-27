@@ -22,30 +22,21 @@ const SuperAdminDashboard: React.FC = () => {
         setDashboardData((prev) => ({ ...prev, loading: true, error: null }));
 
         // Fetch all data in parallel
-        const [tenantsResponse, systemLogsResponse] = await Promise.all([
-          superadminAPI.tenants.getCount(),
-          analyticsAPI.getSystemLogs(),
-        ]);
+        const [tenantsResponse, systemLogsResponse, dashboardStatsResponse] =
+          await Promise.all([
+            superadminAPI.tenants.getCount(),
+            superadminAPI.logs.getRecentActivity(),
+            superadminAPI.tenants.getDashboardStats(),
+          ]);
 
-        // For now, estimate user count from system logs (users who have logged in)
-        const uniqueUsers = new Set(
-          systemLogsResponse.data.map((log: any) => log.user).filter(Boolean)
-        );
-        const estimatedUserCount = uniqueUsers.size || 7; // Fallback to known count
-
-        // Calculate active sessions (recent login activities)
-        const recentLogs = systemLogsResponse.data.filter(
-          (log: any) =>
-            log.action?.toLowerCase().includes("login") &&
-            new Date(log.created_at) >
-              new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
-        );
+        // Use dashboard stats from backend
+        const stats = dashboardStatsResponse.data;
 
         setDashboardData({
-          totalTenants: tenantsResponse.count,
-          systemUsers: estimatedUserCount,
-          activeSessions: recentLogs.length,
-          systemHealth: 99.9, // This would come from system health API
+          totalTenants: stats.total_tenants,
+          systemUsers: stats.total_users,
+          activeSessions: stats.total_users, // Use total users as active sessions for now
+          systemHealth: stats.system_health,
           loading: false,
           error: null,
         });

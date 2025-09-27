@@ -15,6 +15,7 @@ import {
   UserX,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { superadminAPI } from "../../services/api";
 
 const ManageTenants: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,65 +43,37 @@ const ManageTenants: React.FC = () => {
     lastActive: "",
   });
 
-  const [tenants, setTenants] = useState([
-    {
-      id: "1",
-      name: "MedLab Solutions",
-      domain: "medlab.lims.com",
-      status: "Active",
-      users: 45,
-      plan: "Professional",
-      created: "2024-01-15",
-      lastActive: "2025-01-20",
-    },
-    {
-      id: "2",
-      name: "City Hospital Lab",
-      domain: "cityhospital.lims.com",
-      status: "Active",
-      users: 78,
-      plan: "Enterprise",
-      created: "2024-02-20",
-      lastActive: "2025-01-20",
-    },
-    {
-      id: "3",
-      name: "Private Clinic Network",
-      domain: "pcn.lims.com",
-      status: "Suspended",
-      users: 23,
-      plan: "Basic",
-      created: "2024-03-10",
-      lastActive: "2025-01-18",
-    },
-    {
-      id: "4",
-      name: "Research Institute",
-      domain: "research.lims.com",
-      status: "Active",
-      users: 156,
-      plan: "Enterprise",
-      created: "2024-01-05",
-      lastActive: "2025-01-20",
-    },
-  ]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load tenants from localStorage on component mount
+  // Load tenants from backend API
   useEffect(() => {
-    const savedTenants = localStorage.getItem("superadmin-tenants");
-    if (savedTenants) {
+    const fetchTenants = async () => {
       try {
-        setTenants(JSON.parse(savedTenants));
-      } catch (error) {
-        console.error("Error loading saved tenants:", error);
+        setLoading(true);
+        setError(null);
+        const response = await superadminAPI.tenants.getAll();
+        setTenants(response.data);
+      } catch (error: any) {
+        console.error("Error fetching tenants:", error);
+        setError(error.message || "Failed to load tenants");
+        // Fallback to localStorage if API fails
+        const savedTenants = localStorage.getItem("superadmin-tenants");
+        if (savedTenants) {
+          try {
+            setTenants(JSON.parse(savedTenants));
+          } catch (parseError) {
+            console.error("Error parsing saved tenants:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save tenants to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("superadmin-tenants", JSON.stringify(tenants));
-  }, [tenants]);
+    fetchTenants();
+  }, []);
 
   // CRUD Functions
   const handleAddTenant = () => {
@@ -127,98 +100,123 @@ const ManageTenants: React.FC = () => {
     setShowMoreActionsModal(true);
   };
 
-  const handleCreateTenant = () => {
-    const newTenantData = {
-      id: String(tenants.length + 1),
-      ...newTenant,
-      created: new Date().toISOString().split("T")[0],
-      lastActive: new Date().toISOString().split("T")[0],
-    };
+  const handleCreateTenant = async () => {
+    try {
+      const tenantData = {
+        company_name: newTenant.name,
+        domain: newTenant.domain,
+        email: `${newTenant.domain}@example.com`, // You might want to add email field to form
+        password: "defaultpassword123", // You might want to add password field to form
+        status: newTenant.status.toLowerCase(),
+        max_users: newTenant.users,
+        created_by: "SuperAdmin", // You might want to get this from auth context
+      };
 
-    setTenants((prev) => [...prev, newTenantData]);
-    setNewTenant({
-      name: "",
-      domain: "",
-      status: "Active",
-      users: 0,
-      plan: "Basic",
-      created: "",
-      lastActive: "",
-    });
-    setShowAddTenantModal(false);
+      const response = await superadminAPI.tenants.create(tenantData);
+      setTenants((prev) => [...prev, response.data.tenant]);
+      setNewTenant({
+        name: "",
+        domain: "",
+        status: "Active",
+        users: 0,
+        plan: "Basic",
+        created: "",
+        lastActive: "",
+      });
+      setShowAddTenantModal(false);
+    } catch (error: any) {
+      console.error("Error creating tenant:", error);
+      setError(error.message || "Failed to create tenant");
+    }
   };
 
-  const handleUpdateTenant = () => {
-    setTenants((prev) =>
-      prev.map((t) =>
-        t.id === selectedTenant.id
-          ? {
-              ...t,
-              ...newTenant,
-              lastActive: new Date().toISOString().split("T")[0],
-            }
-          : t
-      )
-    );
-    setShowEditTenantModal(false);
-    setSelectedTenant(null);
+  const handleUpdateTenant = async () => {
+    try {
+      const updateData = {
+        company_name: newTenant.name,
+        domain: newTenant.domain,
+        status: newTenant.status.toLowerCase(),
+        max_users: newTenant.users,
+      };
+
+      const response = await superadminAPI.tenants.update(
+        selectedTenant.id,
+        updateData
+      );
+      setTenants((prev) =>
+        prev.map((t) => (t.id === selectedTenant.id ? response.data : t))
+      );
+      setShowEditTenantModal(false);
+      setSelectedTenant(null);
+    } catch (error: any) {
+      console.error("Error updating tenant:", error);
+      setError(error.message || "Failed to update tenant");
+    }
   };
 
-  const handleDeleteTenantConfirm = () => {
-    setTenants((prev) => prev.filter((t) => t.id !== selectedTenant.id));
-    setShowDeleteTenantModal(false);
-    setSelectedTenant(null);
+  const handleDeleteTenantConfirm = async () => {
+    try {
+      await superadminAPI.tenants.delete(selectedTenant.id);
+      setTenants((prev) => prev.filter((t) => t.id !== selectedTenant.id));
+      setShowDeleteTenantModal(false);
+      setSelectedTenant(null);
+    } catch (error: any) {
+      console.error("Error deleting tenant:", error);
+      setError(error.message || "Failed to delete tenant");
+    }
   };
 
-  const handleSuspendTenant = () => {
-    setTenants((prev) =>
-      prev.map((t) =>
-        t.id === selectedTenant.id
-          ? {
-              ...t,
-              status: "Suspended",
-              lastActive: new Date().toISOString().split("T")[0],
-            }
-          : t
-      )
-    );
-    setShowMoreActionsModal(false);
-    setSelectedTenant(null);
+  const handleSuspendTenant = async () => {
+    try {
+      await superadminAPI.tenants.suspend(selectedTenant.id);
+      setTenants((prev) =>
+        prev.map((t) =>
+          t.id === selectedTenant.id ? { ...t, status: "suspended" } : t
+        )
+      );
+      setShowMoreActionsModal(false);
+      setSelectedTenant(null);
+    } catch (error: any) {
+      console.error("Error suspending tenant:", error);
+      setError(error.message || "Failed to suspend tenant");
+    }
   };
 
-  const handleActivateTenant = () => {
-    setTenants((prev) =>
-      prev.map((t) =>
-        t.id === selectedTenant.id
-          ? {
-              ...t,
-              status: "Active",
-              lastActive: new Date().toISOString().split("T")[0],
-            }
-          : t
-      )
-    );
-    setShowMoreActionsModal(false);
-    setSelectedTenant(null);
+  const handleActivateTenant = async () => {
+    try {
+      await superadminAPI.tenants.activate(selectedTenant.id);
+      setTenants((prev) =>
+        prev.map((t) =>
+          t.id === selectedTenant.id ? { ...t, status: "active" } : t
+        )
+      );
+      setShowMoreActionsModal(false);
+      setSelectedTenant(null);
+    } catch (error: any) {
+      console.error("Error activating tenant:", error);
+      setError(error.message || "Failed to activate tenant");
+    }
   };
 
   const filteredTenants = tenants.filter((tenant) => {
     const matchesSearch =
-      tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.domain.toLowerCase().includes(searchTerm.toLowerCase());
+      tenant.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tenant.domain?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "" || tenant.status === filterStatus;
-    const matchesPlan = filterPlan === "" || tenant.plan === filterPlan;
+    const matchesPlan = filterPlan === "" || tenant.plan_name === filterPlan;
     return matchesSearch && matchesStatus && matchesPlan;
   });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
+    switch (status?.toLowerCase()) {
+      case "active":
         return "bg-green-100 text-green-800";
-      case "Suspended":
+      case "suspended":
         return "bg-red-100 text-red-800";
-      case "Pending":
+      case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "inactive":
+        return "bg-gray-100 dark:bg-gray-700 text-gray-800";
       default:
         return "bg-gray-100 dark:bg-gray-700 text-gray-800";
     }
@@ -279,6 +277,28 @@ const ManageTenants: React.FC = () => {
       </div>
 
       <div className="py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600 dark:text-gray-300">
+              Loading tenants...
+            </span>
+          </div>
+        )}
         {/* Collapsible Dashboard */}
         {showDashboard && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 sm:p-6 mb-6">
@@ -337,7 +357,7 @@ const ManageTenants: React.FC = () => {
                       Active Tenants
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      {tenants.filter((t) => t.status === "Active").length}
+                      {tenants.filter((t) => t.status === "active").length}
                     </p>
                   </div>
                   <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -350,7 +370,10 @@ const ManageTenants: React.FC = () => {
                       Total Users
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      {tenants.reduce((sum, t) => sum + t.users, 0)}
+                      {tenants.reduce(
+                        (sum, t) => sum + (t.current_users || 0),
+                        0
+                      )}
                     </p>
                   </div>
                   <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
@@ -363,7 +386,7 @@ const ManageTenants: React.FC = () => {
                       Suspended
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      {tenants.filter((t) => t.status === "Suspended").length}
+                      {tenants.filter((t) => t.status === "suspended").length}
                     </p>
                   </div>
                   <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 dark:text-red-400 flex-shrink-0" />
@@ -451,7 +474,7 @@ const ManageTenants: React.FC = () => {
                       <td className="py-4 px-4">
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {tenant.name}
+                            {tenant.company_name}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {tenant.domain}
@@ -468,22 +491,22 @@ const ManageTenants: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.users}
+                        {tenant.current_users}
                       </td>
                       <td className="py-4 px-4">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
-                            tenant.plan
+                            tenant.plan_name
                           )}`}
                         >
-                          {tenant.plan}
+                          {tenant.plan_name}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.created}
+                        {new Date(tenant.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.lastActive}
+                        {new Date(tenant.last_active).toLocaleDateString()}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
@@ -527,7 +550,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
-                      {tenant.name}
+                      {tenant.company_name}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                       {tenant.domain}
@@ -548,7 +571,7 @@ const ManageTenants: React.FC = () => {
                       Users
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                      {tenant.users}
+                      {tenant.current_users}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -557,10 +580,10 @@ const ManageTenants: React.FC = () => {
                     </span>
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
-                        tenant.plan
+                        tenant.plan_name
                       )}`}
                     >
-                      {tenant.plan}
+                      {tenant.plan_name}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -568,7 +591,7 @@ const ManageTenants: React.FC = () => {
                       Created
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                      {tenant.created}
+                      {new Date(tenant.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -599,7 +622,8 @@ const ManageTenants: React.FC = () => {
                       </button>
                     </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      Last active: {tenant.lastActive}
+                      Last active:{" "}
+                      {new Date(tenant.last_active).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -881,7 +905,8 @@ const ManageTenants: React.FC = () => {
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Are you sure you want to delete{" "}
-                  <strong>{selectedTenant.name}</strong>? This action cannot be undone.
+                  <strong>{selectedTenant.name}</strong>? This action cannot be
+                  undone.
                 </p>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -942,7 +967,11 @@ const ManageTenants: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Status
                   </label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedTenant.status)}`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedTenant.status
+                    )}`}
+                  >
                     {selectedTenant.status}
                   </span>
                 </div>
@@ -966,7 +995,11 @@ const ManageTenants: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Plan
                   </label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(selectedTenant.plan)}`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
+                      selectedTenant.plan
+                    )}`}
+                  >
                     {selectedTenant.plan}
                   </span>
                 </div>

@@ -1,7 +1,7 @@
 # current_tenant_views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from lab.components.superadmin.CreateTenant.create_tenant_model import Tenant
+from lab.components.superadmin.models import Tenant
 from .current_tenant_serializers import CurrentTenantSerializer
 
 class CurrentTenantView(APIView):

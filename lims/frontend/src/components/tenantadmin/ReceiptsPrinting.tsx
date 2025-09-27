@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { receiptsAPI } from "../../services/api";
 
 const ReceiptsPrinting: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,86 +34,53 @@ const ReceiptsPrinting: React.FC = () => {
     paymentMethod: "Cash",
   });
 
-  const [receipts, setReceipts] = useState([
-    {
-      id: "RCP001",
-      patientName: "John Smith",
-      patientId: "P001",
-      amount: 150.0,
-      status: "printed",
-      generatedDate: "2025-01-22",
-      generatedTime: "10:30 AM",
-      services: ["Blood Test", "Consultation"],
-      doctor: "Dr. Sarah Johnson",
-      paymentMethod: "Insurance",
-      printCount: 2,
-    },
-    {
-      id: "RCP002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      amount: 85.5,
-      status: "pending",
-      generatedDate: "2025-01-21",
-      generatedTime: "2:15 PM",
-      services: ["X-Ray"],
-      doctor: "Dr. Mike Davis",
-      paymentMethod: "Cash",
-      printCount: 0,
-    },
-    {
-      id: "RCP003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      amount: 320.0,
-      status: "printed",
-      generatedDate: "2025-01-20",
-      generatedTime: "4:45 PM",
-      services: ["MRI", "Consultation", "Lab Work"],
-      doctor: "Dr. Lisa Wilson",
-      paymentMethod: "Credit Card",
-      printCount: 1,
-    },
-    {
-      id: "RCP004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      amount: 45.0,
-      status: "printed",
-      generatedDate: "2025-01-19",
-      generatedTime: "9:20 AM",
-      services: ["Urine Analysis"],
-      doctor: "Dr. Robert Brown",
-      paymentMethod: "Insurance",
-      printCount: 3,
-    },
-    {
-      id: "RCP005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      amount: 200.0,
-      status: "cancelled",
-      generatedDate: "2025-01-18",
-      generatedTime: "11:10 AM",
-      services: ["ECG", "Consultation"],
-      doctor: "Dr. Sarah Johnson",
-      paymentMethod: "Insurance",
-      printCount: 0,
-    },
-  ]);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load data from localStorage on component mount
+  // Load receipts from backend API
   useEffect(() => {
-    const savedReceipts = localStorage.getItem("receipts");
-    if (savedReceipts) {
-      setReceipts(JSON.parse(savedReceipts));
-    }
+    const fetchReceipts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await receiptsAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedReceipts = response.data.map((receipt: any) => ({
+          id: receipt.id,
+          patientName: receipt.patient_name,
+          patientId: receipt.patient_id,
+          amount: parseFloat(receipt.amount),
+          status: receipt.status,
+          generatedDate: receipt.generated_date,
+          generatedTime: receipt.generated_time,
+          services: receipt.services || [],
+          doctor: receipt.doctor,
+          paymentMethod: receipt.payment_method,
+          printCount: receipt.print_count || 0,
+        }));
+
+        setReceipts(mappedReceipts);
+      } catch (error: any) {
+        console.error("Error fetching receipts:", error);
+        setError(error.message || "Failed to load receipts");
+        // Fallback to localStorage if API fails
+        const savedReceipts = localStorage.getItem("receipts");
+        if (savedReceipts) {
+          try {
+            setReceipts(JSON.parse(savedReceipts));
+          } catch (parseError) {
+            console.error("Error parsing saved receipts:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReceipts();
   }, []);
-
-  // Save data to localStorage whenever receipts change
-  useEffect(() => {
-    localStorage.setItem("receipts", JSON.stringify(receipts));
-  }, [receipts]);
 
   const filteredReceipts = receipts.filter((receipt) => {
     const matchesSearch =
@@ -151,45 +119,82 @@ const ReceiptsPrinting: React.FC = () => {
     setShowDownloadModal(true);
   };
 
-  const handleCreateReceipt = () => {
-    const newId = `RCP${String(receipts.length + 1).padStart(3, "0")}`;
-    const now = new Date();
-    const receipt = {
-      ...newReceipt,
-      id: newId,
-      amount: parseFloat(newReceipt.amount),
-      services: newReceipt.services.split(",").map((s) => s.trim()),
-      status: "printed",
-      generatedDate: now.toISOString().split("T")[0],
-      generatedTime: now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      printCount: 1,
-    };
-    setReceipts([...receipts, receipt]);
-    setShowPrintReceiptModal(false);
+  const handleCreateReceipt = async () => {
+    if (newReceipt.patientName && newReceipt.patientId && newReceipt.amount) {
+      try {
+        const receiptData = {
+          patient_name: newReceipt.patientName,
+          patient_id: newReceipt.patientId,
+          amount: parseFloat(newReceipt.amount),
+          services: newReceipt.services.split(",").map((s) => s.trim()),
+          doctor: newReceipt.doctor,
+          payment_method: newReceipt.paymentMethod.toLowerCase(),
+          status: "draft",
+          tenant: 1, // Default tenant ID
+          created_by: 1, // Default user ID
+        };
+
+        const response = await receiptsAPI.create(receiptData);
+        const createdReceipt = response.data;
+
+        // Map backend response to frontend format
+        const mappedReceipt = {
+          id: createdReceipt.id,
+          patientName: createdReceipt.patient_name,
+          patientId: createdReceipt.patient_id,
+          amount: parseFloat(createdReceipt.amount),
+          status: createdReceipt.status,
+          generatedDate: createdReceipt.generated_date,
+          generatedTime: createdReceipt.generated_time,
+          services: createdReceipt.services || [],
+          doctor: createdReceipt.doctor,
+          paymentMethod: createdReceipt.payment_method,
+          printCount: createdReceipt.print_count || 0,
+        };
+
+        setReceipts((prev: any) => [mappedReceipt, ...prev]);
+        setNewReceipt({
+          patientName: "",
+          patientId: "",
+          amount: "",
+          services: "",
+          doctor: "",
+          paymentMethod: "Cash",
+        });
+        setShowPrintReceiptModal(false);
+      } catch (error: any) {
+        console.error("Error creating receipt:", error);
+        setError(error.message || "Failed to create receipt");
+      }
+    }
   };
 
-  const handlePrintConfirm = () => {
+  const handlePrintConfirm = async () => {
     if (selectedReceipt) {
-      // Simulate printing
-      window.print();
+      try {
+        // Call backend API to print receipt
+        await receiptsAPI.printReceipt(selectedReceipt.id);
 
-      // Update print count
-      setReceipts(
-        receipts.map((receipt) =>
-          receipt.id === selectedReceipt.id
-            ? {
-                ...receipt,
-                printCount: receipt.printCount + 1,
-                status: "printed",
-              }
-            : receipt
-        )
-      );
-      setShowPrintModal(false);
+        // Simulate printing
+        window.print();
+
+        // Update local state
+        setReceipts(
+          receipts.map((receipt) =>
+            receipt.id === selectedReceipt.id
+              ? {
+                  ...receipt,
+                  printCount: receipt.printCount + 1,
+                  status: "printed",
+                }
+              : receipt
+          )
+        );
+        setShowPrintModal(false);
+      } catch (error: any) {
+        console.error("Error printing receipt:", error);
+        setError(error.message || "Failed to print receipt");
+      }
     }
   };
 
@@ -335,126 +340,145 @@ const ReceiptsPrinting: React.FC = () => {
         </div>
       </div>
 
-      {/* Receipts Table */}
-      <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Receipt
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Patient
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                  Services
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                  Payment
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                  Generated
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredReceipts.map((receipt) => (
-                <tr
-                  key={receipt.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
-                >
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {receipt.id}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {receipt.printCount} prints
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {receipt.patientName}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        ID: {receipt.patientId}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {receipt.services.join(", ")}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      ${receipt.amount.toFixed(2)}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-900 dark:text-white">
-                    {receipt.paymentMethod}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        receipt.status
-                      )}`}
-                    >
-                      {receipt.status.charAt(0).toUpperCase() +
-                        receipt.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell text-sm text-gray-900 dark:text-white">
-                    <div>
-                      <div>{receipt.generatedDate}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {receipt.generatedTime}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button
-                        onClick={() => handleViewReceipt(receipt)}
-                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </button>
-                      <button
-                        onClick={() => handlePrint(receipt)}
-                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
-                      >
-                        <Printer className="w-4 h-4 mr-1" />
-                        Print
-                      </button>
-                      <button
-                        onClick={() => handleDownload(receipt)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        Download
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
         </div>
-      </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading receipts...
+          </span>
+        </div>
+      )}
+
+      {/* Receipts Table */}
+      {!loading && (
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Receipt
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Patient
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Services
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                    Payment
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Generated
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredReceipts.map((receipt) => (
+                  <tr
+                    key={receipt.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                  >
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {receipt.id}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          {receipt.printCount} prints
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {receipt.patientName}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          ID: {receipt.patientId}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {receipt.services.join(", ")}
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        ${receipt.amount.toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-900 dark:text-white">
+                      {receipt.paymentMethod}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          receipt.status
+                        )}`}
+                      >
+                        {receipt.status.charAt(0).toUpperCase() +
+                          receipt.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell text-sm text-gray-900 dark:text-white">
+                      <div>
+                        <div>{receipt.generatedDate}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          {receipt.generatedTime}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                        <button
+                          onClick={() => handleViewReceipt(receipt)}
+                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </button>
+                        <button
+                          onClick={() => handlePrint(receipt)}
+                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                        >
+                          <Printer className="w-4 h-4 mr-1" />
+                          Print
+                        </button>
+                        <button
+                          onClick={() => handleDownload(receipt)}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Download
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Print Receipt Modal */}
       {showPrintReceiptModal && (

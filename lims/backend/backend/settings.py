@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     'lab.components.tenantadmin.ManageUsers',
 
     # Superadmin
-    'lab.components.superadmin.CreateTenant',
+    'lab.components.superadmin',
 
     # TenantAccessAuth (Login system)
     #'lab.components.TenantAccessAuth.Login',  # This is the app label we will use
@@ -90,6 +90,21 @@ INSTALLED_APPS = [
     
     # NEW APPS - Profile Management
     'lab.components.Profile',
+    
+    # NEW APPS - Receipts/Billing
+    'lab.components.Receipts',
+    
+    # NEW APPS - Home Visit Management
+    'lab.components.HomeVisit',
+    
+    # NEW APPS - Branch Management
+    'lab.components.BranchManagement',
+    
+    # NEW APPS - Contract Management
+    'lab.components.ContractManagement',
+    
+    # NEW APPS - Accounting
+    'lab.components.Accounting',
 ]
 
 # ------------------------
@@ -188,12 +203,38 @@ CORS_ALLOWED_ORIGINS = [
     "http://10.0.2.2:8000",
     "http://192.168.1.100:8000",
 ]
+
+# Additional CORS settings for development
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all origins in debug mode
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOWED_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 # ------------------------
 # REST FRAMEWORK
 # ------------------------
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],

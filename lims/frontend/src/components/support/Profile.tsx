@@ -2,6 +2,8 @@ import { ArrowLeft, Edit, Save, X, Eye, EyeOff } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { profileAPI } from "../../services/api";
+import ProfilePictureUpload from "../ProfilePictureUpload";
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -20,6 +22,8 @@ const Profile: React.FC = () => {
   });
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   // Support profile data state
   const [profileData, setProfileData] = useState({
@@ -42,18 +46,100 @@ const Profile: React.FC = () => {
     },
   });
 
-  // Load profile data from localStorage on component mount
+  // Load profile data from API on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem("supportProfile");
-    if (savedProfile) {
-      setProfileData(JSON.parse(savedProfile));
-    }
+    loadProfile();
   }, []);
 
-  // Save profile data to localStorage whenever profileData changes
+  // Save profile data to localStorage only when using mock authentication
   useEffect(() => {
-    localStorage.setItem("supportProfile", JSON.stringify(profileData));
-  }, [profileData]);
+    // Only save to localStorage if we're not in editing mode and using mock auth
+    const token = localStorage.getItem("access_token");
+    const isMockAuth = token && token.startsWith("mock_");
+
+    if (!isEditing && isMockAuth) {
+      localStorage.setItem("supportProfile", JSON.stringify(profileData));
+    }
+  }, [profileData, isEditing]);
+
+  const loadProfile = async () => {
+    try {
+      const response = await profileAPI.getProfile();
+      const data = response.data;
+
+      setProfileData({
+        firstName: data.first_name || user?.first_name || "Sarah",
+        lastName: data.last_name || user?.last_name || "Johnson",
+        email: data.email || user?.email || "sarah.johnson@support.com",
+        phone: data.phone || "+1 (555) 123-4567",
+        address: data.address || "123 Support Street, City, State 12345",
+        employeeId: data.employee_id || "SUP001",
+        department: data.department || "Technical Support",
+        position: data.position || "Senior Support Specialist",
+        hireDate: data.hire_date || "2022-03-15",
+        bio:
+          data.bio ||
+          "Experienced support specialist with expertise in system troubleshooting and user assistance.",
+        timezone: data.timezone || "America/New_York",
+        language: data.language || "en",
+        notifications: {
+          email: data.email_notifications ?? true,
+          sms: data.sms_notifications ?? true,
+          push: data.push_notifications ?? true,
+        },
+      });
+
+      // Set profile picture URL
+      if (data.profile_picture) {
+        // Construct full URL for the profile picture
+        const fullUrl = data.profile_picture.startsWith("http")
+          ? data.profile_picture
+          : `http://127.0.0.1:8000${data.profile_picture}`;
+        setProfilePicture(fullUrl);
+      }
+
+      console.log("Support profile loaded successfully from backend:", data);
+    } catch (error: any) {
+      console.error("Failed to load support profile:", error);
+
+      // If it's a 403 error, the user is using mock authentication
+      if (error.response?.status === 403) {
+        console.log(
+          "Using mock authentication - profile data will be stored locally"
+        );
+        // Load from localStorage if available
+        const savedProfile = localStorage.getItem("supportProfile");
+        if (savedProfile) {
+          try {
+            const parsedProfile = JSON.parse(savedProfile);
+            setProfileData(parsedProfile);
+            // Also load profile picture from localStorage
+            if (parsedProfile.profilePicture) {
+              setProfilePicture(parsedProfile.profilePicture);
+            }
+          } catch (parseError) {
+            console.error("Error parsing saved profile:", parseError);
+          }
+        }
+      } else if (error.response?.status === 401) {
+        console.log("Authentication required - user needs to log in");
+        setLocalError("Please log in to access your profile.");
+        // Try to load from localStorage as fallback
+        const savedProfile = localStorage.getItem("supportProfile");
+        if (savedProfile) {
+          try {
+            const parsedProfile = JSON.parse(savedProfile);
+            setProfileData(parsedProfile);
+            if (parsedProfile.profilePicture) {
+              setProfilePicture(parsedProfile.profilePicture);
+            }
+          } catch (parseError) {
+            console.error("Error parsing saved profile:", parseError);
+          }
+        }
+      }
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -94,24 +180,75 @@ const Profile: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Validate required fields before sending
+      if (profileData.firstName.length < 2) {
+        setLocalError("First name must be at least 2 characters long.");
+        return;
+      }
+      if (profileData.lastName.length < 2) {
+        setLocalError("Last name must be at least 2 characters long.");
+        return;
+      }
+      if (profileData.phone && profileData.phone.length < 10) {
+        setLocalError("Phone number must be at least 10 characters long.");
+        return;
+      }
+
+      const updateData = {
+        first_name: profileData.firstName.trim(),
+        last_name: profileData.lastName.trim(),
+        email: profileData.email,
+        phone: profileData.phone.trim(),
+        address: profileData.address,
+        bio: profileData.bio,
+        timezone: profileData.timezone,
+        language: profileData.language,
+        email_notifications: profileData.notifications.email,
+        sms_notifications: profileData.notifications.sms,
+        push_notifications: profileData.notifications.push,
+        // Support-specific fields (these might not exist in backend yet)
+        employee_id: profileData.employeeId,
+        department: profileData.department,
+        position: profileData.position,
+        hire_date: profileData.hireDate,
+      };
+
+      await profileAPI.updateProfile(updateData);
       setIsEditing(false);
       setSuccessMessage("Profile updated successfully!");
       setLocalError(null);
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setLocalError("Failed to update profile. Please try again.");
+      console.error("Profile update error:", err);
+
+      // If it's a 403 error, fall back to localStorage
+      if (err.response?.status === 403) {
+        console.log("Using mock authentication - saving to localStorage");
+        localStorage.setItem("supportProfile", JSON.stringify(profileData));
+        setIsEditing(false);
+        setSuccessMessage("Profile updated successfully! (Saved locally)");
+        setLocalError(null);
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else if (err.response?.status === 400) {
+        // Handle validation errors from backend
+        const errorData = err.response.data;
+        if (typeof errorData === "object") {
+          const errorMessages = Object.values(errorData).flat();
+          setLocalError(`Validation error: ${errorMessages.join(", ")}`);
+        } else {
+          setLocalError("Validation error. Please check your input.");
+        }
+      } else {
+        setLocalError("Failed to update profile. Please try again.");
+      }
     }
   };
 
   const handleCancel = () => {
-    // Reload from localStorage to reset changes
-    const savedProfile = localStorage.getItem("supportProfile");
-    if (savedProfile) {
-      setProfileData(JSON.parse(savedProfile));
-    }
+    // Reload from API to reset changes
+    loadProfile();
     setIsEditing(false);
     setShowPasswordForm(false);
     setPasswordData({
@@ -135,8 +272,10 @@ const Profile: React.FC = () => {
     }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await profileAPI.changePassword({
+        old_password: passwordData.oldPassword,
+        new_password: passwordData.newPassword,
+      });
       setShowPasswordForm(false);
       setPasswordData({
         oldPassword: "",
@@ -148,18 +287,112 @@ const Profile: React.FC = () => {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setLocalError("Failed to change password");
+      // If it's a 403 error, show a message about mock authentication
+      if (err.response?.status === 403) {
+        setLocalError(
+          "Password change not available with mock authentication. Please log in with real credentials."
+        );
+      } else {
+        setLocalError("Failed to change password");
+      }
     }
   };
 
   const handleProfilePictureUpload = async (file: File) => {
     try {
-      // Simulate file upload
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setUploadLoading(true);
+      setLocalError(null);
+
+      const formData = new FormData();
+      formData.append("profile_picture", file);
+
+      const response = await profileAPI.uploadProfilePicture(formData);
+
+      // Update the profile picture state with the new URL
+      if (response.data.profile_picture) {
+        // Construct full URL for the profile picture
+        const fullUrl = response.data.profile_picture.startsWith("http")
+          ? response.data.profile_picture
+          : `http://127.0.0.1:8000${response.data.profile_picture}`;
+        setProfilePicture(fullUrl);
+
+        // Also save to localStorage for persistence
+        const updatedProfileData = { ...profileData, profilePicture: fullUrl };
+        localStorage.setItem(
+          "supportProfile",
+          JSON.stringify(updatedProfileData)
+        );
+      }
+
       setSuccessMessage("Profile picture uploaded successfully!");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setLocalError("Failed to upload profile picture. Please try again.");
+      console.error("Profile picture upload error:", err);
+      console.error("Error status:", err.response?.status);
+      console.error("Error response:", err.response);
+
+      // If it's a 403 error, show a message about mock authentication
+      if (err.response?.status === 403) {
+        setLocalError(
+          "Profile picture upload not available with mock authentication. Please log in with real credentials."
+        );
+      } else if (err.response?.status === 500 || err.message?.includes("500")) {
+        // For 500 errors, try to save to localStorage as fallback
+        try {
+          const mockUrl = URL.createObjectURL(file);
+          setProfilePicture(mockUrl);
+          const updatedProfileData = {
+            ...profileData,
+            profilePicture: mockUrl,
+          };
+          localStorage.setItem(
+            "supportProfile",
+            JSON.stringify(updatedProfileData)
+          );
+          setLocalError(
+            "Server error occurred, but image saved locally. Please try again later."
+          );
+        } catch (fallbackError) {
+          console.error("Fallback save failed:", fallbackError);
+          setLocalError("Failed to upload profile picture. Please try again.");
+        }
+      } else {
+        setLocalError("Failed to upload profile picture. Please try again.");
+      }
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleProfilePictureDelete = async () => {
+    try {
+      setUploadLoading(true);
+      setLocalError(null);
+
+      await profileAPI.deleteProfilePicture();
+      setProfilePicture(null);
+
+      // Also save to localStorage for persistence
+      const updatedProfileData = { ...profileData, profilePicture: null };
+      localStorage.setItem(
+        "supportProfile",
+        JSON.stringify(updatedProfileData)
+      );
+
+      setSuccessMessage("Profile picture deleted successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error("Profile picture delete error:", err);
+      // If it's a 403 error, show a message about mock authentication
+      if (err.response?.status === 403) {
+        setLocalError(
+          "Profile picture deletion not available with mock authentication. Please log in with real credentials."
+        );
+      } else {
+        setLocalError("Failed to delete profile picture. Please try again.");
+      }
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -235,34 +468,14 @@ const Profile: React.FC = () => {
             Profile Picture
           </h3>
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <div className="relative">
-              <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <span className="text-2xl font-semibold text-gray-600 dark:text-gray-300">
-                  {profileData.firstName[0]}
-                  {profileData.lastName[0]}
-                </span>
-              </div>
-              {isEditing && (
-                <button
-                  onClick={() =>
-                    document.getElementById("profile-picture-upload")?.click()
-                  }
-                  className="absolute -bottom-2 -right-2 bg-primary-600 text-white rounded-full p-2 hover:bg-primary-700 transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-              )}
-              <input
-                id="profile-picture-upload"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleProfilePictureUpload(file);
-                }}
-                className="hidden"
-              />
-            </div>
+            <ProfilePictureUpload
+              currentPicture={profilePicture}
+              onUpload={handleProfilePictureUpload}
+              onDelete={handleProfilePictureDelete}
+              loading={uploadLoading}
+              disabled={!isEditing}
+              error={localError}
+            />
             <div className="text-center sm:text-left">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                 {profileData.firstName} {profileData.lastName}

@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('CreateTenant', '0001_initial'),
     ]
 
     operations = [
@@ -24,7 +23,7 @@ class Migration(migrations.Migration):
                 ('password', models.CharField(max_length=128)),
                 ('created_by', models.EmailField(max_length=254)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='users', to='CreateTenant.tenant')),
+                ('tenant_id', models.IntegerField()),
             ],
         ),
     ]

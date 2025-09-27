@@ -74,10 +74,17 @@ class UserProfile(models.Model):
         return self.user.get_full_name() or self.user.username
     
     def save(self, *args, **kwargs):
-        # Update the user's first_name and last_name if they exist
-        if self.first_name:
-            self.user.first_name = self.first_name
-        if self.last_name:
-            self.user.last_name = self.last_name
-        self.user.save()
+        # Update the user's first_name and last_name if they exist and are not empty
+        user_updated = False
+        if self.first_name and self.first_name.strip():
+            self.user.first_name = self.first_name.strip()
+            user_updated = True
+        if self.last_name and self.last_name.strip():
+            self.user.last_name = self.last_name.strip()
+            user_updated = True
+        
+        # Only save user if we actually updated something
+        if user_updated:
+            self.user.save()
+        
         super().save(*args, **kwargs)

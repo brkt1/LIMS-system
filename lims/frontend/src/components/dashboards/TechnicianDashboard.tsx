@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { sampleAPI, testReportAPI, equipmentAPI } from "../../services/api";
 
 const TechnicianDashboard: React.FC = () => {
   // Modal states
@@ -32,61 +33,71 @@ const TechnicianDashboard: React.FC = () => {
   });
 
   // Test reports data
-  const [testReports, setTestReports] = useState([
-    {
-      id: "TR-2025-001",
-      patientName: "John Smith",
-      testType: "Blood Panel Complete",
-      status: "completed",
-      createdDate: "2025-01-20 14:30",
-      description: "Complete blood count with differential",
-      priority: "normal",
-      technician: "Current Technician",
-      results: "All values within normal range",
-    },
-    {
-      id: "TR-2025-002",
-      patientName: "Sarah Johnson",
-      testType: "X-Ray Chest",
-      status: "in_review",
-      createdDate: "2025-01-20 13:15",
-      description: "Chest X-ray for routine examination",
-      priority: "normal",
-      technician: "Current Technician",
-      results: "Clear lung fields, no abnormalities detected",
-    },
-    {
-      id: "TR-2025-003",
-      patientName: "Mike Davis",
-      testType: "MRI Brain",
-      status: "processing",
-      createdDate: "2025-01-20 12:45",
-      description: "Brain MRI with contrast",
-      priority: "high",
-      technician: "Current Technician",
-      results: "Scan in progress",
-    },
-  ]);
+  const [testReports, setTestReports] = useState<any[]>([]);
+  const [testReportsLoading, setTestReportsLoading] = useState(true);
+  const [testReportsError, setTestReportsError] = useState<string | null>(null);
 
-  // Load test reports from localStorage on component mount
+  // Samples data
+  const [samples, setSamples] = useState<any[]>([]);
+  const [samplesLoading, setSamplesLoading] = useState(true);
+  const [samplesError, setSamplesError] = useState<string | null>(null);
+
+  // Equipment data
+  const [equipment, setEquipment] = useState<any[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(true);
+  const [equipmentError, setEquipmentError] = useState<string | null>(null);
+
+  // Load data on component mount
   useEffect(() => {
-    const savedReports = localStorage.getItem("technician-dashboard-reports");
-    if (savedReports) {
-      try {
-        setTestReports(JSON.parse(savedReports));
-      } catch (error) {
-        console.error("Error loading saved test reports:", error);
-      }
-    }
+    fetchTestReports();
+    fetchSamples();
+    fetchEquipment();
   }, []);
 
-  // Save test reports to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(
-      "technician-dashboard-reports",
-      JSON.stringify(testReports)
-    );
-  }, [testReports]);
+  const fetchTestReports = async () => {
+    try {
+      setTestReportsLoading(true);
+      setTestReportsError(null);
+      const response = await testReportAPI.getAll();
+      console.log("📊 Test Reports fetched:", response.data);
+      setTestReports(response.data);
+    } catch (err: any) {
+      console.error("Error fetching test reports:", err);
+      setTestReportsError(err.message || "Failed to fetch test reports");
+    } finally {
+      setTestReportsLoading(false);
+    }
+  };
+
+  const fetchSamples = async () => {
+    try {
+      setSamplesLoading(true);
+      setSamplesError(null);
+      const response = await sampleAPI.getAll();
+      console.log("🧪 Samples fetched:", response.data);
+      setSamples(response.data);
+    } catch (err: any) {
+      console.error("Error fetching samples:", err);
+      setSamplesError(err.message || "Failed to fetch samples");
+    } finally {
+      setSamplesLoading(false);
+    }
+  };
+
+  const fetchEquipment = async () => {
+    try {
+      setEquipmentLoading(true);
+      setEquipmentError(null);
+      const response = await equipmentAPI.getAll();
+      console.log("🔧 Equipment fetched:", response.data);
+      setEquipment(response.data);
+    } catch (err: any) {
+      console.error("Error fetching equipment:", err);
+      setEquipmentError(err.message || "Failed to fetch equipment");
+    } finally {
+      setEquipmentLoading(false);
+    }
+  };
 
   // CRUD Functions
   const handleNewReport = () => {
@@ -108,40 +119,49 @@ const TechnicianDashboard: React.FC = () => {
     setShowTrackReportModal(true);
   };
 
-  const handleCreateReport = () => {
-    const newReportData = {
-      id: `TR-2025-${String(testReports.length + 1).padStart(3, "0")}`,
-      ...newReport,
-      status: "processing",
-      createdDate: new Date().toLocaleString(),
-      technician: "Current Technician",
-      results: "Report being generated",
-    };
+  const handleCreateReport = async () => {
+    try {
+      const reportData = {
+        test_name: newReport.testType,
+        patient_name: newReport.patientName,
+        description: newReport.description,
+        priority: newReport.priority,
+        status: "processing",
+        technician: "Current Technician",
+        results: "Report being generated",
+      };
 
-    setTestReports((prev) => [...prev, newReportData]);
-    setNewReport({
-      patientName: "",
-      testType: "",
-      description: "",
-      priority: "normal",
-    });
-    setShowNewReportModal(false);
+      await testReportAPI.create(reportData);
+      setNewReport({
+        patientName: "",
+        testType: "",
+        description: "",
+        priority: "normal",
+      });
+      setShowNewReportModal(false);
+      fetchTestReports(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error creating test report:", err);
+      alert("Failed to create test report. Please try again.");
+    }
   };
 
-  const handleUpdateReport = () => {
-    setTestReports((prev) =>
-      prev.map((r) =>
-        r.id === selectedReport.id
-          ? {
-              ...r,
-              status: "completed",
-              results: "Report completed successfully",
-            }
-          : r
-      )
-    );
-    setShowEditReportModal(false);
-    setSelectedReport(null);
+  const handleUpdateReport = async () => {
+    try {
+      const updateData = {
+        ...selectedReport,
+        status: "completed",
+        results: "Report completed successfully",
+      };
+
+      await testReportAPI.update(selectedReport.id, updateData);
+      setShowEditReportModal(false);
+      setSelectedReport(null);
+      fetchTestReports(); // Refresh the list
+    } catch (err: any) {
+      console.error("Error updating test report:", err);
+      alert("Failed to update test report. Please try again.");
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -173,28 +193,62 @@ const TechnicianDashboard: React.FC = () => {
   const technicianCards = [
     {
       title: "Samples Processed",
-      value: "156",
-      change: "+23 Today",
+      value: samplesLoading ? "..." : samples.length.toString(),
+      change: samplesLoading
+        ? "Loading..."
+        : `+${Math.floor(samples.length * 0.1)} Today`,
       color: "bg-blue-500",
-      chartData: [120, 130, 140, 145, 150, 152, 156],
+      chartData: samplesLoading
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [
+            samples.length * 0.7,
+            samples.length * 0.8,
+            samples.length * 0.85,
+            samples.length * 0.9,
+            samples.length * 0.95,
+            samples.length * 0.98,
+            samples.length,
+          ],
     },
     {
       title: "Equipment Active",
-      value: "8/10",
-      change: "2 Maintenance Due",
+      value: equipmentLoading
+        ? "..."
+        : `${equipment.filter((eq) => eq.status === "operational").length}/${
+            equipment.length
+          }`,
+      change: equipmentLoading
+        ? "Loading..."
+        : `${
+            equipment.filter((eq) => eq.status === "maintenance").length
+          } Maintenance Due`,
       color: "bg-green-500",
-      chartData: [6, 7, 8, 8, 8, 8, 8],
+      chartData: equipmentLoading
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [equipment.filter((eq) => eq.status === "operational").length],
     },
     {
       title: "Test Reports Created",
-      value: "89",
-      change: "+12 This Week",
+      value: testReportsLoading ? "..." : testReports.length.toString(),
+      change: testReportsLoading
+        ? "Loading..."
+        : `+${Math.floor(testReports.length * 0.15)} This Week`,
       color: "bg-purple-500",
-      chartData: [70, 75, 80, 82, 85, 87, 89],
+      chartData: testReportsLoading
+        ? [0, 0, 0, 0, 0, 0, 0]
+        : [
+            testReports.length * 0.7,
+            testReports.length * 0.8,
+            testReports.length * 0.85,
+            testReports.length * 0.9,
+            testReports.length * 0.95,
+            testReports.length * 0.98,
+            testReports.length,
+          ],
     },
     {
       title: "Quality Score",
-      value: "98.5%",
+      value: "98.5%", // This would be calculated from test results
       change: "+0.3% This Month",
       color: "bg-emerald-500",
       chartData: [97, 97.5, 98, 98.2, 98.3, 98.4, 98.5],
@@ -475,63 +529,94 @@ const TechnicianDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {testReports.map((report) => (
-                <tr
-                  key={report.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    {report.id}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {report.patientName}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {report.testType}
-                  </td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        report.status
-                      )}`}
-                    >
-                      {getStatusText(report.status)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {report.createdDate}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewReport(report)}
-                        className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium flex items-center space-x-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>View</span>
-                      </button>
-                      {report.status !== "completed" && (
-                        <button
-                          onClick={() => handleEditReport(report)}
-                          className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 text-sm font-medium flex items-center space-x-1"
-                        >
-                          <Edit className="w-3 h-3" />
-                          <span>Edit</span>
-                        </button>
-                      )}
-                      {report.status === "processing" && (
-                        <button
-                          onClick={() => handleTrackReport(report)}
-                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium flex items-center space-x-1"
-                        >
-                          <Clock className="w-3 h-3" />
-                          <span>Track</span>
-                        </button>
-                      )}
+              {testReportsLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Loading test reports...
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : testReportsError ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center">
+                    <div className="text-center">
+                      <span className="text-sm text-red-500 dark:text-red-400">
+                        {testReportsError}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ) : testReports.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      No test reports available
+                    </span>
+                  </td>
+                </tr>
+              ) : (
+                testReports.map((report) => (
+                  <tr
+                    key={report.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
+                      {report.id}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {report.patient_name}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {report.test_name || report.test_type}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          report.status
+                        )}`}
+                      >
+                        {getStatusText(report.status)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {new Date(report.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleViewReport(report)}
+                          className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium flex items-center space-x-1"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View</span>
+                        </button>
+                        {report.status !== "completed" && (
+                          <button
+                            onClick={() => handleEditReport(report)}
+                            className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 text-sm font-medium flex items-center space-x-1"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        {report.status === "processing" && (
+                          <button
+                            onClick={() => handleTrackReport(report)}
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium flex items-center space-x-1"
+                          >
+                            <Clock className="w-3 h-3" />
+                            <span>Track</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -163,6 +163,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           apiError
         );
 
+        // If it's a 401 error, don't fall back to mock - show the real error
+        if (apiError.response?.status === 401) {
+          throw new Error(
+            "Invalid credentials. Please check your email and password."
+          );
+        }
+
         // Fallback to mock authentication for development
         const mockPassword = "123"; // Simple password for all test accounts
         if (

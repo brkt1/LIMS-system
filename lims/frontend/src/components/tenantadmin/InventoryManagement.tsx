@@ -11,6 +11,7 @@ import {
   Package2,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { inventoryAPI } from "../../services/api";
 
 const InventoryManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,101 +60,70 @@ const InventoryManagement: React.FC = () => {
   });
 
   // Dynamic inventory state
-  const [inventoryItems, setInventoryItems] = useState([
-    {
-      id: "INV001",
-      name: "Blood Collection Tubes",
-      category: "Supplies",
-      sku: "BCT-001",
-      currentStock: 150,
-      minStock: 50,
-      maxStock: 500,
-      unit: "pieces",
-      unitPrice: 2.5,
-      supplier: "MedSupply Inc.",
-      lastRestocked: "2025-01-15",
-      expiryDate: "2026-01-15",
-      status: "in-stock",
-    },
-    {
-      id: "INV002",
-      name: "Glucose Test Strips",
-      category: "Test Kits",
-      sku: "GTS-002",
-      currentStock: 25,
-      minStock: 30,
-      maxStock: 200,
-      unit: "boxes",
-      unitPrice: 45.0,
-      supplier: "LabTech Solutions",
-      lastRestocked: "2025-01-10",
-      expiryDate: "2025-06-10",
-      status: "low-stock",
-    },
-    {
-      id: "INV003",
-      name: "X-Ray Film 14x17",
-      category: "Imaging",
-      sku: "XRF-003",
-      currentStock: 0,
-      minStock: 20,
-      maxStock: 100,
-      unit: "boxes",
-      unitPrice: 120.0,
-      supplier: "Imaging Supplies Co.",
-      lastRestocked: "2024-12-20",
-      expiryDate: "2027-12-20",
-      status: "out-of-stock",
-    },
-    {
-      id: "INV004",
-      name: "Surgical Gloves (Latex)",
-      category: "Supplies",
-      sku: "SG-004",
-      currentStock: 300,
-      minStock: 100,
-      maxStock: 1000,
-      unit: "boxes",
-      unitPrice: 15.75,
-      supplier: "SafetyFirst Medical",
-      lastRestocked: "2025-01-20",
-      expiryDate: "2026-01-20",
-      status: "in-stock",
-    },
-    {
-      id: "INV005",
-      name: "COVID-19 Test Kit",
-      category: "Test Kits",
-      sku: "CVT-005",
-      currentStock: 80,
-      minStock: 50,
-      maxStock: 300,
-      unit: "kits",
-      unitPrice: 25.0,
-      supplier: "RapidTest Labs",
-      lastRestocked: "2025-01-18",
-      expiryDate: "2025-07-18",
-      status: "in-stock",
-    },
-  ]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load inventory from localStorage on component mount
+  // Load inventory from backend API
   useEffect(() => {
-    const savedInventory = localStorage.getItem("inventory-items");
-    if (savedInventory) {
+    const fetchInventory = async () => {
       try {
-        const parsedInventory = JSON.parse(savedInventory);
-        setInventoryItems(parsedInventory);
-      } catch (error) {
-        console.error("Error loading inventory:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
 
-  // Save inventory to localStorage whenever inventory changes
-  useEffect(() => {
-    localStorage.setItem("inventory-items", JSON.stringify(inventoryItems));
-  }, [inventoryItems]);
+        // Fetch all data in parallel
+        const [itemsResponse, categoriesResponse, suppliersResponse] =
+          await Promise.all([
+            inventoryAPI.getItems(),
+            inventoryAPI.getCategories(),
+            inventoryAPI.getSuppliers(),
+          ]);
+
+        // Set categories and suppliers
+        setCategories(categoriesResponse.data);
+        setSuppliers(suppliersResponse.data);
+
+        // Map backend data to frontend expected format
+        const mappedItems = itemsResponse.data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category_name || "Uncategorized",
+          sku: `SKU-${item.id}`, // Generate SKU from ID since backend doesn't have it
+          currentStock: item.quantity || 0,
+          minStock: item.threshold || 0,
+          maxStock: (item.threshold || 0) * 3, // Estimate max stock
+          unit: "pieces", // Default unit
+          unitPrice: 0, // Default price since backend doesn't have it
+          supplier: item.supplier_name || "Unknown Supplier",
+          lastRestocked: item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : "Unknown",
+          expiryDate: "N/A", // Backend doesn't have expiry date
+          status: item.status || "unknown",
+        }));
+
+        setInventoryItems(mappedItems);
+      } catch (error: any) {
+        console.error("Error fetching inventory:", error);
+        setError(error.message || "Failed to load inventory");
+        // Fallback to localStorage if API fails
+        const savedInventory = localStorage.getItem("inventory-items");
+        if (savedInventory) {
+          try {
+            setInventoryItems(JSON.parse(savedInventory));
+          } catch (parseError) {
+            console.error("Error parsing saved inventory:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInventory();
+  }, []);
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
@@ -244,92 +214,177 @@ const InventoryManagement: React.FC = () => {
     setShowRestockModal(true);
   };
 
-  const handleCreateItem = () => {
-    if (newItem.name && newItem.category && newItem.sku) {
-      const item = {
-        id: `INV${String(inventoryItems.length + 1).padStart(3, "0")}`,
-        ...newItem,
-        lastRestocked: new Date().toISOString().split("T")[0],
-        status:
-          newItem.currentStock === 0
-            ? "out-of-stock"
-            : newItem.currentStock <= newItem.minStock
-            ? "low-stock"
-            : "in-stock",
-      };
-      setInventoryItems((prev: any) => [item, ...prev]);
-      setShowAddItemModal(false);
-      setNewItem({
-        name: "",
-        category: "",
-        sku: "",
-        currentStock: 0,
-        minStock: 0,
-        maxStock: 0,
-        unit: "",
-        unitPrice: 0,
-        supplier: "",
-        expiryDate: "",
-      });
+  const handleCreateItem = async () => {
+    if (newItem.name && newItem.category) {
+      try {
+        // Find category and supplier IDs
+        const selectedCategory = categories.find(
+          (cat) => cat.name === newItem.category
+        );
+        const selectedSupplier = suppliers.find(
+          (sup) => sup.name === newItem.supplier
+        );
+
+        const itemData = {
+          name: newItem.name,
+          category: selectedCategory?.id || 1, // Default to first category if not found
+          quantity: newItem.currentStock || 0,
+          threshold: newItem.minStock || 0,
+          status: newItem.currentStock === 0 ? "out-of-stock" : "in-stock",
+          supplier: selectedSupplier?.id || 1, // Default to first supplier if not found
+          location: "Main Storage", // Default location
+        };
+
+        const response = await inventoryAPI.createItem(itemData);
+        const createdItem = response.data;
+
+        // Map backend response to frontend format
+        const mappedItem = {
+          id: createdItem.id,
+          name: createdItem.name,
+          category: createdItem.category_name || createdItem.category,
+          sku: `SKU-${createdItem.id}`,
+          currentStock: createdItem.quantity || 0,
+          minStock: createdItem.threshold || 0,
+          maxStock: (createdItem.threshold || 0) * 3,
+          unit: "pieces",
+          unitPrice: 0,
+          supplier: createdItem.supplier_name || "Unknown Supplier",
+          lastRestocked: new Date().toISOString().split("T")[0],
+          expiryDate: "N/A",
+          status: createdItem.status || "in-stock",
+        };
+
+        setInventoryItems((prev: any) => [mappedItem, ...prev]);
+        setShowAddItemModal(false);
+        setNewItem({
+          name: "",
+          category: "",
+          sku: "",
+          currentStock: 0,
+          minStock: 0,
+          maxStock: 0,
+          unit: "",
+          unitPrice: 0,
+          supplier: "",
+          expiryDate: "",
+        });
+      } catch (error: any) {
+        console.error("Error creating item:", error);
+        setError(error.message || "Failed to create item");
+      }
     }
   };
 
-  const handleUpdateItem = () => {
-    if (selectedItem && editItem.name && editItem.category && editItem.sku) {
-      setInventoryItems((prev: any) =>
-        prev.map((item: any) =>
-          item.id === selectedItem.id
-            ? {
-                ...item,
-                ...editItem,
-                status:
-                  editItem.currentStock === 0
-                    ? "out-of-stock"
-                    : editItem.currentStock <= editItem.minStock
-                    ? "low-stock"
-                    : "in-stock",
-              }
-            : item
-        )
-      );
-      setShowEditItemModal(false);
-      setSelectedItem(null);
+  const handleUpdateItem = async () => {
+    if (selectedItem && editItem.name && editItem.category) {
+      try {
+        const itemData = {
+          name: editItem.name,
+          category_name: editItem.category,
+          quantity: editItem.currentStock || 0,
+          threshold: editItem.minStock || 0,
+          status: editItem.currentStock === 0 ? "out-of-stock" : "in-stock",
+          supplier_name: editItem.supplier || "Unknown Supplier",
+          location: "Main Storage",
+        };
+
+        const response = await inventoryAPI.updateItem(
+          selectedItem.id,
+          itemData
+        );
+        const updatedItem = response.data;
+
+        // Map backend response to frontend format
+        const mappedItem = {
+          id: updatedItem.id,
+          name: updatedItem.name,
+          category: updatedItem.category_name || updatedItem.category,
+          sku: `SKU-${updatedItem.id}`,
+          currentStock: updatedItem.quantity || 0,
+          minStock: updatedItem.threshold || 0,
+          maxStock: (updatedItem.threshold || 0) * 3,
+          unit: "pieces",
+          unitPrice: 0,
+          supplier: updatedItem.supplier_name || "Unknown Supplier",
+          lastRestocked: selectedItem.lastRestocked,
+          expiryDate: "N/A",
+          status: updatedItem.status || "in-stock",
+        };
+
+        setInventoryItems((prev: any) =>
+          prev.map((item: any) =>
+            item.id === selectedItem.id ? mappedItem : item
+          )
+        );
+        setShowEditItemModal(false);
+        setSelectedItem(null);
+      } catch (error: any) {
+        console.error("Error updating item:", error);
+        setError(error.message || "Failed to update item");
+      }
     }
   };
 
-  const handleRestockConfirm = () => {
+  const handleRestockConfirm = async () => {
     if (selectedItem && restockData.quantity > 0) {
-      const newStock = selectedItem.currentStock + restockData.quantity;
-      setInventoryItems((prev: any) =>
-        prev.map((item: any) =>
-          item.id === selectedItem.id
-            ? {
-                ...item,
-                currentStock: newStock,
-                lastRestocked: new Date().toISOString().split("T")[0],
-                status:
-                  newStock === 0
-                    ? "out-of-stock"
-                    : newStock <= item.minStock
-                    ? "low-stock"
-                    : "in-stock",
-              }
-            : item
-        )
-      );
-      setShowRestockModal(false);
-      setSelectedItem(null);
-      setRestockData({
-        quantity: 0,
-        supplier: "",
-        cost: 0,
-        notes: "",
-      });
+      try {
+        const newStock = selectedItem.currentStock + restockData.quantity;
+        const itemData = {
+          name: selectedItem.name,
+          category_name: selectedItem.category,
+          quantity: newStock,
+          threshold: selectedItem.minStock,
+          status: newStock === 0 ? "out-of-stock" : "in-stock",
+          supplier_name: restockData.supplier || selectedItem.supplier,
+          location: "Main Storage",
+        };
+
+        const response = await inventoryAPI.updateItem(
+          selectedItem.id,
+          itemData
+        );
+        const updatedItem = response.data;
+
+        // Map backend response to frontend format
+        const mappedItem = {
+          id: updatedItem.id,
+          name: updatedItem.name,
+          category: updatedItem.category_name || updatedItem.category,
+          sku: `SKU-${updatedItem.id}`,
+          currentStock: updatedItem.quantity || 0,
+          minStock: updatedItem.threshold || 0,
+          maxStock: (updatedItem.threshold || 0) * 3,
+          unit: "pieces",
+          unitPrice: 0,
+          supplier: updatedItem.supplier_name || "Unknown Supplier",
+          lastRestocked: new Date().toISOString().split("T")[0],
+          expiryDate: "N/A",
+          status: updatedItem.status || "in-stock",
+        };
+
+        setInventoryItems((prev: any) =>
+          prev.map((item: any) =>
+            item.id === selectedItem.id ? mappedItem : item
+          )
+        );
+        setShowRestockModal(false);
+        setSelectedItem(null);
+        setRestockData({
+          quantity: 0,
+          supplier: "",
+          cost: 0,
+          notes: "",
+        });
+      } catch (error: any) {
+        console.error("Error restocking item:", error);
+        setError(error.message || "Failed to restock item");
+      }
     }
   };
 
   const totalValue = inventoryItems.reduce(
-    (sum, item) => sum + item.currentStock * item.unitPrice,
+    (sum, item) => sum + (item.currentStock || 0) * (item.unitPrice || 0),
     0
   );
   const lowStockItems = inventoryItems.filter(
@@ -504,7 +559,7 @@ const InventoryManagement: React.FC = () => {
                         SKU: {item.sku}
                       </div>
                       <div className="text-xs text-gray-400 sm:hidden">
-                        {item.category} • ${item.unitPrice.toFixed(2)}
+                        {item.category} • ${(item.unitPrice || 0).toFixed(2)}
                       </div>
                       <div className="text-xs text-gray-400 hidden sm:block">
                         ID: {item.id}
@@ -542,7 +597,7 @@ const InventoryManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden md:table-cell">
-                    ${item.unitPrice.toFixed(2)}
+                    ${(item.unitPrice || 0).toFixed(2)}
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden lg:table-cell">
                     {item.supplier}
@@ -622,10 +677,11 @@ const InventoryManagement: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select category</option>
-                    <option value="Supplies">Supplies</option>
-                    <option value="Test Kits">Test Kits</option>
-                    <option value="Imaging">Imaging</option>
-                    <option value="Equipment">Equipment</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -729,15 +785,20 @@ const InventoryManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Supplier
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={newItem.supplier}
                     onChange={(e) =>
                       setNewItem({ ...newItem, supplier: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter supplier name"
-                  />
+                  >
+                    <option value="">Select supplier</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.name}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -865,7 +926,7 @@ const InventoryManagement: React.FC = () => {
                     Unit Price
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    ${selectedItem.unitPrice.toFixed(2)}
+                    ${(selectedItem.unitPrice || 0).toFixed(2)}
                   </p>
                 </div>
                 <div>
@@ -875,7 +936,8 @@ const InventoryManagement: React.FC = () => {
                   <p className="text-sm text-gray-900 dark:text-white">
                     $
                     {(
-                      selectedItem.currentStock * selectedItem.unitPrice
+                      (selectedItem.currentStock || 0) *
+                      (selectedItem.unitPrice || 0)
                     ).toFixed(2)}
                   </p>
                 </div>

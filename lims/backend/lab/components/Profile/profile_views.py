@@ -52,8 +52,8 @@ def upload_profile_picture(request):
         profile, created = UserProfile.objects.get_or_create(
             user=request.user,
             defaults={
-                'first_name': request.user.first_name,
-                'last_name': request.user.last_name,
+                'first_name': request.user.first_name if request.user.first_name else '',
+                'last_name': request.user.last_name if request.user.last_name else '',
             }
         )
         
@@ -67,6 +67,9 @@ def upload_profile_picture(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     except Exception as e:
+        import traceback
+        print(f"Profile picture upload error: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         return Response(
             {'error': str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

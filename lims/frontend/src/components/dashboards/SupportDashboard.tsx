@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { inventoryAPI, supportTicketAPI } from "../../services/api";
 
 const SupportDashboard: React.FC = () => {
   // State management for modals
@@ -44,45 +45,50 @@ const SupportDashboard: React.FC = () => {
   });
 
   // Inventory data state
-  const [inventoryItems, setInventoryItems] = useState([
-    {
-      id: 1,
-      name: "Blood Collection Tubes",
-      category: "Supplies",
-      stockLevel: 45,
-      status: "In Stock",
-      lastUpdated: "2025-01-20 10:30",
-    },
-    {
-      id: 2,
-      name: "Microscope Slides",
-      category: "Supplies",
-      stockLevel: 8,
-      status: "Low Stock",
-      lastUpdated: "2025-01-20 09:15",
-    },
-    {
-      id: 3,
-      name: "Lab Coats",
-      category: "Equipment",
-      stockLevel: 0,
-      status: "Out of Stock",
-      lastUpdated: "2025-01-19 16:45",
-    },
-  ]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
 
-  // Load inventory from localStorage on component mount
+  // Support Tickets data state
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+
+  // Load data from API on component mount
   useEffect(() => {
-    const savedInventory = localStorage.getItem("supportInventory");
-    if (savedInventory) {
-      setInventoryItems(JSON.parse(savedInventory));
-    }
+    fetchInventory();
+    fetchSupportTickets();
   }, []);
 
-  // Save inventory to localStorage whenever inventory changes
-  useEffect(() => {
-    localStorage.setItem("supportInventory", JSON.stringify(inventoryItems));
-  }, [inventoryItems]);
+  const fetchInventory = async () => {
+    try {
+      setInventoryLoading(true);
+      setInventoryError(null);
+      const response = await inventoryAPI.getItems();
+      console.log("📦 Inventory fetched:", response.data);
+      setInventoryItems(response.data);
+    } catch (err: any) {
+      console.error("Error fetching inventory:", err);
+      setInventoryError(err.message || "Failed to fetch inventory");
+    } finally {
+      setInventoryLoading(false);
+    }
+  };
+
+  const fetchSupportTickets = async () => {
+    try {
+      setTicketsLoading(true);
+      setTicketsError(null);
+      const response = await supportTicketAPI.getTickets();
+      console.log("🎫 Support tickets fetched:", response.data);
+      setSupportTickets(response.data);
+    } catch (err: any) {
+      console.error("Error fetching support tickets:", err);
+      setTicketsError(err.message || "Failed to fetch support tickets");
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
 
   // Handler functions
   const handleManageInventory = () => {
@@ -261,102 +267,92 @@ const SupportDashboard: React.FC = () => {
             <Headphones className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
-            {[
-              {
-                id: "ST-001",
-                user: "Dr. Sarah Johnson",
-                issue: "Login Problem",
-                priority: "High",
-                status: "Open",
-                time: "2h ago",
-              },
-              {
-                id: "ST-002",
-                user: "Mike Chen",
-                issue: "Equipment Error",
-                priority: "Medium",
-                status: "In Progress",
-                time: "4h ago",
-              },
-              {
-                id: "ST-003",
-                user: "Lisa Rodriguez",
-                issue: "Report Generation",
-                priority: "Low",
-                status: "Resolved",
-                time: "6h ago",
-              },
-              {
-                id: "ST-004",
-                user: "David Kim",
-                issue: "Data Export",
-                priority: "Medium",
-                status: "Open",
-                time: "8h ago",
-              },
-              {
-                id: "ST-005",
-                user: "Anna Wilson",
-                issue: "System Slow",
-                priority: "High",
-                status: "In Progress",
-                time: "1d ago",
-              },
-            ].map((ticket, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      ticket.priority === "High"
-                        ? "bg-red-100 dark:bg-red-900"
-                        : ticket.priority === "Medium"
-                        ? "bg-yellow-100 dark:bg-yellow-900"
-                        : "bg-green-100 dark:bg-green-900"
-                    }`}
-                  >
-                    <AlertCircle
-                      className={`w-4 h-4 ${
-                        ticket.priority === "High"
-                          ? "text-red-600 dark:text-red-400"
-                          : ticket.priority === "Medium"
-                          ? "text-yellow-600 dark:text-yellow-400"
-                          : "text-green-600 dark:text-green-400"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {ticket.id}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {ticket.user}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {ticket.issue}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      ticket.status === "Open"
-                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
-                        : ticket.status === "In Progress"
-                        ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
-                        : "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                    }`}
-                  >
-                    {ticket.status}
-                  </span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {ticket.time}
+            {ticketsLoading ? (
+              <div className="flex items-center justify-center p-6">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Loading support tickets...
                   </p>
                 </div>
               </div>
-            ))}
+            ) : ticketsError ? (
+              <div className="flex items-center justify-center p-6">
+                <div className="text-center">
+                  <Headphones className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                  <p className="text-sm text-red-500 dark:text-red-400">
+                    {ticketsError}
+                  </p>
+                </div>
+              </div>
+            ) : supportTickets.length === 0 ? (
+              <div className="flex items-center justify-center p-6">
+                <div className="text-center">
+                  <Headphones className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No support tickets available
+                  </p>
+                </div>
+              </div>
+            ) : (
+              supportTickets.slice(0, 5).map((ticket, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        ticket.priority === "High"
+                          ? "bg-red-100 dark:bg-red-900"
+                          : ticket.priority === "Medium"
+                          ? "bg-yellow-100 dark:bg-yellow-900"
+                          : "bg-green-100 dark:bg-green-900"
+                      }`}
+                    >
+                      <AlertCircle
+                        className={`w-4 h-4 ${
+                          ticket.priority === "High"
+                            ? "text-red-600 dark:text-red-400"
+                            : ticket.priority === "Medium"
+                            ? "text-yellow-600 dark:text-yellow-400"
+                            : "text-green-600 dark:text-green-400"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {ticket.id || `#${ticket.ticket_number || index + 1}`}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        {ticket.created_by || ticket.user || "Unknown User"}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {ticket.title || ticket.issue || "No title"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        ticket.status === "Open"
+                          ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
+                          : ticket.status === "In Progress"
+                          ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                          : "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                      }`}
+                    >
+                      {ticket.status}
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {ticket.created_at
+                        ? new Date(ticket.created_at).toLocaleDateString()
+                        : ticket.time || "Unknown time"}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -496,63 +492,98 @@ const SupportDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {inventoryItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    {item.name}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {item.category}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {item.stockLevel} units
-                  </td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        item.status
-                      )}`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                    {item.lastUpdated}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleUpdate(item)}
-                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
-                      >
-                        <Edit className="w-3 h-3" />
-                        <span>Update</span>
-                      </button>
-                      {item.status === "Low Stock" && (
-                        <button
-                          onClick={() => handleReorder(item)}
-                          className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Reorder</span>
-                        </button>
-                      )}
-                      {item.status === "Out of Stock" && (
-                        <button
-                          onClick={() => handleUrgentOrder(item)}
-                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
-                        >
-                          <AlertTriangle className="w-3 h-3" />
-                          <span>Urgent Order</span>
-                        </button>
-                      )}
+              {inventoryLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 px-4 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Loading inventory...
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : inventoryError ? (
+                <tr>
+                  <td colSpan={5} className="py-8 px-4 text-center">
+                    <div className="text-center">
+                      <Package className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                      <p className="text-sm text-red-500 dark:text-red-400">
+                        {inventoryError}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : inventoryItems.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 px-4 text-center">
+                    <div className="text-center">
+                      <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No inventory items available
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                inventoryItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
+                      {item.name}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {item.category}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {item.stockLevel} units
+                    </td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          item.status
+                        )}`}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                      {item.lastUpdated}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleUpdate(item)}
+                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
+                        >
+                          <Edit className="w-3 h-3" />
+                          <span>Update</span>
+                        </button>
+                        {item.status === "Low Stock" && (
+                          <button
+                            onClick={() => handleReorder(item)}
+                            className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Reorder</span>
+                          </button>
+                        )}
+                        {item.status === "Out of Stock" && (
+                          <button
+                            onClick={() => handleUrgentOrder(item)}
+                            className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+                          >
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>Urgent Order</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -599,63 +630,98 @@ const SupportDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {inventoryItems.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                          {item.name}
-                        </td>
-                        <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                          {item.category}
-                        </td>
-                        <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                          {item.stockLevel} units
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                              item.status
-                            )}`}
-                          >
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                          {item.lastUpdated}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleUpdate(item)}
-                              className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
-                            >
-                              <Edit className="w-3 h-3" />
-                              <span>Update</span>
-                            </button>
-                            {item.status === "Low Stock" && (
-                              <button
-                                onClick={() => handleReorder(item)}
-                                className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
-                              >
-                                <RotateCcw className="w-3 h-3" />
-                                <span>Reorder</span>
-                              </button>
-                            )}
-                            {item.status === "Out of Stock" && (
-                              <button
-                                onClick={() => handleUrgentOrder(item)}
-                                className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
-                              >
-                                <AlertTriangle className="w-3 h-3" />
-                                <span>Urgent Order</span>
-                              </button>
-                            )}
+                    {inventoryLoading ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 px-4 text-center">
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              Loading inventory...
+                            </span>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : inventoryError ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 px-4 text-center">
+                          <div className="text-center">
+                            <Package className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                            <p className="text-sm text-red-500 dark:text-red-400">
+                              {inventoryError}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : inventoryItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 px-4 text-center">
+                          <div className="text-center">
+                            <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No inventory items available
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      inventoryItems.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
+                            {item.name}
+                          </td>
+                          <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                            {item.category}
+                          </td>
+                          <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                            {item.stockLevel} units
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                                item.status
+                              )}`}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
+                            {item.lastUpdated}
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleUpdate(item)}
+                                className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
+                              >
+                                <Edit className="w-3 h-3" />
+                                <span>Update</span>
+                              </button>
+                              {item.status === "Low Stock" && (
+                                <button
+                                  onClick={() => handleReorder(item)}
+                                  className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  <span>Reorder</span>
+                                </button>
+                              )}
+                              {item.status === "Out of Stock" && (
+                                <button
+                                  onClick={() => handleUrgentOrder(item)}
+                                  className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
+                                >
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span>Urgent Order</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

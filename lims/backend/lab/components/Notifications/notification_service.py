@@ -176,3 +176,4 @@ class NotificationService:
             tenant='default',
             expires_in_hours=24
         )
+

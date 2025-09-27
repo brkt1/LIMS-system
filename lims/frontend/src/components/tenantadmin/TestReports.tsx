@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { testReportAPI } from "../../services/api";
 
 const TestReports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,91 +33,67 @@ const TestReports: React.FC = () => {
     notes: "",
   });
 
-  const [reports, setReports] = useState([
-    {
-      id: "RPT001",
-      patientName: "John Smith",
-      patientId: "P001",
-      testName: "Complete Blood Count",
-      doctor: "Dr. Sarah Johnson",
-      status: "completed",
-      generatedDate: "2025-01-22",
-      generatedTime: "10:30 AM",
-      fileSize: "2.3 MB",
-      format: "PDF",
-      downloadCount: 3,
-      priority: "normal",
-    },
-    {
-      id: "RPT002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      testName: "X-Ray Chest",
-      doctor: "Dr. Mike Davis",
-      status: "completed",
-      generatedDate: "2025-01-21",
-      generatedTime: "2:15 PM",
-      fileSize: "5.7 MB",
-      format: "PDF",
-      downloadCount: 1,
-      priority: "high",
-    },
-    {
-      id: "RPT003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      testName: "MRI Brain",
-      doctor: "Dr. Lisa Wilson",
-      status: "pending",
-      generatedDate: "2025-01-20",
-      generatedTime: "4:45 PM",
-      fileSize: "0 MB",
-      format: "PDF",
-      downloadCount: 0,
-      priority: "urgent",
-    },
-    {
-      id: "RPT004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      testName: "Urine Analysis",
-      doctor: "Dr. Robert Brown",
-      status: "completed",
-      generatedDate: "2025-01-19",
-      generatedTime: "9:20 AM",
-      fileSize: "1.8 MB",
-      format: "PDF",
-      downloadCount: 2,
-      priority: "normal",
-    },
-    {
-      id: "RPT005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      testName: "ECG",
-      doctor: "Dr. Sarah Johnson",
-      status: "reviewed",
-      generatedDate: "2025-01-18",
-      generatedTime: "11:10 AM",
-      fileSize: "3.2 MB",
-      format: "PDF",
-      downloadCount: 5,
-      priority: "normal",
-    },
-  ]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load data from localStorage on component mount
+  // Load reports from backend API
   useEffect(() => {
-    const savedReports = localStorage.getItem("testReports");
-    if (savedReports) {
-      setReports(JSON.parse(savedReports));
-    }
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await testReportAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedReports = response.data.map((report: any) => ({
+          id: report.id,
+          patientName: report.patient_name || "Unknown Patient",
+          patientId: report.patient_id || "Unknown ID",
+          testName: report.test_name || "Unknown Test",
+          doctor: report.doctor || "Unknown Doctor",
+          status: report.status?.toLowerCase() || "pending",
+          generatedDate:
+            report.generated_date || new Date().toISOString().split("T")[0],
+          generatedTime: report.generated_time || "Unknown",
+          fileSize: report.file_size || "0 MB",
+          format: report.format || "PDF",
+          downloadCount: report.download_count || 0,
+          priority: report.priority || "normal",
+        }));
+
+        setReports(mappedReports);
+      } catch (error: any) {
+        console.error("Error fetching reports:", error);
+        setError(error.message || "Failed to load reports");
+        // Fallback to mock data if API fails
+        setReports([
+          {
+            id: "RPT001",
+            patientName: "John Smith",
+            patientId: "P001",
+            testName: "Complete Blood Count",
+            doctor: "Dr. Sarah Johnson",
+            status: "completed",
+            generatedDate: "2025-01-22",
+            generatedTime: "10:30 AM",
+            fileSize: "2.3 MB",
+            format: "PDF",
+            downloadCount: 3,
+            priority: "normal",
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
   }, []);
 
-  // Save data to localStorage whenever reports change
-  useEffect(() => {
-    localStorage.setItem("testReports", JSON.stringify(reports));
-  }, [reports]);
+  // Mock data is now handled in the useEffect fallback
+
+  // Note: Data is now loaded from backend API in the useEffect above
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
@@ -329,6 +306,35 @@ const TestReports: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading reports...
+          </span>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4">

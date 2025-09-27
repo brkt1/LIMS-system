@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { userManagementAPI } from "../../services/api";
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,75 +42,49 @@ const UserManagement: React.FC = () => {
   });
 
   // Dynamic users state
-  const [users, setUsers] = useState([
-    {
-      id: "U001",
-      name: "Dr. Sarah Johnson",
-      email: "sarah.johnson@clinic.com",
-      role: "doctor",
-      status: "active",
-      lastLogin: "2025-01-22 09:30 AM",
-      department: "Cardiology",
-      phone: "+1 (555) 123-4567",
-      joinDate: "2024-01-15",
-    },
-    {
-      id: "U002",
-      name: "Mike Davis",
-      email: "mike.davis@clinic.com",
-      role: "technician",
-      status: "active",
-      lastLogin: "2025-01-22 08:15 AM",
-      department: "Laboratory",
-      phone: "+1 (555) 234-5678",
-      joinDate: "2024-02-20",
-    },
-    {
-      id: "U003",
-      name: "Lisa Wilson",
-      email: "lisa.wilson@clinic.com",
-      role: "support",
-      status: "inactive",
-      lastLogin: "2025-01-15 2:30 PM",
-      department: "Customer Support",
-      phone: "+1 (555) 345-6789",
-      joinDate: "2024-03-10",
-    },
-    {
-      id: "U004",
-      name: "Robert Brown",
-      email: "robert.brown@clinic.com",
-      role: "doctor",
-      status: "active",
-      lastLogin: "2025-01-21 4:45 PM",
-      department: "Neurology",
-      phone: "+1 (555) 456-7890",
-      joinDate: "2023-11-05",
-    },
-    {
-      id: "U005",
-      name: "Jennifer Smith",
-      email: "jennifer.smith@clinic.com",
-      role: "technician",
-      status: "pending",
-      lastLogin: "Never",
-      department: "Radiology",
-      phone: "+1 (555) 567-8901",
-      joinDate: "2025-01-20",
-    },
-  ]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Save data to localStorage whenever data changes
+  // Load users from backend API
   useEffect(() => {
-    localStorage.setItem("tenantadmin-user-management", JSON.stringify(users));
-  }, [users]);
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await userManagementAPI.getAll();
 
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    const savedUsers = localStorage.getItem("tenantadmin-user-management");
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    }
+        // Map backend data to include status field (backend doesn't have status)
+        const mappedUsers = response.data.map((user: any) => ({
+          ...user,
+          status: "active", // Default status since backend doesn't track this
+          department: user.department || "General", // Default department
+          phone: user.phone || "N/A", // Default phone
+          lastLogin: "Unknown", // Default last login
+          joinDate: user.created_at
+            ? new Date(user.created_at).toISOString().split("T")[0]
+            : "Unknown",
+        }));
+
+        setUsers(mappedUsers);
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        setError(error.message || "Failed to load users");
+        // Fallback to localStorage if API fails
+        const savedUsers = localStorage.getItem("tenantadmin-user-management");
+        if (savedUsers) {
+          try {
+            setUsers(JSON.parse(savedUsers));
+          } catch (parseError) {
+            console.error("Error parsing saved users:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
   // Handler functions
@@ -117,22 +92,70 @@ const UserManagement: React.FC = () => {
     setShowAddUserModal(true);
   };
 
-  const handleCreateUser = () => {
+  const handleCreateUser = async () => {
     if (newUser.name && newUser.email && newUser.role) {
-      const user = {
-        id: `U${String(users.length + 1).padStart(3, "0")}`,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        status: "pending",
-        lastLogin: "Never",
-        department: newUser.department,
-        phone: newUser.phone,
-        joinDate: new Date().toISOString().split("T")[0],
-      };
-      setUsers((prev: any) => [user, ...prev]);
-      setNewUser({ name: "", email: "", role: "", department: "", phone: "" });
-      setShowAddUserModal(false);
+      try {
+        const userData = {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          department: newUser.department,
+          phone: newUser.phone,
+          tenant: 1, // Default tenant ID - should be dynamic
+          created_by: "tenantadmin@lims.com", // Should be current user
+          password: "default123", // Should be generated or required
+        };
+
+        console.log("Creating user with data:", userData);
+        const response = await userManagementAPI.create(userData);
+        // Handle the response structure - backend returns {tenant_user: {...}}
+        const createdUser = response.data.tenant_user || response.data;
+        setUsers((prev: any) => [createdUser, ...prev]);
+        setNewUser({
+          name: "",
+          email: "",
+          role: "",
+          department: "",
+          phone: "",
+        });
+        setShowAddUserModal(false);
+      } catch (error: any) {
+        console.error("Error creating user:", error);
+        console.error("Error response:", error.response?.data);
+
+        // Handle specific validation errors
+        let errorMessage = "Failed to create user";
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+
+          // Handle email uniqueness error
+          if (errorData.email && Array.isArray(errorData.email)) {
+            errorMessage = `Email error: ${errorData.email[0]}`;
+          }
+          // Handle role validation error
+          else if (errorData.role && Array.isArray(errorData.role)) {
+            errorMessage = `Role error: ${errorData.role[0]}`;
+          }
+          // Handle other field errors
+          else if (typeof errorData === "object") {
+            const firstError = Object.values(errorData)[0];
+            if (Array.isArray(firstError)) {
+              errorMessage = `${firstError[0]}`;
+            } else {
+              errorMessage = firstError;
+            }
+          }
+          // Handle general error message
+          else if (errorData.error || errorData.message) {
+            errorMessage = errorData.error || errorData.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
+      }
     }
   };
 
@@ -153,15 +176,40 @@ const UserManagement: React.FC = () => {
     setShowEditUserModal(true);
   };
 
-  const handleUpdateUser = () => {
-    if (selectedUser) {
-      setUsers((prev: any) =>
-        prev.map((user: any) =>
-          user.id === selectedUser.id ? { ...user, ...editUser } : user
-        )
-      );
-      setShowEditUserModal(false);
-      setSelectedUser(null);
+  const handleUpdateUser = async () => {
+    if (selectedUser && editUser.name && editUser.email && editUser.role) {
+      try {
+        const userData = {
+          name: editUser.name,
+          email: editUser.email,
+          role: editUser.role,
+          department: editUser.department,
+          phone: editUser.phone,
+        };
+
+        const response = await userManagementAPI.update(
+          selectedUser.id,
+          userData
+        );
+        const updatedUser = response.data.tenant_user || response.data;
+
+        setUsers((prev: any) =>
+          prev.map((user: any) =>
+            user.id === selectedUser.id ? { ...user, ...updatedUser } : user
+          )
+        );
+
+        setShowEditUserModal(false);
+        setSelectedUser(null);
+      } catch (error: any) {
+        console.error("Error updating user:", error);
+        const errorMessage =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update user";
+        setError(errorMessage);
+      }
     }
   };
 
@@ -170,17 +218,34 @@ const UserManagement: React.FC = () => {
     setShowSuspendModal(true);
   };
 
-  const handleSuspendConfirm = () => {
+  const handleSuspendConfirm = async () => {
     if (selectedUser) {
-      const newStatus =
-        selectedUser.status === "active" ? "suspended" : "active";
+      try {
+        // For now, we'll just update the status locally since backend doesn't have suspend/activate
+        setUsers((prev: any) =>
+          prev.map((user: any) =>
+            user.id === selectedUser.id ? { ...user, status: "inactive" } : user
+          )
+        );
+        setShowSuspendModal(false);
+        setSelectedUser(null);
+      } catch (error: any) {
+        console.error("Error suspending user:", error);
+        setError(error.message || "Failed to suspend user");
+      }
+    }
+  };
+
+  const handleActivateUser = async (user: any) => {
+    try {
       setUsers((prev: any) =>
-        prev.map((user: any) =>
-          user.id === selectedUser.id ? { ...user, status: newStatus } : user
+        prev.map((u: any) =>
+          u.id === user.id ? { ...u, status: "active" } : u
         )
       );
-      setShowSuspendModal(false);
-      setSelectedUser(null);
+    } catch (error: any) {
+      console.error("Error activating user:", error);
+      setError(error.message || "Failed to activate user");
     }
   };
 
@@ -196,6 +261,8 @@ const UserManagement: React.FC = () => {
   });
 
   const getRoleColor = (role: string) => {
+    if (!role) return "bg-gray-100 text-gray-800";
+
     switch (role.toLowerCase()) {
       case "doctor":
         return "bg-blue-100 text-blue-800";
@@ -211,6 +278,8 @@ const UserManagement: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
+    if (!status) return "bg-gray-100 text-gray-800";
+
     switch (status.toLowerCase()) {
       case "active":
         return "bg-green-100 text-green-800";
@@ -226,6 +295,8 @@ const UserManagement: React.FC = () => {
   };
 
   const getRoleIcon = (role: string) => {
+    if (!role) return <User className="w-4 h-4" />;
+
     switch (role.toLowerCase()) {
       case "doctor":
         return <UserCheck className="w-4 h-4" />;
@@ -242,6 +313,28 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading users...
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -287,7 +380,6 @@ const UserManagement: React.FC = () => {
             <option value="doctor">Doctor</option>
             <option value="technician">Technician</option>
             <option value="support">Support</option>
-            <option value="admin">Admin</option>
           </select>
           <select
             value={filterStatus}
@@ -420,7 +512,9 @@ const UserManagement: React.FC = () => {
                         user.role
                       )}`}
                     >
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      {user.role
+                        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                        : "Unknown"}
                     </span>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden sm:table-cell">
@@ -526,7 +620,6 @@ const UserManagement: React.FC = () => {
                     <option value="doctor">Doctor</option>
                     <option value="technician">Technician</option>
                     <option value="support">Support</option>
-                    <option value="admin">Admin</option>
                   </select>
                 </div>
                 <div>
@@ -618,8 +711,10 @@ const UserManagement: React.FC = () => {
                         selectedUser.role
                       )}`}
                     >
-                      {selectedUser.role.charAt(0).toUpperCase() +
-                        selectedUser.role.slice(1)}
+                      {selectedUser.role
+                        ? selectedUser.role.charAt(0).toUpperCase() +
+                          selectedUser.role.slice(1)
+                        : "Unknown"}
                     </span>
                   </div>
                   <div>
@@ -745,7 +840,6 @@ const UserManagement: React.FC = () => {
                     <option value="doctor">Doctor</option>
                     <option value="technician">Technician</option>
                     <option value="support">Support</option>
-                    <option value="admin">Admin</option>
                   </select>
                 </div>
                 <div>

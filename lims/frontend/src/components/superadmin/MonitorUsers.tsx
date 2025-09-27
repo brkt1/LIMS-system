@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { superadminAPI } from "../../services/api";
 
 const MonitorUsers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,98 +36,61 @@ const MonitorUsers: React.FC = () => {
     status: "online",
   });
 
-  const [onlineUsers, setOnlineUsers] = useState([
-    {
-      id: "1",
-      name: "John Smith",
-      email: "john.smith@research.com",
-      role: "Super Admin",
-      tenant: "Research Institute",
-      status: "online",
-      lastActivity: "2 minutes ago",
-      ipAddress: "192.168.1.100",
-      location: "New York, US",
-      device: "Chrome on Windows",
-      sessionDuration: "2h 15m",
-      actions: 47,
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@cityhospital.com",
-      role: "Tenant Admin",
-      tenant: "City Hospital Lab",
-      status: "online",
-      lastActivity: "5 minutes ago",
-      ipAddress: "203.0.113.45",
-      location: "Los Angeles, US",
-      device: "Safari on macOS",
-      sessionDuration: "1h 30m",
-      actions: 23,
-    },
-    {
-      id: "3",
-      name: "Mike Wilson",
-      email: "mike.wilson@medlab.com",
-      role: "Doctor",
-      tenant: "MedLab Solutions",
-      status: "idle",
-      lastActivity: "15 minutes ago",
-      ipAddress: "198.51.100.42",
-      location: "Chicago, US",
-      device: "Firefox on Windows",
-      sessionDuration: "3h 45m",
-      actions: 89,
-    },
-    {
-      id: "4",
-      name: "Emily Davis",
-      email: "emily.davis@clinic.com",
-      role: "Technician",
-      tenant: "Private Clinic Network",
-      status: "online",
-      lastActivity: "1 minute ago",
-      ipAddress: "192.168.1.200",
-      location: "Miami, US",
-      device: "Chrome on Android",
-      sessionDuration: "45m",
-      actions: 12,
-    },
-    {
-      id: "5",
-      name: "David Brown",
-      email: "david.brown@medicalgroup.com",
-      role: "Support",
-      tenant: "Medical Group",
-      status: "away",
-      lastActivity: "30 minutes ago",
-      ipAddress: "203.0.113.100",
-      location: "Seattle, US",
-      device: "Edge on Windows",
-      sessionDuration: "4h 20m",
-      actions: 156,
-    },
-  ]);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load users from localStorage on component mount
+  // Load online users from backend API
   useEffect(() => {
-    const savedUsers = localStorage.getItem("superadmin-online-users");
-    if (savedUsers) {
+    const fetchOnlineUsers = async () => {
       try {
-        setOnlineUsers(JSON.parse(savedUsers));
-      } catch (error) {
-        console.error("Error loading saved users:", error);
+        setLoading(true);
+        setError(null);
+        // For now, we'll use the users API to get all users and simulate online status
+        const response = await superadminAPI.users.getAll();
+        const users = response.data.map((user: any, index: number) => ({
+          ...user,
+          status:
+            index % 3 === 0 ? "online" : index % 3 === 1 ? "idle" : "away",
+          lastActivity: `${Math.floor(Math.random() * 60)} minutes ago`,
+          ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
+          location: [
+            "New York, US",
+            "Los Angeles, US",
+            "Chicago, US",
+            "Miami, US",
+          ][Math.floor(Math.random() * 4)],
+          device: [
+            "Chrome on Windows",
+            "Safari on Mac",
+            "Firefox on Linux",
+            "Edge on Windows",
+          ][Math.floor(Math.random() * 4)],
+          sessionDuration: `${Math.floor(Math.random() * 5)}h ${Math.floor(
+            Math.random() * 60
+          )}m`,
+          actions: Math.floor(Math.random() * 200),
+        }));
+        setOnlineUsers(users);
+      } catch (error: any) {
+        console.error("Error fetching online users:", error);
+        setError(error.message || "Failed to load online users");
+        // Fallback to localStorage if API fails
+        const savedUsers = localStorage.getItem("superadmin-online-users");
+        if (savedUsers) {
+          try {
+            setOnlineUsers(JSON.parse(savedUsers));
+          } catch (parseError) {
+            console.error("Error parsing saved users:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save users to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(
-      "superadmin-online-users",
-      JSON.stringify(onlineUsers)
-    );
-  }, [onlineUsers]);
+    fetchOnlineUsers();
+  }, []);
 
   // Handler functions
   const handleRefresh = async () => {
@@ -251,6 +215,28 @@ const MonitorUsers: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading online users...
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">

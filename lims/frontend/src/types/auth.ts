@@ -125,12 +125,6 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
         { icon: 'Monitor', label: 'Monitor Online Users', labelKey: 'nav.monitorUsers', path: '/monitor-users' }
       ]
     },
-    {
-      title: 'SYSTEM',
-      items: [
-        { icon: 'Database', label: 'Backup Database', labelKey: 'nav.backupDatabase', path: '/backup-database' }
-      ]
-    }
   ],
   'tenant-admin': [
     {

@@ -8,16 +8,19 @@ import React, {
 import { notificationAPI } from "../services/api";
 
 export interface Notification {
-  id: string;
+  id: number;
   title: string;
   message: string;
-  type: "info" | "success" | "warning" | "error";
-  read: boolean;
-  createdAt: string;
-  priority: "low" | "medium" | "high";
-  category?: string;
-  actionUrl?: string;
-  actionText?: string;
+  notification_type: "info" | "success" | "warning" | "error" | "urgent";
+  priority: "low" | "medium" | "high" | "critical";
+  is_read: boolean;
+  is_global: boolean;
+  recipient?: number;
+  tenant?: string;
+  action_url?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface NotificationContextType {
@@ -26,11 +29,14 @@ interface NotificationContextType {
   loading: boolean;
   error: string | null;
   loadNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
+  deleteNotification: (id: number) => Promise<void>;
   addNotification: (
-    notification: Omit<Notification, "id" | "createdAt" | "read">
+    notification: Omit<
+      Notification,
+      "id" | "created_at" | "updated_at" | "is_read"
+    >
   ) => void;
   clearError: () => void;
 }
@@ -50,7 +56,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const loadNotifications = async () => {
     try {
@@ -66,13 +72,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
   };
 
-  const markAsRead = async (id: string) => {
+  const markAsRead = async (id: number) => {
     try {
-      await notificationAPI.markAsRead(parseInt(id));
+      await notificationAPI.markAsRead(id);
       setNotifications((prev) =>
         prev.map((notification) =>
           notification.id === id
-            ? { ...notification, read: true }
+            ? { ...notification, is_read: true }
             : notification
         )
       );
@@ -86,14 +92,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const markAllAsRead = async () => {
     try {
-      const unreadNotifications = notifications.filter((n) => !n.read);
-      await Promise.all(
-        unreadNotifications.map((n) =>
-          notificationAPI.markAsRead(parseInt(n.id))
-        )
-      );
+      await notificationAPI.markAllAsRead();
       setNotifications((prev) =>
-        prev.map((notification) => ({ ...notification, read: true }))
+        prev.map((notification) => ({ ...notification, is_read: true }))
       );
     } catch (err: any) {
       setError(
@@ -103,10 +104,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
   };
 
-  const deleteNotification = async (id: string) => {
+  const deleteNotification = async (id: number) => {
     try {
-      // Assuming there's a delete endpoint
-      // await notificationAPI.delete(parseInt(id));
+      await notificationAPI.delete(id);
       setNotifications((prev) =>
         prev.filter((notification) => notification.id !== id)
       );
@@ -117,13 +117,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   };
 
   const addNotification = (
-    notification: Omit<Notification, "id" | "createdAt" | "read">
+    notification: Omit<
+      Notification,
+      "id" | "created_at" | "updated_at" | "is_read"
+    >
   ) => {
     const newNotification: Notification = {
       ...notification,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      read: false,
+      id: Date.now(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_read: false,
     };
     setNotifications((prev) => [newNotification, ...prev]);
   };

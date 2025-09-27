@@ -12,6 +12,7 @@ import {
   Eye,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { superadminAPI } from "../../services/api";
 
 const AdminManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,69 +35,38 @@ const AdminManagement: React.FC = () => {
     permissions: [] as string[],
   });
 
-  const [admins, setAdmins] = useState([
-    {
-      id: "1",
-      name: "John Smith",
-      email: "john.smith@lims.com",
-      role: "Super Admin",
-      status: "Active",
-      lastLogin: "2025-01-20 14:30",
-      permissions: ["All Permissions"],
-      created: "2024-01-15",
-      avatar: "JS",
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@lims.com",
-      role: "System Admin",
-      status: "Active",
-      lastLogin: "2025-01-20 12:15",
-      permissions: ["User Management", "System Settings", "Analytics"],
-      created: "2024-02-20",
-      avatar: "SJ",
-    },
-    {
-      id: "3",
-      name: "Mike Wilson",
-      email: "mike.wilson@lims.com",
-      role: "Support Admin",
-      status: "Inactive",
-      lastLogin: "2025-01-18 09:45",
-      permissions: ["Support Management", "User Support"],
-      created: "2024-03-10",
-      avatar: "MW",
-    },
-    {
-      id: "4",
-      name: "Emily Davis",
-      email: "emily.davis@lims.com",
-      role: "Billing Admin",
-      status: "Active",
-      lastLogin: "2025-01-20 16:20",
-      permissions: ["Billing Management", "Financial Reports"],
-      created: "2024-04-12",
-      avatar: "ED",
-    },
-  ]);
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load admins from localStorage on component mount
+  // Load admins from backend API
   useEffect(() => {
-    const savedAdmins = localStorage.getItem("superadmin-admins");
-    if (savedAdmins) {
+    const fetchAdmins = async () => {
       try {
-        setAdmins(JSON.parse(savedAdmins));
-      } catch (error) {
-        console.error("Error loading saved admins:", error);
+        setLoading(true);
+        setError(null);
+        // For now, we'll use tenant users as admins since we don't have a separate admin model
+        const response = await superadminAPI.users.getAll();
+        setAdmins(response.data);
+      } catch (error: any) {
+        console.error("Error fetching admins:", error);
+        setError(error.message || "Failed to load admins");
+        // Fallback to localStorage if API fails
+        const savedAdmins = localStorage.getItem("superadmin-admins");
+        if (savedAdmins) {
+          try {
+            setAdmins(JSON.parse(savedAdmins));
+          } catch (parseError) {
+            console.error("Error parsing saved admins:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save admins to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("superadmin-admins", JSON.stringify(admins));
-  }, [admins]);
+    fetchAdmins();
+  }, []);
 
   // CRUD handler functions
   const handleViewAdmin = (admin: any) => {
@@ -222,6 +192,28 @@ const AdminManagement: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading admins...
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6 -mx-4 sm:-mx-6 lg:-mx-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">

@@ -1,5 +1,5 @@
 import { Camera, Upload, X, User } from "lucide-react";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 interface ProfilePictureUploadProps {
   currentPicture?: string;
@@ -22,6 +22,13 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  // Clear preview when currentPicture changes (indicating successful upload)
+  useEffect(() => {
+    if (currentPicture && preview) {
+      setPreview(null);
+    }
+  }, [currentPicture, preview]);
+
   const handleFileSelect = async (file: File) => {
     if (!file) return;
 
@@ -37,16 +44,20 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
       return;
     }
 
-    // Create preview
+    // Create preview using FileReader with data URL
     const reader = new FileReader();
     reader.onload = (e) => {
-      setPreview(e.target?.result as string);
+      const result = e.target?.result as string;
+      if (result && result.startsWith("data:")) {
+        setPreview(result);
+      }
     };
     reader.readAsDataURL(file);
 
     // Upload file
     try {
       await onUpload(file);
+      // Preview will be cleared by useEffect when currentPicture updates
     } catch (error) {
       console.error("Upload failed:", error);
       setPreview(null);
@@ -98,6 +109,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
     }
   };
 
+  // Show preview while uploading, then server image after upload
   const displayPicture = preview || currentPicture;
 
   return (

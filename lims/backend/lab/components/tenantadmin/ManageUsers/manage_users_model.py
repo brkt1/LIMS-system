@@ -1,5 +1,5 @@
 from django.db import models
-from lab.components.superadmin.CreateTenant.create_tenant_model import Tenant
+from lab.components.superadmin.models import Tenant
 from django.contrib.auth.hashers import make_password
 
 ROLE_CHOICES = [

@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { superadminAPI } from "../../services/api";
 
 const BillingPlans: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -39,85 +40,56 @@ const BillingPlans: React.FC = () => {
     features: [] as string[],
   });
 
-  const billingData = {
-    totalRevenue: 156800,
-    monthlyRecurring: 12800,
-    annualRecurring: 144000,
-    churnRate: 2.1,
-    averageRevenuePerUser: 125.6,
-    totalCustomers: 1247,
-  };
+  const [billingData, setBillingData] = useState({
+    totalRevenue: 0,
+    monthlyRecurring: 0,
+    annualRecurring: 0,
+    churnRate: 0,
+    averageRevenuePerUser: 0,
+    totalCustomers: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [plans, setPlans] = useState([
-    {
-      id: "basic",
-      name: "Basic",
-      price: 29,
-      billing: "monthly",
-      users: 10,
-      features: [
-        "Basic Dashboard",
-        "Standard Support",
-        "Up to 10 users",
-        "Basic Analytics",
-        "Email Support",
-      ],
-      tenants: 8,
-      revenue: 2320,
-    },
-    {
-      id: "professional",
-      name: "Professional",
-      price: 79,
-      billing: "monthly",
-      users: 50,
-      features: [
-        "Advanced Dashboard",
-        "Priority Support",
-        "Up to 50 users",
-        "Advanced Analytics",
-        "API Access",
-        "Phone Support",
-      ],
-      tenants: 12,
-      revenue: 9480,
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: 199,
-      billing: "monthly",
-      users: 200,
-      features: [
-        "Full Dashboard Suite",
-        "Dedicated Support",
-        "Unlimited users",
-        "Custom Analytics",
-        "Full API Access",
-        "Custom Branding",
-        "24/7 Support",
-      ],
-      tenants: 4,
-      revenue: 7960,
-    },
-  ]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
 
-  // Load plans from localStorage on component mount
+  // Load billing data from backend
   useEffect(() => {
-    const savedPlans = localStorage.getItem("superadmin-billing-plans");
-    if (savedPlans) {
+    const fetchBillingData = async () => {
       try {
-        setPlans(JSON.parse(savedPlans));
-      } catch (error) {
-        console.error("Error loading saved plans:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
 
-  // Save plans to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("superadmin-billing-plans", JSON.stringify(plans));
-  }, [plans]);
+        const [plansResponse, analyticsResponse, transactionsResponse] =
+          await Promise.all([
+            superadminAPI.plans.getAll(),
+            superadminAPI.plans.getAnalytics(),
+            superadminAPI.transactions.getAll(),
+          ]);
+
+        setPlans(plansResponse.data);
+        setBillingData(analyticsResponse.data);
+        setTransactions(transactionsResponse.data);
+      } catch (error: any) {
+        console.error("Error fetching billing data:", error);
+        setError(error.message || "Failed to load billing data");
+        // Fallback to localStorage if API fails
+        const savedPlans = localStorage.getItem("superadmin-billing-plans");
+        if (savedPlans) {
+          try {
+            setPlans(JSON.parse(savedPlans));
+          } catch (parseError) {
+            console.error("Error parsing saved plans:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBillingData();
+  }, []);
 
   // Export functionality
   const handleExportReport = () => {
@@ -189,33 +161,60 @@ const BillingPlans: React.FC = () => {
     setShowEditPlanModal(true);
   };
 
-  const handleCreatePlanSubmit = () => {
-    const newPlanData = {
-      id: newPlan.name.toLowerCase().replace(/\s+/g, "-"),
-      ...newPlan,
-      tenants: 0,
-      revenue: 0,
-    };
-    setPlans((prev: any) => [...prev, newPlanData]);
-    setShowCreatePlanModal(false);
-    setNewPlan({
-      name: "",
-      price: 0,
-      billing: "monthly",
-      users: 0,
-      features: [],
-    });
+  const handleCreatePlanSubmit = async () => {
+    try {
+      const planData = {
+        name: newPlan.name,
+        plan_type: newPlan.name.toLowerCase(),
+        price: newPlan.price,
+        billing_cycle: newPlan.billing,
+        max_users: newPlan.users,
+        features: newPlan.features,
+      };
+
+      const response = await superadminAPI.plans.create(planData);
+      setPlans((prev: any) => [...prev, response.data]);
+      setShowCreatePlanModal(false);
+      setNewPlan({
+        name: "",
+        price: 0,
+        billing: "monthly",
+        users: 0,
+        features: [],
+      });
+    } catch (error: any) {
+      console.error("Error creating plan:", error);
+      setError(error.message || "Failed to create plan");
+    }
   };
 
-  const handleUpdatePlan = () => {
+  const handleUpdatePlan = async () => {
     if (selectedPlanData) {
-      setPlans((prev: any) =>
-        prev.map((plan: any) =>
-          plan.id === selectedPlanData.id ? { ...plan, ...editPlan } : plan
-        )
-      );
-      setShowEditPlanModal(false);
-      setSelectedPlanData(null);
+      try {
+        const updateData = {
+          name: editPlan.name,
+          plan_type: editPlan.name.toLowerCase(),
+          price: editPlan.price,
+          billing_cycle: editPlan.billing,
+          max_users: editPlan.users,
+          features: editPlan.features,
+        };
+
+        const response = await superadminAPI.plans.update(
+          selectedPlanData.id,
+          updateData
+        );
+        setPlans((prev: any) =>
+          prev.map((plan: any) =>
+            plan.id === selectedPlanData.id ? response.data : plan
+          )
+        );
+        setShowEditPlanModal(false);
+        setSelectedPlanData(null);
+      } catch (error: any) {
+        console.error("Error updating plan:", error);
+        setError(error.message || "Failed to update plan");
+      }
     }
   };
 
@@ -340,6 +339,28 @@ const BillingPlans: React.FC = () => {
       </div>
 
       <div className="space-y-4 sm:space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600 dark:text-gray-300">
+              Loading billing data...
+            </span>
+          </div>
+        )}
         {/* Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="border-b border-gray-200 dark:border-gray-700">

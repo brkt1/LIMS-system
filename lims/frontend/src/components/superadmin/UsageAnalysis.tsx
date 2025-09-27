@@ -7,68 +7,57 @@ import {
   Users,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { superadminAPI } from "../../services/api";
 
 const UsageAnalysis: React.FC = () => {
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("users");
 
-  const usageData = {
-    totalUsers: 1247,
-    activeUsers: 892,
-    totalTenants: 24,
-    activeTenants: 22,
-    totalTests: 15678,
-    totalReports: 12345,
+  const [usageData, setUsageData] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    totalTenants: 0,
+    activeTenants: 0,
+    totalTests: 0,
+    totalReports: 0,
     systemUptime: 99.9,
     avgResponseTime: 245,
-  };
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const tenantUsage = [
-    {
-      name: "Research Institute",
-      users: 156,
-      tests: 3200,
-      reports: 2800,
-      growth: 15.7,
-    },
-    {
-      name: "City Hospital Lab",
-      users: 78,
-      tests: 2100,
-      reports: 1950,
-      growth: 8.3,
-    },
-    {
-      name: "MedLab Solutions",
-      users: 45,
-      tests: 1800,
-      reports: 1650,
-      growth: 12.5,
-    },
-    {
-      name: "Medical Group",
-      users: 67,
-      tests: 1500,
-      reports: 1400,
-      growth: 6.8,
-    },
-    {
-      name: "Private Clinic Network",
-      users: 23,
-      tests: 800,
-      reports: 750,
-      growth: -2.1,
-    },
-  ];
+  const [tenantUsage, setTenantUsage] = useState<any[]>([]);
+  const [featureUsage, setFeatureUsage] = useState<any[]>([]);
 
-  const featureUsage = [
-    { feature: "Test Management", usage: 95, users: 1180 },
-    { feature: "Report Generation", usage: 88, users: 1097 },
-    { feature: "Analytics Dashboard", usage: 76, users: 947 },
-    { feature: "API Access", usage: 45, users: 561 },
-    { feature: "Custom Branding", usage: 32, users: 399 },
-    { feature: "Data Export", usage: 28, users: 349 },
-  ];
+  // Load usage data from backend
+  useEffect(() => {
+    const fetchUsageData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [analysisResponse, tenantUsageResponse, featureUsageResponse] =
+          await Promise.all([
+            superadminAPI.usage.getAnalysis({
+              days: timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90,
+            }),
+            superadminAPI.usage.getTenantUsage(),
+            superadminAPI.usage.getFeatureUsage(),
+          ]);
+
+        setUsageData(analysisResponse.data);
+        setTenantUsage(tenantUsageResponse.data);
+        setFeatureUsage(featureUsageResponse.data);
+      } catch (error: any) {
+        console.error("Error fetching usage data:", error);
+        setError(error.message || "Failed to load usage data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsageData();
+  }, [timeRange]);
 
   const getTimeRangeLabel = (range: string) => {
     switch (range) {
@@ -226,6 +215,28 @@ const UsageAnalysis: React.FC = () => {
       </div>
 
       <div className="space-y-4 sm:space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600 dark:text-gray-300">
+              Loading usage data...
+            </span>
+          </div>
+        )}
         {/* Key Metrics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">

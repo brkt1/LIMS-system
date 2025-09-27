@@ -11,7 +11,7 @@ from .components.Support.SupportTicket.support_ticket_models import SupportTicke
 from .components.Technician.Equipment.equipment_models import Equipment, EquipmentCalibration, EquipmentMaintenance
 from .components.Doctor.NewTestRequest.NewTestRequest_models import TestRequest
 from .components.tenantadmin.ManageUsers.manage_users_model import TenantUser
-from .components.superadmin.CreateTenant.create_tenant_model import Tenant
+from .components.superadmin.models import Tenant
 from .components.Doctor.DocterAppointment.appointment_models import Appointment
 from .components.Doctor.PatientManagement.patient_models import Patient
 from .components.Doctor.MessageSystem.message_models import Message

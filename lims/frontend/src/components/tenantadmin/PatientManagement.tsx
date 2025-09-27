@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { patientAPI } from "../../services/api";
 
 const PatientManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,96 +50,67 @@ const PatientManagement: React.FC = () => {
   });
 
   // Dynamic patients state
-  const [patients, setPatients] = useState([
-    {
-      id: "P001",
-      name: "John Smith",
-      email: "john.smith@email.com",
-      phone: "+1 (555) 123-4567",
-      age: 45,
-      gender: "Male",
-      status: "active",
-      lastVisit: "2025-01-20",
-      totalVisits: 12,
-      primaryDoctor: "Dr. Sarah Johnson",
-      insurance: "Blue Cross Blue Shield",
-      emergencyContact: "Jane Smith (555) 987-6543",
-    },
-    {
-      id: "P002",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      phone: "+1 (555) 234-5678",
-      age: 32,
-      gender: "Female",
-      status: "active",
-      lastVisit: "2025-01-18",
-      totalVisits: 8,
-      primaryDoctor: "Dr. Mike Davis",
-      insurance: "Aetna",
-      emergencyContact: "Bob Johnson (555) 876-5432",
-    },
-    {
-      id: "P003",
-      name: "Mike Davis",
-      email: "mike.davis@email.com",
-      phone: "+1 (555) 345-6789",
-      age: 28,
-      gender: "Male",
-      status: "inactive",
-      lastVisit: "2024-12-15",
-      totalVisits: 5,
-      primaryDoctor: "Dr. Lisa Wilson",
-      insurance: "Cigna",
-      emergencyContact: "Lisa Davis (555) 765-4321",
-    },
-    {
-      id: "P004",
-      name: "Lisa Wilson",
-      email: "lisa.wilson@email.com",
-      phone: "+1 (555) 456-7890",
-      age: 55,
-      gender: "Female",
-      status: "active",
-      lastVisit: "2025-01-22",
-      totalVisits: 15,
-      primaryDoctor: "Dr. Robert Brown",
-      insurance: "UnitedHealth",
-      emergencyContact: "Tom Wilson (555) 654-3210",
-    },
-    {
-      id: "P005",
-      name: "Robert Brown",
-      email: "robert.brown@email.com",
-      phone: "+1 (555) 567-8901",
-      age: 67,
-      gender: "Male",
-      status: "active",
-      lastVisit: "2025-01-21",
-      totalVisits: 22,
-      primaryDoctor: "Dr. Sarah Johnson",
-      insurance: "Medicare",
-      emergencyContact: "Mary Brown (555) 543-2109",
-    },
-  ]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load patients from localStorage on component mount
+  // Load patients from backend API
   useEffect(() => {
-    const savedPatients = localStorage.getItem("patient-management");
-    if (savedPatients) {
+    const fetchPatients = async () => {
       try {
-        const parsedPatients = JSON.parse(savedPatients);
-        setPatients(parsedPatients);
-      } catch (error) {
-        console.error("Error loading patients:", error);
+        setLoading(true);
+        setError(null);
+        const response = await patientAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedPatients = response.data.map((patient: any) => ({
+          id: patient.id,
+          name: patient.name || "Unknown Patient",
+          email: patient.email || "No email",
+          phone: patient.phone || "No phone",
+          age: patient.age || 0,
+          gender: patient.gender || "Unknown",
+          status: "active", // Default status since backend doesn't have it
+          lastVisit:
+            patient.last_visit || new Date().toISOString().split("T")[0],
+          totalVisits: patient.total_visits || 0,
+          primaryDoctor: patient.primary_doctor || "No doctor assigned",
+          insurance: patient.insurance || "No insurance",
+          emergencyContact: patient.emergency_contact || "No emergency contact",
+        }));
+
+        setPatients(mappedPatients);
+      } catch (error: any) {
+        console.error("Error fetching patients:", error);
+        setError(error.message || "Failed to load patients");
+        // Fallback to mock data if API fails
+        setPatients([
+          {
+            id: "P001",
+            name: "John Smith",
+            email: "john.smith@email.com",
+            phone: "+1 (555) 123-4567",
+            age: 45,
+            gender: "Male",
+            status: "active",
+            lastVisit: "2025-01-20",
+            totalVisits: 12,
+            primaryDoctor: "Dr. Sarah Johnson",
+            insurance: "Blue Cross Blue Shield",
+            emergencyContact: "Jane Smith (555) 987-6543",
+          },
+        ]);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchPatients();
   }, []);
 
-  // Save patients to localStorage whenever patients changes
-  useEffect(() => {
-    localStorage.setItem("patient-management", JSON.stringify(patients));
-  }, [patients]);
+  // Mock data is now handled in the useEffect fallback
+
+  // Note: Data is now loaded from backend API in the useEffect above
 
   const filteredPatients = patients.filter((patient) => {
     const matchesSearch =
@@ -209,7 +181,7 @@ const PatientManagement: React.FC = () => {
     setShowHistoryModal(true);
   };
 
-  const handleCreatePatient = () => {
+  const handleCreatePatient = async () => {
     if (
       newPatient.name &&
       newPatient.email &&
@@ -217,30 +189,58 @@ const PatientManagement: React.FC = () => {
       newPatient.age &&
       newPatient.gender
     ) {
-      const patient = {
-        id: `P${String(patients.length + 1).padStart(3, "0")}`,
-        ...newPatient,
-        age: parseInt(newPatient.age),
-        status: "active",
-        lastVisit: new Date().toISOString().split("T")[0],
-        totalVisits: 0,
-      };
-      setPatients((prev: any) => [patient, ...prev]);
-      setShowAddPatientModal(false);
-      setNewPatient({
-        name: "",
-        email: "",
-        phone: "",
-        age: "",
-        gender: "",
-        primaryDoctor: "",
-        insurance: "",
-        emergencyContact: "",
-      });
+      try {
+        const patientData = {
+          name: newPatient.name,
+          email: newPatient.email,
+          phone: newPatient.phone,
+          age: parseInt(newPatient.age),
+          gender: newPatient.gender,
+          primary_doctor: newPatient.primaryDoctor,
+          insurance: newPatient.insurance,
+          emergency_contact: newPatient.emergencyContact,
+        };
+
+        const response = await patientAPI.create(patientData);
+        const createdPatient = response.data;
+
+        // Map backend response to frontend format
+        const mappedPatient = {
+          id: createdPatient.id,
+          name: createdPatient.name,
+          email: createdPatient.email,
+          phone: createdPatient.phone,
+          age: createdPatient.age,
+          gender: createdPatient.gender,
+          status: "active",
+          lastVisit: new Date().toISOString().split("T")[0],
+          totalVisits: 0,
+          primaryDoctor: createdPatient.primary_doctor || "No doctor assigned",
+          insurance: createdPatient.insurance || "No insurance",
+          emergencyContact:
+            createdPatient.emergency_contact || "No emergency contact",
+        };
+
+        setPatients((prev: any) => [mappedPatient, ...prev]);
+        setShowAddPatientModal(false);
+        setNewPatient({
+          name: "",
+          email: "",
+          phone: "",
+          age: "",
+          gender: "",
+          primaryDoctor: "",
+          insurance: "",
+          emergencyContact: "",
+        });
+      } catch (error: any) {
+        console.error("Error creating patient:", error);
+        setError(error.message || "Failed to create patient");
+      }
     }
   };
 
-  const handleUpdatePatient = () => {
+  const handleUpdatePatient = async () => {
     if (
       selectedPatient &&
       editPatient.name &&
@@ -249,15 +249,52 @@ const PatientManagement: React.FC = () => {
       editPatient.age &&
       editPatient.gender
     ) {
-      setPatients((prev: any) =>
-        prev.map((patient: any) =>
-          patient.id === selectedPatient.id
-            ? { ...patient, ...editPatient, age: parseInt(editPatient.age) }
-            : patient
-        )
-      );
-      setShowEditPatientModal(false);
-      setSelectedPatient(null);
+      try {
+        const patientData = {
+          name: editPatient.name,
+          email: editPatient.email,
+          phone: editPatient.phone,
+          age: parseInt(editPatient.age),
+          gender: editPatient.gender,
+          primary_doctor: editPatient.primaryDoctor,
+          insurance: editPatient.insurance,
+          emergency_contact: editPatient.emergencyContact,
+        };
+
+        const response = await patientAPI.update(
+          selectedPatient.id,
+          patientData
+        );
+        const updatedPatient = response.data;
+
+        // Map backend response to frontend format
+        const mappedPatient = {
+          id: updatedPatient.id,
+          name: updatedPatient.name,
+          email: updatedPatient.email,
+          phone: updatedPatient.phone,
+          age: updatedPatient.age,
+          gender: updatedPatient.gender,
+          status: selectedPatient.status, // Keep existing status
+          lastVisit: selectedPatient.lastVisit, // Keep existing last visit
+          totalVisits: selectedPatient.totalVisits, // Keep existing total visits
+          primaryDoctor: updatedPatient.primary_doctor || "No doctor assigned",
+          insurance: updatedPatient.insurance || "No insurance",
+          emergencyContact:
+            updatedPatient.emergency_contact || "No emergency contact",
+        };
+
+        setPatients((prev: any) =>
+          prev.map((patient: any) =>
+            patient.id === selectedPatient.id ? mappedPatient : patient
+          )
+        );
+        setShowEditPatientModal(false);
+        setSelectedPatient(null);
+      } catch (error: any) {
+        console.error("Error updating patient:", error);
+        setError(error.message || "Failed to update patient");
+      }
     }
   };
 
@@ -327,6 +364,35 @@ const PatientManagement: React.FC = () => {
           </select>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading patients...
+          </span>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

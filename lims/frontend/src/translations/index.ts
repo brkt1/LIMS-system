@@ -40,9 +40,7 @@ export const translations = {
     "common.reject": "Reject",
     "common.schedule": "Schedule",
     "common.book": "Book",
-    "common.cancel": "Cancel",
     "common.reschedule": "Reschedule",
-    "common.confirm": "Confirm",
     "common.track": "Track",
     "common.process": "Process",
     "common.maintain": "Maintain",
@@ -109,8 +107,6 @@ export const translations = {
     "common.lab": "Lab",
     "common.work": "Work",
     "common.people": "People",
-    "common.reports": "Reports",
-    "common.analytics": "Analytics",
     "common.main": "Main",
     "common.menu": "Menu",
 
@@ -237,8 +233,6 @@ export const translations = {
     "dashboard.lab": "Lab",
     "dashboard.work": "Work",
     "dashboard.people": "People",
-    "dashboard.reports": "Reports",
-    "dashboard.analytics": "Analytics",
     "dashboard.main": "Main",
     "dashboard.menu": "Menu",
 
@@ -275,7 +269,6 @@ export const translations = {
     "nav.supportTickets": "Support Tickets",
     "nav.myAppointments": "My Appointments",
     "nav.faq": "FAQ",
-    "nav.support": "Support",
     "nav.help": "Help",
 
     // Languages
@@ -326,7 +319,6 @@ export const translations = {
     "common.book": "Bookii",
     "common.cancel": "Dhaabuu",
     "common.reschedule": "Yeroo haaraa",
-    "common.confirm": "Mirkaneessuu",
     "common.track": "Hordofuu",
     "common.process": "Hojjechuu",
     "common.maintain": "Bulchiinsa",
@@ -393,8 +385,6 @@ export const translations = {
     "common.lab": "Lab",
     "common.work": "Hojii",
     "common.people": "Namoota",
-    "common.reports": "Ripootii",
-    "common.analytics": "Qorannoo",
     "common.main": "Ijoo",
     "common.menu": "Menu",
 
@@ -521,8 +511,6 @@ export const translations = {
     "dashboard.lab": "Lab",
     "dashboard.work": "Hojii",
     "dashboard.people": "Namoota",
-    "dashboard.reports": "Ripootii",
-    "dashboard.analytics": "Qorannoo",
     "dashboard.main": "Ijoo",
     "dashboard.menu": "Menu",
 
@@ -559,7 +547,6 @@ export const translations = {
     "nav.supportTickets": "Deeggarsa Tikkeettii",
     "nav.myAppointments": "Walitti dhufiinsa Koo",
     "nav.faq": "Gaafii fi Deebii",
-    "nav.support": "Deeggarsa",
     "nav.help": "Gargaarsa",
 
     // Languages
@@ -610,7 +597,6 @@ export const translations = {
     "common.book": "ቦክ",
     "common.cancel": "ሰርዝ",
     "common.reschedule": "ጊዜ አድስ",
-    "common.confirm": "አረጋግጥ",
     "common.track": "ክትትል",
     "common.process": "ሂደት",
     "common.maintain": "ጠብቅ",
@@ -677,8 +663,6 @@ export const translations = {
     "common.lab": "ላብ",
     "common.work": "ስራ",
     "common.people": "ሰዎች",
-    "common.reports": "ሪፖርቶች",
-    "common.analytics": "ትንታኔ",
     "common.main": "ዋና",
     "common.menu": "ምናሌ",
 
@@ -805,8 +789,6 @@ export const translations = {
     "dashboard.lab": "ላብ",
     "dashboard.work": "ስራ",
     "dashboard.people": "ሰዎች",
-    "dashboard.reports": "ሪፖርቶች",
-    "dashboard.analytics": "ትንታኔ",
     "dashboard.main": "ዋና",
     "dashboard.menu": "ምናሌ",
 
@@ -843,7 +825,6 @@ export const translations = {
     "nav.supportTickets": "የድጋፍ ትኬቶች",
     "nav.myAppointments": "የእኔ ጉባኤዎች",
     "nav.faq": "ተደጋጋሚ ጥያቄዎች",
-    "nav.support": "ድጋፍ",
     "nav.help": "እርዳታ",
 
     // Languages

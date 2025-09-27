@@ -18,8 +18,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-# ✅ Import your tenant user view
-from lab.components.tenantadmin.ManageUsers.manage_users_views import TenantUserListCreateView
+# Tenant Admin URLs
 
 urlpatterns = [
     # Django Admin
@@ -46,12 +45,12 @@ urlpatterns = [
     # Tenant Admin endpoints
     path('', include('lab.components.tenantadmin.CurrentTenant.current_tenant_urls')),
     path('api/tenantadmin/profiles/', include('lab.components.tenantadmin.TenantAdminProfile.tenantadmin_profile_urls')),
-    path('api/tenant/users/', TenantUserListCreateView.as_view(), name='tenant-users'),
+    path('', include('lab.components.tenantadmin.ManageUsers.manage_users_urls')),
     path('api/home-visit-patients/', include('lab.components.tenantadmin.HomeVisitRequests.approved_patient_urls')),
     path('api/home-visit-doctors/', include('lab.components.tenantadmin.HomeVisitRequests.approved_doctor_urls')),
     
     # Super Admin endpoints
-    path('api/superadmin/', include('lab.components.superadmin.CreateTenant.create_tenant_urls')),
+    path('api/superadmin/', include('lab.components.superadmin.urls')),
     
     # Support System
     path('api/support/', include('lab.components.Support.SupportTicket.support_ticket_urls')),
@@ -73,6 +72,21 @@ urlpatterns = [
     
     # Profile Management
     path('api/profile/', include('lab.components.Profile.profile_urls')),
+    
+    # Receipts/Billing
+    path('api/receipts/', include('lab.components.Receipts.receipts_urls')),
+    
+    # Home Visit Management
+    path('api/home-visits/', include('lab.components.HomeVisit.home_visit_urls')),
+    
+    # Branch Management
+    path('api/branches/', include('lab.components.BranchManagement.branch_urls')),
+    
+    # Contract Management
+    path('api/contracts/', include('lab.components.ContractManagement.contract_urls')),
+    
+    # Accounting
+    path('api/accounting/', include('lab.components.Accounting.accounting_urls')),
 ]
 
 

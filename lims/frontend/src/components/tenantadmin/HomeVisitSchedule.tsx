@@ -12,19 +12,20 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { homeVisitScheduleAPI } from "../../services/api";
 
 const HomeVisitSchedule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  
+
   // Modal states
   const [showScheduleVisitModal, setShowScheduleVisitModal] = useState(false);
   const [showViewVisitModal, setShowViewVisitModal] = useState(false);
   const [showStartVisitModal, setShowStartVisitModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
-  
+
   // Form states
   const [newVisit, setNewVisit] = useState({
     patientName: "",
@@ -37,105 +38,64 @@ const HomeVisitSchedule: React.FC = () => {
     doctor: "",
     notes: "",
     priority: "normal",
-    estimatedDuration: ""
+    estimatedDuration: "",
   });
 
   const [rescheduleData, setRescheduleData] = useState({
     scheduledDate: "",
     scheduledTime: "",
-    notes: ""
+    notes: "",
   });
 
-  const [scheduledVisits, setScheduledVisits] = useState([
-    {
-      id: "HV001",
-      patientName: "John Smith",
-      patientId: "P001",
-      address: "123 Main St, City, State 12345",
-      phone: "+1 (555) 123-4567",
-      scheduledDate: "2025-01-25",
-      scheduledTime: "10:00 AM",
-      status: "scheduled",
-      serviceType: "Blood Collection",
-      doctor: "Dr. Sarah Johnson",
-      estimatedDuration: "30 minutes",
-      notes: "Patient has mobility issues",
-      priority: "normal",
-    },
-    {
-      id: "HV002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      address: "456 Oak Ave, City, State 12345",
-      phone: "+1 (555) 234-5678",
-      scheduledDate: "2025-01-24",
-      scheduledTime: "2:00 PM",
-      status: "in-progress",
-      serviceType: "Vaccination",
-      doctor: "Dr. Mike Davis",
-      estimatedDuration: "45 minutes",
-      notes: "Elderly patient, needs assistance",
-      priority: "high",
-    },
-    {
-      id: "HV003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      address: "789 Pine Rd, City, State 12345",
-      phone: "+1 (555) 345-6789",
-      scheduledDate: "2025-01-23",
-      scheduledTime: "9:00 AM",
-      status: "completed",
-      serviceType: "COVID-19 Test",
-      doctor: "Dr. Lisa Wilson",
-      estimatedDuration: "20 minutes",
-      notes: "Patient is symptomatic",
-      priority: "urgent",
-    },
-    {
-      id: "HV004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      address: "321 Elm St, City, State 12345",
-      phone: "+1 (555) 456-7890",
-      scheduledDate: "2025-01-26",
-      scheduledTime: "11:00 AM",
-      status: "cancelled",
-      serviceType: "Consultation",
-      doctor: "Dr. Robert Brown",
-      estimatedDuration: "60 minutes",
-      notes: "Patient cancelled due to scheduling conflict",
-      priority: "normal",
-    },
-    {
-      id: "HV005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      address: "654 Maple Dr, City, State 12345",
-      phone: "+1 (555) 567-8901",
-      scheduledDate: "2025-01-27",
-      scheduledTime: "3:00 PM",
-      status: "scheduled",
-      serviceType: "Physical Examination",
-      doctor: "Dr. Sarah Johnson",
-      estimatedDuration: "40 minutes",
-      notes: "Routine check-up",
-      priority: "normal",
-    },
-  ]);
+  const [scheduledVisits, setScheduledVisits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load data from localStorage on component mount
+  // Load home visit schedules from backend API
   useEffect(() => {
-    const savedVisits = localStorage.getItem('scheduledVisits');
-    if (savedVisits) {
-      setScheduledVisits(JSON.parse(savedVisits));
-    }
+    const fetchSchedules = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await homeVisitScheduleAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedSchedules = response.data.map((schedule: any) => ({
+          id: schedule.id,
+          patientName: schedule.patient_name,
+          patientId: schedule.patient_id,
+          address: schedule.address,
+          phone: schedule.phone,
+          scheduledDate: schedule.scheduled_date,
+          scheduledTime: schedule.scheduled_time,
+          status: schedule.status,
+          serviceType: schedule.service_type,
+          doctor: schedule.doctor,
+          estimatedDuration: schedule.estimated_duration,
+          notes: schedule.notes || "",
+          priority: "normal", // Default priority since backend doesn't have it
+        }));
+
+        setScheduledVisits(mappedSchedules);
+      } catch (error: any) {
+        console.error("Error fetching home visit schedules:", error);
+        setError(error.message || "Failed to load home visit schedules");
+        // Fallback to localStorage if API fails
+        const savedVisits = localStorage.getItem("scheduledVisits");
+        if (savedVisits) {
+          try {
+            setScheduledVisits(JSON.parse(savedVisits));
+          } catch (parseError) {
+            console.error("Error parsing saved visits:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchedules();
   }, []);
-
-  // Save data to localStorage whenever scheduledVisits change
-  useEffect(() => {
-    localStorage.setItem('scheduledVisits', JSON.stringify(scheduledVisits));
-  }, [scheduledVisits]);
 
   const filteredVisits = scheduledVisits.filter((visit) => {
     const matchesSearch =
@@ -162,7 +122,7 @@ const HomeVisitSchedule: React.FC = () => {
       doctor: "",
       notes: "",
       priority: "normal",
-      estimatedDuration: ""
+      estimatedDuration: "",
     });
     setShowScheduleVisitModal(true);
   };
@@ -182,17 +142,17 @@ const HomeVisitSchedule: React.FC = () => {
     setRescheduleData({
       scheduledDate: visit.scheduledDate,
       scheduledTime: visit.scheduledTime,
-      notes: visit.notes
+      notes: visit.notes,
     });
     setShowRescheduleModal(true);
   };
 
   const handleCreateVisit = () => {
-    const newId = `HV${String(scheduledVisits.length + 1).padStart(3, '0')}`;
+    const newId = `HV${String(scheduledVisits.length + 1).padStart(3, "0")}`;
     const visit = {
       ...newVisit,
       id: newId,
-      status: "scheduled"
+      status: "scheduled",
     };
     setScheduledVisits([...scheduledVisits, visit]);
     setShowScheduleVisitModal(false);
@@ -200,27 +160,31 @@ const HomeVisitSchedule: React.FC = () => {
 
   const handleStartVisitConfirm = () => {
     if (selectedVisit) {
-      setScheduledVisits(scheduledVisits.map(visit => 
-        visit.id === selectedVisit.id 
-          ? { ...visit, status: "in-progress" }
-          : visit
-      ));
+      setScheduledVisits(
+        scheduledVisits.map((visit) =>
+          visit.id === selectedVisit.id
+            ? { ...visit, status: "in-progress" }
+            : visit
+        )
+      );
       setShowStartVisitModal(false);
     }
   };
 
   const handleRescheduleConfirm = () => {
     if (selectedVisit) {
-      setScheduledVisits(scheduledVisits.map(visit => 
-        visit.id === selectedVisit.id 
-          ? { 
-              ...visit, 
-              scheduledDate: rescheduleData.scheduledDate,
-              scheduledTime: rescheduleData.scheduledTime,
-              notes: rescheduleData.notes
-            }
-          : visit
-      ));
+      setScheduledVisits(
+        scheduledVisits.map((visit) =>
+          visit.id === selectedVisit.id
+            ? {
+                ...visit,
+                scheduledDate: rescheduleData.scheduledDate,
+                scheduledTime: rescheduleData.scheduledTime,
+                notes: rescheduleData.notes,
+              }
+            : visit
+        )
+      );
       setShowRescheduleModal(false);
     }
   };
@@ -255,7 +219,6 @@ const HomeVisitSchedule: React.FC = () => {
     }
   };
 
-
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -264,9 +227,11 @@ const HomeVisitSchedule: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
             Home Visit Schedule
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">Schedule and manage home visits</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Schedule and manage home visits
+          </p>
         </div>
-        <button 
+        <button
           onClick={handleScheduleVisit}
           className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
         >
@@ -316,144 +281,165 @@ const HomeVisitSchedule: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading home visit schedules...
+          </span>
+        </div>
+      )}
 
       {/* Schedule Table */}
-      <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Visit
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Patient
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                  Address
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                  Doctor
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                  Scheduled
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredVisits.map((visit) => (
-                <tr key={visit.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700">
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {visit.id}
+      {!loading && (
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Visit
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Patient
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Address
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                    Doctor
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Scheduled
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredVisits.map((visit) => (
+                  <tr
+                    key={visit.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                  >
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {visit.id}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          {visit.estimatedDuration}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {visit.estimatedDuration}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {visit.patientName}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          ID: {visit.patientId}
+                        </div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {visit.address}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {visit.patientName}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        ID: {visit.patientId}
-                      </div>
-                      <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden flex items-center">
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <div className="text-sm text-gray-900 dark:text-white flex items-center">
                         <MapPin className="w-3 h-3 mr-1" />
                         {visit.address}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                    <div className="text-sm text-gray-900 dark:text-white flex items-center">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {visit.address}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {visit.serviceType}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-900 dark:text-white">
-                    {visit.doctor}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                        visit.priority
-                      )}`}
-                    >
-                      {visit.priority.charAt(0).toUpperCase() +
-                        visit.priority.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        visit.status
-                      )}`}
-                    >
-                      {visit.status.charAt(0).toUpperCase() +
-                        visit.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell text-sm text-gray-900 dark:text-white">
-                    <div>
-                      <div>{visit.scheduledDate}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {visit.scheduledTime}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {visit.serviceType}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button 
-                        onClick={() => handleViewVisit(visit)}
-                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-900 dark:text-white">
+                      {visit.doctor}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                          visit.priority
+                        )}`}
                       >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </button>
-                      {visit.status === "scheduled" && (
-                        <button 
-                          onClick={() => handleStartVisit(visit)}
-                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                        {visit.priority.charAt(0).toUpperCase() +
+                          visit.priority.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          visit.status
+                        )}`}
+                      >
+                        {visit.status.charAt(0).toUpperCase() +
+                          visit.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell text-sm text-gray-900 dark:text-white">
+                      <div>
+                        <div>{visit.scheduledDate}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          {visit.scheduledTime}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                        <button
+                          onClick={() => handleViewVisit(visit)}
+                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
                         >
-                          <Play className="w-4 h-4 mr-1" />
-                          Start
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
                         </button>
-                      )}
-                      <button 
-                        onClick={() => handleRescheduleVisit(visit)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Reschedule
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {visit.status === "scheduled" && (
+                          <button
+                            onClick={() => handleStartVisit(visit)}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                          >
+                            <Play className="w-4 h-4 mr-1" />
+                            Start
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleRescheduleVisit(visit)}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Reschedule
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Schedule Visit Modal */}
       {showScheduleVisitModal && (
@@ -479,7 +465,9 @@ const HomeVisitSchedule: React.FC = () => {
                   <input
                     type="text"
                     value={newVisit.patientName}
-                    onChange={(e) => setNewVisit({...newVisit, patientName: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, patientName: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter patient name"
                   />
@@ -491,7 +479,9 @@ const HomeVisitSchedule: React.FC = () => {
                   <input
                     type="text"
                     value={newVisit.patientId}
-                    onChange={(e) => setNewVisit({...newVisit, patientId: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, patientId: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter patient ID"
                   />
@@ -503,7 +493,9 @@ const HomeVisitSchedule: React.FC = () => {
                   <input
                     type="tel"
                     value={newVisit.phone}
-                    onChange={(e) => setNewVisit({...newVisit, phone: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, phone: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter phone number"
                   />
@@ -514,7 +506,9 @@ const HomeVisitSchedule: React.FC = () => {
                   </label>
                   <select
                     value={newVisit.serviceType}
-                    onChange={(e) => setNewVisit({...newVisit, serviceType: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, serviceType: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select service type</option>
@@ -522,7 +516,9 @@ const HomeVisitSchedule: React.FC = () => {
                     <option value="Vaccination">Vaccination</option>
                     <option value="COVID-19 Test">COVID-19 Test</option>
                     <option value="Consultation">Consultation</option>
-                    <option value="Physical Examination">Physical Examination</option>
+                    <option value="Physical Examination">
+                      Physical Examination
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -532,7 +528,12 @@ const HomeVisitSchedule: React.FC = () => {
                   <input
                     type="date"
                     value={newVisit.scheduledDate}
-                    onChange={(e) => setNewVisit({...newVisit, scheduledDate: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({
+                        ...newVisit,
+                        scheduledDate: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -543,7 +544,12 @@ const HomeVisitSchedule: React.FC = () => {
                   <input
                     type="time"
                     value={newVisit.scheduledTime}
-                    onChange={(e) => setNewVisit({...newVisit, scheduledTime: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({
+                        ...newVisit,
+                        scheduledTime: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -554,7 +560,9 @@ const HomeVisitSchedule: React.FC = () => {
                   <input
                     type="text"
                     value={newVisit.doctor}
-                    onChange={(e) => setNewVisit({...newVisit, doctor: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, doctor: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter doctor name"
                   />
@@ -565,7 +573,9 @@ const HomeVisitSchedule: React.FC = () => {
                   </label>
                   <select
                     value={newVisit.priority}
-                    onChange={(e) => setNewVisit({...newVisit, priority: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, priority: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="normal">Normal</option>
@@ -579,7 +589,9 @@ const HomeVisitSchedule: React.FC = () => {
                   </label>
                   <textarea
                     value={newVisit.address}
-                    onChange={(e) => setNewVisit({...newVisit, address: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, address: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter full address"
                     rows={3}
@@ -591,7 +603,9 @@ const HomeVisitSchedule: React.FC = () => {
                   </label>
                   <textarea
                     value={newVisit.notes}
-                    onChange={(e) => setNewVisit({...newVisit, notes: e.target.value})}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, notes: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter any additional notes"
                     rows={3}
@@ -638,77 +652,107 @@ const HomeVisitSchedule: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Patient Name
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.patientName}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.patientName}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Patient ID
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.patientId}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.patientId}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Phone
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.phone}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.phone}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Service Type
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.serviceType}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.serviceType}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Doctor
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.doctor}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.doctor}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Priority
                   </label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedVisit.priority)}`}>
-                    {selectedVisit.priority.charAt(0).toUpperCase() + selectedVisit.priority.slice(1)}
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                      selectedVisit.priority
+                    )}`}
+                  >
+                    {selectedVisit.priority.charAt(0).toUpperCase() +
+                      selectedVisit.priority.slice(1)}
                   </span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Status
                   </label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedVisit.status)}`}>
-                    {selectedVisit.status.charAt(0).toUpperCase() + selectedVisit.status.slice(1)}
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedVisit.status
+                    )}`}
+                  >
+                    {selectedVisit.status.charAt(0).toUpperCase() +
+                      selectedVisit.status.slice(1)}
                   </span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Scheduled Date
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.scheduledDate}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.scheduledDate}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Scheduled Time
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.scheduledTime}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.scheduledTime}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Estimated Duration
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.estimatedDuration}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.estimatedDuration}
+                  </p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Address
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.address}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.address}
+                  </p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Notes
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedVisit.notes || "No notes provided"}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedVisit.notes || "No notes provided"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -741,14 +785,16 @@ const HomeVisitSchedule: React.FC = () => {
             </div>
             <div className="p-6">
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Are you ready to start the home visit for <strong>{selectedVisit.patientName}</strong>?
+                Are you ready to start the home visit for{" "}
+                <strong>{selectedVisit.patientName}</strong>?
               </p>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   <strong>Service:</strong> {selectedVisit.serviceType}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>Scheduled:</strong> {selectedVisit.scheduledDate} at {selectedVisit.scheduledTime}
+                  <strong>Scheduled:</strong> {selectedVisit.scheduledDate} at{" "}
+                  {selectedVisit.scheduledTime}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   <strong>Doctor:</strong> {selectedVisit.doctor}
@@ -799,7 +845,12 @@ const HomeVisitSchedule: React.FC = () => {
                 <input
                   type="date"
                   value={rescheduleData.scheduledDate}
-                  onChange={(e) => setRescheduleData({...rescheduleData, scheduledDate: e.target.value})}
+                  onChange={(e) =>
+                    setRescheduleData({
+                      ...rescheduleData,
+                      scheduledDate: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
@@ -810,7 +861,12 @@ const HomeVisitSchedule: React.FC = () => {
                 <input
                   type="time"
                   value={rescheduleData.scheduledTime}
-                  onChange={(e) => setRescheduleData({...rescheduleData, scheduledTime: e.target.value})}
+                  onChange={(e) =>
+                    setRescheduleData({
+                      ...rescheduleData,
+                      scheduledTime: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
@@ -820,7 +876,12 @@ const HomeVisitSchedule: React.FC = () => {
                 </label>
                 <textarea
                   value={rescheduleData.notes}
-                  onChange={(e) => setRescheduleData({...rescheduleData, notes: e.target.value})}
+                  onChange={(e) =>
+                    setRescheduleData({
+                      ...rescheduleData,
+                      notes: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Enter reason for rescheduling"
                   rows={3}

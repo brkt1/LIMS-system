@@ -92,13 +92,13 @@ const NotificationDropdown: React.FC = () => {
   };
 
   const handleNotificationClick = async (notification: any) => {
-    if (!notification.read) {
+    if (!notification.is_read) {
       await markAsRead(notification.id);
     }
-    // Handle navigation if actionUrl is provided
-    if (notification.actionUrl) {
+    // Handle navigation if action_url is provided
+    if (notification.action_url) {
       // You can implement navigation here
-      console.log("Navigate to:", notification.actionUrl);
+      console.log("Navigate to:", notification.action_url);
     }
   };
 
@@ -150,7 +150,7 @@ const NotificationDropdown: React.FC = () => {
                   <div
                     key={notification.id}
                     className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
-                      !notification.read
+                      !notification.is_read
                         ? "bg-blue-50/50 dark:bg-blue-900/10"
                         : ""
                     }`}
@@ -159,17 +159,17 @@ const NotificationDropdown: React.FC = () => {
                     <div className="flex items-start space-x-3">
                       <div
                         className={`p-2 rounded-full ${getNotificationBgColor(
-                          notification.type
+                          notification.notification_type
                         )}`}
                       >
-                        {getNotificationIcon(notification.type)}
+                        {getNotificationIcon(notification.notification_type)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p
                               className={`text-sm font-medium ${
-                                !notification.read
+                                !notification.is_read
                                   ? "text-gray-900 dark:text-white"
                                   : "text-gray-700 dark:text-gray-300"
                               }`}
@@ -180,11 +180,11 @@ const NotificationDropdown: React.FC = () => {
                               {notification.message}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                              {formatTimeAgo(notification.createdAt)}
+                              {formatTimeAgo(notification.created_at)}
                             </p>
                           </div>
                           <div className="flex items-center space-x-1 ml-2">
-                            {!notification.read && (
+                            {!notification.is_read && (
                               <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
                             )}
                             <button

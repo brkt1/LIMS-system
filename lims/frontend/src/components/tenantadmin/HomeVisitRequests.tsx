@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { homeVisitRequestAPI } from "../../services/api";
 
 const HomeVisitRequests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,101 +40,58 @@ const HomeVisitRequests: React.FC = () => {
     estimatedDuration: "",
   });
 
-  const [requests, setRequests] = useState([
-    {
-      id: "HVR001",
-      patientName: "John Smith",
-      patientId: "P001",
-      address: "123 Main St, City, State 12345",
-      phone: "+1 (555) 123-4567",
-      requestedDate: "2025-01-25",
-      requestedTime: "10:00 AM",
-      status: "pending",
-      priority: "normal",
-      serviceType: "Blood Collection",
-      doctor: "Dr. Sarah Johnson",
-      notes: "Patient has mobility issues",
-      createdDate: "2025-01-22",
-      estimatedDuration: "30 minutes",
-    },
-    {
-      id: "HVR002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      address: "456 Oak Ave, City, State 12345",
-      phone: "+1 (555) 234-5678",
-      requestedDate: "2025-01-24",
-      requestedTime: "2:00 PM",
-      status: "approved",
-      priority: "high",
-      serviceType: "Vaccination",
-      doctor: "Dr. Mike Davis",
-      notes: "Elderly patient, needs assistance",
-      createdDate: "2025-01-21",
-      estimatedDuration: "45 minutes",
-    },
-    {
-      id: "HVR003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      address: "789 Pine Rd, City, State 12345",
-      phone: "+1 (555) 345-6789",
-      requestedDate: "2025-01-23",
-      requestedTime: "9:00 AM",
-      status: "completed",
-      priority: "urgent",
-      serviceType: "COVID-19 Test",
-      doctor: "Dr. Lisa Wilson",
-      notes: "Patient is symptomatic",
-      createdDate: "2025-01-20",
-      estimatedDuration: "20 minutes",
-    },
-    {
-      id: "HVR004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      address: "321 Elm St, City, State 12345",
-      phone: "+1 (555) 456-7890",
-      requestedDate: "2025-01-26",
-      requestedTime: "11:00 AM",
-      status: "cancelled",
-      priority: "normal",
-      serviceType: "Consultation",
-      doctor: "Dr. Robert Brown",
-      notes: "Patient cancelled due to scheduling conflict",
-      createdDate: "2025-01-19",
-      estimatedDuration: "60 minutes",
-    },
-    {
-      id: "HVR005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      address: "654 Maple Dr, City, State 12345",
-      phone: "+1 (555) 567-8901",
-      requestedDate: "2025-01-27",
-      requestedTime: "3:00 PM",
-      status: "pending",
-      priority: "normal",
-      serviceType: "Physical Examination",
-      doctor: "Dr. Sarah Johnson",
-      notes: "Routine check-up",
-      createdDate: "2025-01-22",
-      estimatedDuration: "40 minutes",
-    },
-  ]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load data from localStorage on component mount
+  // Load home visit requests from backend API
   useEffect(() => {
-    const savedRequests = localStorage.getItem("homeVisitRequests");
-    if (savedRequests) {
-      setRequests(JSON.parse(savedRequests));
-    }
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await homeVisitRequestAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedRequests = response.data.map((request: any) => ({
+          id: request.id,
+          patientName: request.patient_name,
+          patientId: request.patient_id,
+          address: request.address,
+          phone: request.phone,
+          requestedDate: request.requested_date,
+          requestedTime: request.requested_time,
+          status: request.status,
+          priority: request.priority,
+          serviceType: request.service_type,
+          doctor: request.doctor,
+          notes: request.notes || "",
+          createdDate: request.created_at
+            ? request.created_at.split("T")[0]
+            : "Unknown",
+          estimatedDuration: request.estimated_duration || "30 minutes",
+        }));
+
+        setRequests(mappedRequests);
+      } catch (error: any) {
+        console.error("Error fetching home visit requests:", error);
+        setError(error.message || "Failed to load home visit requests");
+        // Fallback to localStorage if API fails
+        const savedRequests = localStorage.getItem("homeVisitRequests");
+        if (savedRequests) {
+          try {
+            setRequests(JSON.parse(savedRequests));
+          } catch (parseError) {
+            console.error("Error parsing saved requests:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
   }, []);
-
-  // Save data to localStorage whenever requests change
-  useEffect(() => {
-    localStorage.setItem("homeVisitRequests", JSON.stringify(requests));
-  }, [requests]);
 
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
@@ -180,26 +138,86 @@ const HomeVisitRequests: React.FC = () => {
     setShowScheduleModal(true);
   };
 
-  const handleCreateRequest = () => {
-    const newId = `HVR${String(requests.length + 1).padStart(3, "0")}`;
-    const request = {
-      ...newRequest,
-      id: newId,
-      status: "pending",
-      createdDate: new Date().toISOString().split("T")[0],
-    };
-    setRequests([...requests, request]);
-    setShowNewRequestModal(false);
+  const handleCreateRequest = async () => {
+    if (newRequest.patientName && newRequest.patientId && newRequest.address) {
+      try {
+        const requestData = {
+          patient_name: newRequest.patientName,
+          patient_id: newRequest.patientId,
+          address: newRequest.address,
+          phone: newRequest.phone,
+          requested_date: newRequest.requestedDate,
+          requested_time: newRequest.requestedTime,
+          service_type: newRequest.serviceType,
+          doctor: newRequest.doctor,
+          notes: newRequest.notes,
+          priority: newRequest.priority,
+          estimated_duration: newRequest.estimatedDuration,
+          status: "pending",
+          tenant: 1, // Default tenant ID
+          created_by: 1, // Default user ID
+        };
+
+        const response = await homeVisitRequestAPI.create(requestData);
+        const createdRequest = response.data;
+
+        // Map backend response to frontend format
+        const mappedRequest = {
+          id: createdRequest.id,
+          patientName: createdRequest.patient_name,
+          patientId: createdRequest.patient_id,
+          address: createdRequest.address,
+          phone: createdRequest.phone,
+          requestedDate: createdRequest.requested_date,
+          requestedTime: createdRequest.requested_time,
+          status: createdRequest.status,
+          priority: createdRequest.priority,
+          serviceType: createdRequest.service_type,
+          doctor: createdRequest.doctor,
+          notes: createdRequest.notes || "",
+          createdDate: createdRequest.created_at
+            ? createdRequest.created_at.split("T")[0]
+            : "Unknown",
+          estimatedDuration: createdRequest.estimated_duration || "30 minutes",
+        };
+
+        setRequests((prev: any) => [mappedRequest, ...prev]);
+        setNewRequest({
+          patientName: "",
+          patientId: "",
+          address: "",
+          phone: "",
+          requestedDate: "",
+          requestedTime: "",
+          serviceType: "",
+          doctor: "",
+          notes: "",
+          priority: "normal",
+          estimatedDuration: "",
+        });
+        setShowNewRequestModal(false);
+      } catch (error: any) {
+        console.error("Error creating home visit request:", error);
+        setError(error.message || "Failed to create home visit request");
+      }
+    }
   };
 
-  const handleApproveConfirm = () => {
+  const handleApproveConfirm = async () => {
     if (selectedRequest) {
-      setRequests(
-        requests.map((req) =>
-          req.id === selectedRequest.id ? { ...req, status: "approved" } : req
-        )
-      );
-      setShowApproveModal(false);
+      try {
+        await homeVisitRequestAPI.approve(selectedRequest.id);
+
+        setRequests(
+          requests.map((req) =>
+            req.id === selectedRequest.id ? { ...req, status: "approved" } : req
+          )
+        );
+        setShowApproveModal(false);
+      } catch (error: any) {
+        console.error("Error approving home visit request:", error);
+        setError(error.message || "Failed to approve home visit request");
+      }
     }
   };
 
@@ -305,146 +323,165 @@ const HomeVisitRequests: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading home visit requests...
+          </span>
+        </div>
+      )}
+
       {/* Requests Table */}
-      <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Request
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Patient
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                  Address
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                  Doctor
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                  Requested
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredRequests.map((request) => (
-                <tr
-                  key={request.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
-                >
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {request.id}
+      {!loading && (
+        <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Request
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Patient
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Address
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                    Doctor
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Requested
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredRequests.map((request) => (
+                  <tr
+                    key={request.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                  >
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {request.id}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          {request.estimatedDuration}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {request.estimatedDuration}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {request.patientName}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          ID: {request.patientId}
+                        </div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {request.address}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {request.patientName}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        ID: {request.patientId}
-                      </div>
-                      <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden flex items-center">
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <div className="text-sm text-gray-900 dark:text-white flex items-center">
                         <MapPin className="w-3 h-3 mr-1" />
                         {request.address}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                    <div className="text-sm text-gray-900 dark:text-white flex items-center">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {request.address}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {request.serviceType}
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-900 dark:text-white">
-                    {request.doctor}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                        request.priority
-                      )}`}
-                    >
-                      {request.priority.charAt(0).toUpperCase() +
-                        request.priority.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        request.status
-                      )}`}
-                    >
-                      {request.status.charAt(0).toUpperCase() +
-                        request.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell text-sm text-gray-900 dark:text-white">
-                    <div>
-                      <div>{request.requestedDate}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        {request.requestedTime}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {request.serviceType}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button
-                        onClick={() => handleViewRequest(request)}
-                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell text-sm text-gray-900 dark:text-white">
+                      {request.doctor}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                          request.priority
+                        )}`}
                       >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </button>
-                      {request.status === "pending" && (
+                        {request.priority.charAt(0).toUpperCase() +
+                          request.priority.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          request.status
+                        )}`}
+                      >
+                        {request.status.charAt(0).toUpperCase() +
+                          request.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell text-sm text-gray-900 dark:text-white">
+                      <div>
+                        <div>{request.requestedDate}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          {request.requestedTime}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                         <button
-                          onClick={() => handleApproveRequest(request)}
-                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                          onClick={() => handleViewRequest(request)}
+                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left flex items-center"
                         >
-                          <Check className="w-4 h-4 mr-1" />
-                          Approve
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleScheduleRequest(request)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
-                      >
-                        <Calendar className="w-4 h-4 mr-1" />
-                        Schedule
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {request.status === "pending" && (
+                          <button
+                            onClick={() => handleApproveRequest(request)}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left flex items-center"
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleScheduleRequest(request)}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left flex items-center"
+                        >
+                          <Calendar className="w-4 h-4 mr-1" />
+                          Schedule
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* New Request Modal */}
       {showNewRequestModal && (

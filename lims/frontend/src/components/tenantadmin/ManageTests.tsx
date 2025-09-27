@@ -10,6 +10,7 @@ import {
   Power,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { testRequestAPI } from "../../services/api";
 
 const ManageTests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,103 +48,63 @@ const ManageTests: React.FC = () => {
   });
 
   // Dynamic tests state
-  const [tests, setTests] = useState([
-    {
-      id: "TEST001",
-      name: "Complete Blood Count (CBC)",
-      category: "Hematology",
-      code: "CBC",
-      description:
-        "Measures different components of blood including red and white blood cells",
-      price: 45.0,
-      duration: "30 minutes",
-      status: "active",
-      requirements: "Blood sample (2ml)",
-      normalRange: "Varies by component",
-      lastUpdated: "2025-01-20",
-      totalOrders: 156,
-    },
-    {
-      id: "TEST002",
-      name: "Lipid Panel",
-      category: "Chemistry",
-      code: "LIPID",
-      description: "Measures cholesterol and triglyceride levels",
-      price: 65.0,
-      duration: "45 minutes",
-      status: "active",
-      requirements: "Fasting blood sample (3ml)",
-      normalRange: "Total cholesterol < 200 mg/dL",
-      lastUpdated: "2025-01-18",
-      totalOrders: 89,
-    },
-    {
-      id: "TEST003",
-      name: "COVID-19 PCR Test",
-      category: "Microbiology",
-      code: "COVID-PCR",
-      description: "Detects SARS-CoV-2 virus genetic material",
-      price: 120.0,
-      duration: "2-4 hours",
-      status: "active",
-      requirements: "Nasal swab",
-      normalRange: "Negative",
-      lastUpdated: "2025-01-15",
-      totalOrders: 234,
-    },
-    {
-      id: "TEST004",
-      name: "Thyroid Function Test",
-      category: "Endocrinology",
-      code: "TFT",
-      description: "Measures thyroid hormone levels",
-      price: 85.0,
-      duration: "1 hour",
-      status: "inactive",
-      requirements: "Blood sample (2ml)",
-      normalRange: "TSH: 0.4-4.0 mIU/L",
-      lastUpdated: "2024-12-10",
-      totalOrders: 67,
-    },
-    {
-      id: "TEST005",
-      name: "Urinalysis Complete",
-      category: "Urinalysis",
-      code: "UA",
-      description: "Comprehensive analysis of urine sample",
-      price: 25.0,
-      duration: "20 minutes",
-      status: "active",
-      requirements: "Midstream urine sample (50ml)",
-      normalRange: "No abnormalities",
-      lastUpdated: "2025-01-22",
-      totalOrders: 198,
-    },
-  ]);
+  const [tests, setTests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load tests from localStorage on component mount
+  // Load tests from backend API
   useEffect(() => {
-    const savedTests = localStorage.getItem("manage-tests");
-    if (savedTests) {
+    const fetchTests = async () => {
       try {
-        const parsedTests = JSON.parse(savedTests);
-        setTests(parsedTests);
-      } catch (error) {
-        console.error("Error loading tests:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
+        const response = await testRequestAPI.getAll();
 
-  // Save tests to localStorage whenever tests change
-  useEffect(() => {
-    localStorage.setItem("manage-tests", JSON.stringify(tests));
-  }, [tests]);
+        // Map backend data to frontend expected format
+        const mappedTests = response.data.map((test: any) => ({
+          id: test.id,
+          name: test.test_type || "Unknown Test", // Map test_type to name
+          code: `TEST-${test.id}`, // Generate code from ID
+          category: "Laboratory", // Default category since backend doesn't have it
+          description: test.notes || "No description available",
+          price: 0, // Default price since backend doesn't have it
+          duration: "30 minutes", // Default duration
+          status: test.status?.toLowerCase() || "pending",
+          patientName: test.patient_name,
+          patientId: test.patient_id,
+          priority: test.priority,
+          dateRequested: test.date_requested,
+          createdAt: test.created_at,
+        }));
+
+        setTests(mappedTests);
+      } catch (error: any) {
+        console.error("Error fetching tests:", error);
+        setError(error.message || "Failed to load tests");
+        // Fallback to localStorage if API fails
+        const savedTests = localStorage.getItem("manage-tests");
+        if (savedTests) {
+          try {
+            setTests(JSON.parse(savedTests));
+          } catch (parseError) {
+            console.error("Error parsing saved tests:", parseError);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTests();
+  }, []);
 
   const filteredTests = tests.filter((test) => {
     const matchesSearch =
-      test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (test.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (test.code?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (test.id?.toString() || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || test.category === filterCategory;
     const matchesStatus =
@@ -152,6 +113,8 @@ const ManageTests: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
+    if (!status) return "bg-gray-100 text-gray-800";
+
     switch (status.toLowerCase()) {
       case "active":
         return "bg-green-100 text-green-800";
@@ -159,6 +122,10 @@ const ManageTests: React.FC = () => {
         return "bg-gray-100 text-gray-800";
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -402,8 +369,10 @@ const ManageTests: React.FC = () => {
                         test.status
                       )}`}
                     >
-                      {test.status.charAt(0).toUpperCase() +
-                        test.status.slice(1)}
+                      {test.status
+                        ? test.status.charAt(0).toUpperCase() +
+                          test.status.slice(1)
+                        : "Unknown"}
                     </span>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden lg:table-cell">
@@ -670,8 +639,10 @@ const ManageTests: React.FC = () => {
                       selectedTest.status
                     )}`}
                   >
-                    {selectedTest.status.charAt(0).toUpperCase() +
-                      selectedTest.status.slice(1)}
+                    {selectedTest.status
+                      ? selectedTest.status.charAt(0).toUpperCase() +
+                        selectedTest.status.slice(1)
+                      : "Unknown"}
                   </span>
                 </div>
                 <div>

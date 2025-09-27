@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
-import { testRequestAPI } from "../../services/api";
+import { testRequestAPI, appointmentAPI, patientAPI } from "../../services/api";
 
 const DoctorDashboard: React.FC = () => {
   // State for modals and CRUD operations
@@ -30,9 +30,23 @@ const DoctorDashboard: React.FC = () => {
     null
   );
 
-  // Fetch test requests on component mount
+  // Appointments data with state management
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(
+    null
+  );
+
+  // Patients data with state management
+  const [patients, setPatients] = useState<any[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(true);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
+
+  // Fetch all data on component mount
   useEffect(() => {
     fetchTestRequests();
+    fetchAppointments();
+    fetchPatients();
   }, []);
 
   const fetchTestRequests = async () => {
@@ -47,6 +61,36 @@ const DoctorDashboard: React.FC = () => {
       setTestRequestsError(err.message || "Failed to fetch test requests");
     } finally {
       setTestRequestsLoading(false);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      setAppointmentsLoading(true);
+      setAppointmentsError(null);
+      const response = await appointmentAPI.getAll();
+      console.log("📅 Appointments fetched:", response.data);
+      setAppointments(response.data);
+    } catch (err: any) {
+      console.error("Error fetching appointments:", err);
+      setAppointmentsError(err.message || "Failed to fetch appointments");
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  };
+
+  const fetchPatients = async () => {
+    try {
+      setPatientsLoading(true);
+      setPatientsError(null);
+      const response = await patientAPI.getAll();
+      console.log("👥 Patients fetched:", response.data);
+      setPatients(response.data);
+    } catch (err: any) {
+      console.error("Error fetching patients:", err);
+      setPatientsError(err.message || "Failed to fetch patients");
+    } finally {
+      setPatientsLoading(false);
     }
   };
 
@@ -72,6 +116,8 @@ const DoctorDashboard: React.FC = () => {
 
   const handleCreateRequest = async (newRequest: any) => {
     try {
+      console.log("🔍 Form data received:", newRequest);
+
       const requestData = {
         patient_id: newRequest.patientId,
         patient_name: newRequest.patient,
@@ -82,11 +128,15 @@ const DoctorDashboard: React.FC = () => {
         status: "Pending",
       };
 
-      await testRequestAPI.create(requestData);
+      console.log("📤 Sending request data:", requestData);
+      const response = await testRequestAPI.create(requestData);
+      console.log("✅ Request created successfully:", response.data);
+
       setShowNewRequestModal(false);
       fetchTestRequests(); // Refresh the list
     } catch (err: any) {
-      console.error("Error creating test request:", err);
+      console.error("❌ Error creating test request:", err);
+      console.error("❌ Error details:", err.response?.data);
       setTestRequestsError(err.message || "Failed to create test request");
     }
   };
@@ -161,9 +211,8 @@ const DoctorDashboard: React.FC = () => {
       (req) => req.status === "In Progress"
     ).length;
 
-    // Get unique patients from test requests
-    const uniquePatients = new Set(testRequests.map((req) => req.patient_id))
-      .size;
+    // Get unique patients from patients data
+    const uniquePatients = patients.length;
 
     // Calculate changes (mock data for now - would be real data in production)
     const pendingChange =
@@ -289,94 +338,78 @@ const DoctorDashboard: React.FC = () => {
           </div>
           <div className="space-y-4">
             {(() => {
-              // Generate today's schedule from test requests data
+              // Get today's appointments
               const today = new Date().toISOString().split("T")[0];
-              const todaysRequests = testRequests.filter(
-                (req) => req.date_requested === today
+              const todaysAppointments = appointments.filter(
+                (apt) => apt.appointment_date === today
               );
 
-              // If no requests for today, show mock data
-              if (todaysRequests.length === 0) {
-                return [
-                  {
-                    time: "09:00 AM",
-                    patient: "No appointments",
-                    type: "No scheduled tests",
-                    status: "No Data",
-                  },
-                ].map((appointment, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-gray-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          {appointment.time}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {appointment.patient}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          {appointment.type}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
-                      {appointment.status}
-                    </span>
-                  </div>
-                ));
-              }
-
-              // Transform test requests into appointment format
-              return todaysRequests.slice(0, 5).map((request, index) => {
-                const appointmentTime = new Date(request.created_at);
-                const timeString = appointmentTime.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                });
-
+              // If no appointments for today, show message
+              if (todaysAppointments.length === 0) {
                 return (
-                  <div
-                    key={request.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-primary-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {timeString}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {request.patient_name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {request.test_type}
-                        </p>
-                      </div>
+                  <div className="flex items-center justify-center p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="text-center">
+                      <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No appointments scheduled for today
+                      </p>
                     </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        request.status === "Approved" ||
-                        request.status === "In Progress"
-                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                          : request.status === "Completed"
-                          ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
-                      }`}
-                    >
-                      {request.status}
-                    </span>
                   </div>
                 );
-              });
+              }
+
+              // Display real appointments
+              return todaysAppointments
+                .slice(0, 5)
+                .map((appointment, index) => {
+                  const appointmentTime = new Date(
+                    appointment.appointment_time
+                  );
+                  const timeString = appointmentTime.toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    }
+                  );
+
+                  return (
+                    <div
+                      key={appointment.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-primary-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {timeString}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {appointment.patient_name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {appointment.appointment_type}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          appointment.status === "Confirmed" ||
+                          appointment.status === "In Progress"
+                            ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                            : appointment.status === "Completed"
+                            ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                            : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                        }`}
+                      >
+                        {appointment.status}
+                      </span>
+                    </div>
+                  );
+                });
             })()}
           </div>
         </div>
@@ -666,14 +699,16 @@ const DoctorDashboard: React.FC = () => {
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
-                handleCreateRequest({
+                const formObject = {
                   patient: formData.get("patient"),
                   testType: formData.get("testType"),
                   priority: formData.get("priority"),
                   requestedDate: formData.get("requestedDate"),
                   patientId: formData.get("patientId"),
                   doctorNotes: formData.get("doctorNotes"),
-                });
+                };
+                console.log("📝 Form submitted with data:", formObject);
+                handleCreateRequest(formObject);
               }}
             >
               <div className="space-y-4">

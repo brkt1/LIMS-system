@@ -1,8 +1,96 @@
-import { BarChart3, TrendingUp, Users, DollarSign } from "lucide-react";
-import React from "react";
+import { BarChart3, TrendingUp, Users, DollarSign, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { analyticsAPI } from "../../services/api";
 
 const Analytics: React.FC = () => {
-  const analyticsData = {
+  const [analyticsData, setAnalyticsData] = useState({
+    totalRevenue: 0,
+    monthlyGrowth: 0,
+    totalPatients: 0,
+    totalTests: 0,
+    topTests: [],
+    monthlyRevenue: [],
+    testCategories: [],
+    patientDemographics: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load analytics data from backend API
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [labAnalyticsResponse, testCategoryResponse] = await Promise.all([
+          analyticsAPI.getLabAnalytics(),
+          analyticsAPI.getTestCategoryAnalytics(),
+        ]);
+
+        // Map backend data to frontend expected format
+        const labData = labAnalyticsResponse.data;
+        const testCategoryData = testCategoryResponse.data;
+
+        setAnalyticsData({
+          totalRevenue: labData.total_revenue || 0,
+          monthlyGrowth: labData.monthly_growth || 0,
+          totalPatients: labData.total_patients || 0,
+          totalTests: labData.total_tests || 0,
+          topTests: labData.top_tests || [],
+          monthlyRevenue: labData.monthly_revenue || [],
+          testCategories: testCategoryData || [],
+          patientDemographics: labData.patient_demographics || [],
+        });
+      } catch (error: any) {
+        console.error("Error fetching analytics:", error);
+        setError(error.message || "Failed to load analytics data");
+        // Fallback to mock data if API fails
+        setAnalyticsData({
+          totalRevenue: 125000,
+          monthlyGrowth: 12.5,
+          totalPatients: 1247,
+          totalTests: 3456,
+          topTests: [
+            { name: "Complete Blood Count", count: 456, revenue: 20520 },
+            { name: "COVID-19 PCR Test", count: 234, revenue: 28080 },
+            { name: "Lipid Panel", count: 189, revenue: 12285 },
+            { name: "Thyroid Function Test", count: 156, revenue: 13260 },
+            { name: "Urinalysis Complete", count: 298, revenue: 7450 },
+          ],
+          monthlyRevenue: [
+            { month: "Jan", revenue: 8500 },
+            { month: "Feb", revenue: 9200 },
+            { month: "Mar", revenue: 8800 },
+            { month: "Apr", revenue: 10200 },
+            { month: "May", revenue: 11500 },
+            { month: "Jun", revenue: 12800 },
+          ],
+          testCategories: [
+            { name: "Hematology", count: 456, percentage: 35.2 },
+            { name: "Chemistry", count: 298, percentage: 23.0 },
+            { name: "Microbiology", count: 234, percentage: 18.1 },
+            { name: "Immunology", count: 189, percentage: 14.6 },
+            { name: "Pathology", count: 123, percentage: 9.5 },
+          ],
+          patientDemographics: [
+            { ageGroup: "0-18", count: 156, percentage: 12.5 },
+            { ageGroup: "19-35", count: 298, percentage: 23.9 },
+            { ageGroup: "36-50", count: 345, percentage: 27.7 },
+            { ageGroup: "51-65", count: 298, percentage: 23.9 },
+            { ageGroup: "65+", count: 150, percentage: 12.0 },
+          ],
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
+
+  // Mock data for fallback
+  const mockAnalyticsData = {
     totalRevenue: 125000,
     monthlyGrowth: 12.5,
     totalPatients: 1247,
@@ -51,12 +139,43 @@ const Analytics: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading analytics...
+          </span>
+        </div>
+      )}
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Revenue</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Revenue
+              </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 ${analyticsData.totalRevenue.toLocaleString()}
               </p>
@@ -72,7 +191,9 @@ const Analytics: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Patients</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Patients
+              </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {analyticsData.totalPatients.toLocaleString()}
               </p>
@@ -88,7 +209,9 @@ const Analytics: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Total Tests</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Total Tests
+              </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {analyticsData.totalTests.toLocaleString()}
               </p>
@@ -104,8 +227,12 @@ const Analytics: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Avg. Test Price</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">$36.20</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Avg. Test Price
+              </p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                $36.20
+              </p>
               <p className="text-sm text-orange-600 flex items-center mt-1">
                 <TrendingUp className="w-4 h-4 mr-1" />
                 +2.3% this month
