@@ -39,7 +39,7 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000'),
     
     // Default Values
-    defaultTenantId: import.meta.env.VITE_DEFAULT_TENANT_ID || '1',
+    defaultTenantId: import.meta.env.VITE_DEFAULT_TENANT_ID || '2',
     defaultUserId: import.meta.env.VITE_DEFAULT_USER_ID || '1',
     defaultUserEmail: import.meta.env.VITE_DEFAULT_USER_EMAIL || 'admin@lims.com',
     defaultDomain: import.meta.env.VITE_DEFAULT_DOMAIN || 'lims.com',

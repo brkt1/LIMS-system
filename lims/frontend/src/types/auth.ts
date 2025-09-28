@@ -141,7 +141,6 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
       items: [
         { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
         { icon: 'Users', label: 'User Management', labelKey: 'nav.userManagement', path: '/users' },
-        { icon: 'Building2', label: 'Tenant Settings', labelKey: 'nav.tenantSettings', path: '/settings' },
         { icon: 'Package', label: 'Inventory Management', labelKey: 'nav.inventoryManagement', path: '/inventory' }
       ]
     },

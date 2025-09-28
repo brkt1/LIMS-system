@@ -23,7 +23,7 @@ class TenantUser(models.Model):
     password = models.CharField(max_length=128)
     created_by = models.EmailField()
     created_at = models.DateTimeField(auto_now_add=True)
-    tenant = models.ForeignKey(Tenant, to_field="id", on_delete=models.CASCADE, related_name="users")
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="users")
 
     def save(self, *args, **kwargs):
         if not self.pk and self.password:

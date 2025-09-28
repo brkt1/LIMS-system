@@ -1,11 +1,7 @@
-import {
-    Plus,
-    Power,
-    Search,
-    X
-} from "lucide-react";
+import { Plus, Power, Search, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { testRequestAPI } from "../../services/api";
+import { testPricingAPI } from "../../services/api";
+import { getCurrentTenantId } from "../../utils/helpers";
 
 const ManageTests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,32 +17,32 @@ const ManageTests: React.FC = () => {
 
   // Form states
   const [newTest, setNewTest] = useState({
-    name: "",
+    test_name: "",
     category: "",
-    code: "",
+    test_code: "",
     description: "",
-    price: 0,
-    duration: "",
-    requirements: "",
-    normalRange: "",
+    base_price: 0,
+    turnaround_time: "",
+    sample_type: "",
+    preparation_instructions: "",
   });
 
   const [editTest, setEditTest] = useState({
-    name: "",
+    test_name: "",
     category: "",
-    code: "",
+    test_code: "",
     description: "",
-    price: 0,
-    duration: "",
-    requirements: "",
-    normalRange: "",
+    base_price: 0,
+    turnaround_time: "",
+    sample_type: "",
+    preparation_instructions: "",
   });
 
   // Tests state
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Load tests from backend API
   useEffect(() => {
@@ -54,23 +50,25 @@ const ManageTests: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await testRequestAPI.getAll();
+        const response = await testPricingAPI.getAll();
 
         // Map backend data to frontend expected format
         const mappedTests = response.data.map((test: any) => ({
           id: test.id,
-          name: test.test_type || "Unknown Test", // Map test_type to name
-          code: `TEST-${test.id}`, // Generate code from ID
-          category: "Laboratory", // Default category since backend doesn't have it
-          description: test.notes || "No description available",
-          price: 0, // Default price since backend doesn't have it
-          duration: "30 minutes", // Default duration
-          status: test.status?.toLowerCase() || "pending",
-          patientName: test.patient_name,
-          patientId: test.patient_id,
-          priority: test.priority,
-          dateRequested: test.date_requested,
+          name: test.test_name,
+          code: test.test_code,
+          category: test.category,
+          description: test.description || "No description available",
+          price: parseFloat(test.base_price) || 0,
+          duration: test.turnaround_time || "Not specified",
+          status: test.is_active ? "active" : "inactive",
+          sampleType: test.sample_type,
+          preparationInstructions: test.preparation_instructions,
+          effectiveDate: test.effective_date,
+          expiryDate: test.expiry_date,
           createdAt: test.created_at,
+          updatedAt: test.updated_at,
+          totalOrders: 0, // This would need to be calculated from actual orders
         }));
 
         setTests(mappedTests);
@@ -123,14 +121,14 @@ const ManageTests: React.FC = () => {
   // Handler functions
   const handleAddTest = () => {
     setNewTest({
-      name: "",
+      test_name: "",
       category: "",
-      code: "",
+      test_code: "",
       description: "",
-      price: 0,
-      duration: "",
-      requirements: "",
-      normalRange: "",
+      base_price: 0,
+      turnaround_time: "",
+      sample_type: "",
+      preparation_instructions: "",
     });
     setShowAddTestModal(true);
   };
@@ -143,14 +141,14 @@ const ManageTests: React.FC = () => {
   const handleEditTest = (test: any) => {
     setSelectedTest(test);
     setEditTest({
-      name: test.name,
+      test_name: test.name,
       category: test.category,
-      code: test.code,
+      test_code: test.code,
       description: test.description,
-      price: test.price,
-      duration: test.duration,
-      requirements: test.requirements,
-      normalRange: test.normalRange,
+      base_price: test.price,
+      turnaround_time: test.duration,
+      sample_type: test.sampleType,
+      preparation_instructions: test.preparationInstructions,
     });
     setShowEditTestModal(true);
   };
@@ -160,65 +158,214 @@ const ManageTests: React.FC = () => {
     setShowDeactivateModal(true);
   };
 
-  const handleCreateTest = () => {
-    if (newTest.name && newTest.category && newTest.code) {
-      const test = {
-        id: `TEST${String(tests.length + 1).padStart(3, "0")}`,
-        ...newTest,
-        status: "active",
-        lastUpdated: new Date().toISOString().split("T")[0],
-        totalOrders: 0,
-      };
-      setTests((prev: any) => [test, ...prev]);
-      setShowAddTestModal(false);
-      setNewTest({
-        name: "",
-        category: "",
-        code: "",
-        description: "",
-        price: 0,
-        duration: "",
-        requirements: "",
-        normalRange: "",
-      });
+  const handleCreateTest = async () => {
+    if (
+      newTest.test_name &&
+      newTest.category &&
+      newTest.test_code &&
+      newTest.base_price >= 0
+    ) {
+      try {
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        const tenantId = getCurrentTenantId();
+
+        const testData = {
+          ...newTest,
+          base_price: parseFloat(newTest.base_price) || 0, // Ensure base_price is a number
+          tenant: parseInt(tenantId), // Convert to integer for BigAutoField
+          effective_date: new Date().toISOString().split("T")[0],
+          is_active: true,
+          currency: "USD",
+          pricing_type: "standard",
+        };
+
+        const response = await testPricingAPI.create(testData);
+
+        // Add the new test to the list
+        const newTestItem = {
+          id: response.data.test_pricing.id,
+          name: response.data.test_pricing.test_name,
+          code: response.data.test_pricing.test_code,
+          category: response.data.test_pricing.category,
+          description:
+            response.data.test_pricing.description ||
+            "No description available",
+          price: parseFloat(response.data.test_pricing.base_price) || 0,
+          duration:
+            response.data.test_pricing.turnaround_time || "Not specified",
+          status: response.data.test_pricing.is_active ? "active" : "inactive",
+          sampleType: response.data.test_pricing.sample_type,
+          preparationInstructions:
+            response.data.test_pricing.preparation_instructions,
+          effectiveDate: response.data.test_pricing.effective_date,
+          expiryDate: response.data.test_pricing.expiry_date,
+          createdAt: response.data.test_pricing.created_at,
+          updatedAt: response.data.test_pricing.updated_at,
+          totalOrders: 0,
+        };
+
+        setTests((prev: any) => [newTestItem, ...prev]);
+        setShowAddTestModal(false);
+        setSuccessMessage("Test created successfully!");
+        setNewTest({
+          test_name: "",
+          category: "",
+          test_code: "",
+          description: "",
+          base_price: 0,
+          turnaround_time: "",
+          sample_type: "",
+          preparation_instructions: "",
+        });
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } catch (error: any) {
+        console.error("Error creating test:", error);
+
+        let errorMessage = "Failed to create test";
+
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response?.data) {
+          errorMessage = JSON.stringify(error.response.data);
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleUpdateTest = () => {
-    if (selectedTest && editTest.name && editTest.category && editTest.code) {
-      setTests((prev: any) =>
-        prev.map((test: any) =>
-          test.id === selectedTest.id
-            ? {
-                ...test,
-                ...editTest,
-                lastUpdated: new Date().toISOString().split("T")[0],
-              }
-            : test
-        )
-      );
-      setShowEditTestModal(false);
-      setSelectedTest(null);
+  const handleUpdateTest = async () => {
+    if (
+      selectedTest &&
+      editTest.test_name &&
+      editTest.category &&
+      editTest.test_code &&
+      editTest.base_price >= 0
+    ) {
+      try {
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        if (!selectedTest.id) {
+          setError("Test ID is missing. Cannot update test.");
+          return;
+        }
+
+        const updateData = {
+          ...editTest,
+          base_price: parseFloat(editTest.base_price) || 0, // Ensure base_price is a number
+          tenant: parseInt(getCurrentTenantId()), // Convert to integer for BigAutoField
+        };
+
+        const response = await testPricingAPI.update(
+          selectedTest.id,
+          updateData
+        );
+
+        // Update the test in the list
+        const updatedTest = {
+          id: response.data.test_pricing.id,
+          name: response.data.test_pricing.test_name,
+          code: response.data.test_pricing.test_code,
+          category: response.data.test_pricing.category,
+          description:
+            response.data.test_pricing.description ||
+            "No description available",
+          price: parseFloat(response.data.test_pricing.base_price) || 0,
+          duration:
+            response.data.test_pricing.turnaround_time || "Not specified",
+          status: response.data.test_pricing.is_active ? "active" : "inactive",
+          sampleType: response.data.test_pricing.sample_type,
+          preparationInstructions:
+            response.data.test_pricing.preparation_instructions,
+          effectiveDate: response.data.test_pricing.effective_date,
+          expiryDate: response.data.test_pricing.expiry_date,
+          createdAt: response.data.test_pricing.created_at,
+          updatedAt: response.data.test_pricing.updated_at,
+          totalOrders: selectedTest.totalOrders,
+        };
+
+        setTests((prev: any) =>
+          prev.map((test: any) =>
+            test.id === selectedTest.id ? updatedTest : test
+          )
+        );
+        setShowEditTestModal(false);
+        setSelectedTest(null);
+        setSuccessMessage("Test updated successfully!");
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } catch (error: any) {
+        console.error("Error updating test:", error);
+        setError(
+          error.response?.data?.error ||
+            error.message ||
+            "Failed to update test"
+        );
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleDeactivateConfirm = () => {
+  const handleDeactivateConfirm = async () => {
     if (selectedTest) {
-      const newStatus =
-        selectedTest.status === "active" ? "inactive" : "active";
-      setTests((prev: any) =>
-        prev.map((test: any) =>
-          test.id === selectedTest.id
-            ? {
-                ...test,
-                status: newStatus,
-                lastUpdated: new Date().toISOString().split("T")[0],
-              }
-            : test
-        )
-      );
-      setShowDeactivateModal(false);
-      setSelectedTest(null);
+      try {
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        const newStatus = selectedTest.status === "active" ? false : true;
+        const updateData = {
+          is_active: newStatus,
+          tenant: parseInt(getCurrentTenantId()), // Convert to integer for BigAutoField
+        };
+
+        const response = await testPricingAPI.update(
+          selectedTest.id,
+          updateData
+        );
+
+        // Update the test status in the list
+        setTests((prev: any) =>
+          prev.map((test: any) =>
+            test.id === selectedTest.id
+              ? {
+                  ...test,
+                  status: newStatus ? "active" : "inactive",
+                  updatedAt: response.data.test_pricing.updated_at,
+                }
+              : test
+          )
+        );
+        setShowDeactivateModal(false);
+        setSelectedTest(null);
+        setSuccessMessage(
+          `Test ${newStatus ? "activated" : "deactivated"} successfully!`
+        );
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } catch (error: any) {
+        console.error("Error updating test status:", error);
+        setError(
+          error.response?.data?.error ||
+            error.message ||
+            "Failed to update test status"
+        );
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -251,6 +398,44 @@ const ManageTests: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {successMessage && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <div className="h-5 w-5 text-green-400">✓</div>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                Success
+              </h3>
+              <div className="mt-2 text-sm text-green-700 dark:text-green-300">
+                {successMessage}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
@@ -272,11 +457,16 @@ const ManageTests: React.FC = () => {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Categories</option>
-            <option value="Hematology">Hematology</option>
-            <option value="Chemistry">Chemistry</option>
-            <option value="Microbiology">Microbiology</option>
-            <option value="Endocrinology">Endocrinology</option>
-            <option value="Urinalysis">Urinalysis</option>
+            <option value="blood_tests">Blood Tests</option>
+            <option value="urine_tests">Urine Tests</option>
+            <option value="imaging">Imaging</option>
+            <option value="microbiology">Microbiology</option>
+            <option value="pathology">Pathology</option>
+            <option value="cardiology">Cardiology</option>
+            <option value="neurology">Neurology</option>
+            <option value="pulmonology">Pulmonology</option>
+            <option value="endocrinology">Endocrinology</option>
+            <option value="immunology">Immunology</option>
           </select>
           <select
             value={filterStatus}
@@ -293,107 +483,118 @@ const ManageTests: React.FC = () => {
 
       {/* Tests Table */}
       <div className="bg-white dark:bg-gray-800 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Test
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                  Category
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                  Duration
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                  Orders
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredTests.map((test) => (
-                <tr
-                  key={test.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
-                >
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {test.name}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                        Code: {test.code}
-                      </div>
-                      <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden">
-                        {test.category} • {test.duration} • {test.totalOrders}{" "}
-                        orders
-                      </div>
-                      <div className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">
-                        ID: {test.id}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden sm:table-cell">
-                    {test.category}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    ${test.price.toFixed(2)}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden md:table-cell">
-                    {test.duration}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        test.status
-                      )}`}
-                    >
-                      {test.status
-                        ? test.status.charAt(0).toUpperCase() +
-                          test.status.slice(1)
-                        : "Unknown"}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden lg:table-cell">
-                    {test.totalOrders}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button
-                        onClick={() => handleViewTest(test)}
-                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleEditTest(test)}
-                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeactivateTest(test)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
-                      >
-                        {test.status === "active" ? "Deactivate" : "Activate"}
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Loading tests...
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Test
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Category
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Duration
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                    Orders
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredTests.map((test) => (
+                  <tr
+                    key={test.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700"
+                  >
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {test.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                          Code: {test.code}
+                        </div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden">
+                          {test.category} • {test.duration} • {test.totalOrders}{" "}
+                          orders
+                        </div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">
+                          ID: {test.id}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden sm:table-cell">
+                      {test.category}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      ${test.price.toFixed(2)}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden md:table-cell">
+                      {test.duration}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          test.status
+                        )}`}
+                      >
+                        {test.status
+                          ? test.status.charAt(0).toUpperCase() +
+                            test.status.slice(1)
+                          : "Unknown"}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden lg:table-cell">
+                      {test.totalOrders}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                        <button
+                          onClick={() => handleViewTest(test)}
+                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleEditTest(test)}
+                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeactivateTest(test)}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
+                        >
+                          {test.status === "active" ? "Deactivate" : "Activate"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Add Test Modal */}
@@ -419,9 +620,9 @@ const ManageTests: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={newTest.name}
+                    value={newTest.test_name}
                     onChange={(e) =>
-                      setNewTest({ ...newTest, name: e.target.value })
+                      setNewTest({ ...newTest, test_name: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter test name"
@@ -439,11 +640,16 @@ const ManageTests: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select category</option>
-                    <option value="Hematology">Hematology</option>
-                    <option value="Chemistry">Chemistry</option>
-                    <option value="Microbiology">Microbiology</option>
-                    <option value="Endocrinology">Endocrinology</option>
-                    <option value="Urinalysis">Urinalysis</option>
+                    <option value="blood_tests">Blood Tests</option>
+                    <option value="urine_tests">Urine Tests</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="microbiology">Microbiology</option>
+                    <option value="pathology">Pathology</option>
+                    <option value="cardiology">Cardiology</option>
+                    <option value="neurology">Neurology</option>
+                    <option value="pulmonology">Pulmonology</option>
+                    <option value="endocrinology">Endocrinology</option>
+                    <option value="immunology">Immunology</option>
                   </select>
                 </div>
                 <div>
@@ -452,9 +658,9 @@ const ManageTests: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={newTest.code}
+                    value={newTest.test_code}
                     onChange={(e) =>
-                      setNewTest({ ...newTest, code: e.target.value })
+                      setNewTest({ ...newTest, test_code: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter test code"
@@ -462,31 +668,36 @@ const ManageTests: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Price ($)
+                    Price ($) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={newTest.price}
+                    value={newTest.base_price || ""}
                     onChange={(e) =>
                       setNewTest({
                         ...newTest,
-                        price: parseFloat(e.target.value) || 0,
+                        base_price: parseFloat(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     min="0"
+                    placeholder="0.00"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Duration
+                    Turnaround Time
                   </label>
                   <input
                     type="text"
-                    value={newTest.duration}
+                    value={newTest.turnaround_time}
                     onChange={(e) =>
-                      setNewTest({ ...newTest, duration: e.target.value })
+                      setNewTest({
+                        ...newTest,
+                        turnaround_time: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., 30 minutes, 2-4 hours"
@@ -494,13 +705,13 @@ const ManageTests: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Requirements
+                    Sample Type
                   </label>
                   <input
                     type="text"
-                    value={newTest.requirements}
+                    value={newTest.sample_type}
                     onChange={(e) =>
-                      setNewTest({ ...newTest, requirements: e.target.value })
+                      setNewTest({ ...newTest, sample_type: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., Blood sample (2ml)"
@@ -522,16 +733,19 @@ const ManageTests: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Normal Range
+                    Preparation Instructions
                   </label>
-                  <input
-                    type="text"
-                    value={newTest.normalRange}
+                  <textarea
+                    value={newTest.preparation_instructions}
                     onChange={(e) =>
-                      setNewTest({ ...newTest, normalRange: e.target.value })
+                      setNewTest({
+                        ...newTest,
+                        preparation_instructions: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="e.g., Varies by component"
+                    rows={3}
+                    placeholder="e.g., Patient should fast for 12 hours before the test"
                   />
                 </div>
               </div>
@@ -545,9 +759,10 @@ const ManageTests: React.FC = () => {
               </button>
               <button
                 onClick={handleCreateTest}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                disabled={loading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Test
+                {loading ? "Adding..." : "Add Test"}
               </button>
             </div>
           </div>
@@ -644,18 +859,18 @@ const ManageTests: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Requirements
+                    Sample Type
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedTest.requirements}
+                    {selectedTest.sampleType || "Not specified"}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Normal Range
+                    Preparation Instructions
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedTest.normalRange}
+                    {selectedTest.preparationInstructions || "Not specified"}
                   </p>
                 </div>
                 <div>
@@ -663,7 +878,9 @@ const ManageTests: React.FC = () => {
                     Last Updated
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedTest.lastUpdated}
+                    {selectedTest.updatedAt
+                      ? new Date(selectedTest.updatedAt).toLocaleDateString()
+                      : "Not available"}
                   </p>
                 </div>
                 <div className="md:col-span-2">
@@ -711,9 +928,9 @@ const ManageTests: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={editTest.name}
+                    value={editTest.test_name}
                     onChange={(e) =>
-                      setEditTest({ ...editTest, name: e.target.value })
+                      setEditTest({ ...editTest, test_name: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
@@ -729,11 +946,16 @@ const ManageTests: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="Hematology">Hematology</option>
-                    <option value="Chemistry">Chemistry</option>
-                    <option value="Microbiology">Microbiology</option>
-                    <option value="Endocrinology">Endocrinology</option>
-                    <option value="Urinalysis">Urinalysis</option>
+                    <option value="blood_tests">Blood Tests</option>
+                    <option value="urine_tests">Urine Tests</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="microbiology">Microbiology</option>
+                    <option value="pathology">Pathology</option>
+                    <option value="cardiology">Cardiology</option>
+                    <option value="neurology">Neurology</option>
+                    <option value="pulmonology">Pulmonology</option>
+                    <option value="endocrinology">Endocrinology</option>
+                    <option value="immunology">Immunology</option>
                   </select>
                 </div>
                 <div>
@@ -742,53 +964,58 @@ const ManageTests: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={editTest.code}
+                    value={editTest.test_code}
                     onChange={(e) =>
-                      setEditTest({ ...editTest, code: e.target.value })
+                      setEditTest({ ...editTest, test_code: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Price ($)
+                    Price ($) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={editTest.price}
+                    value={editTest.base_price || ""}
                     onChange={(e) =>
                       setEditTest({
                         ...editTest,
-                        price: parseFloat(e.target.value) || 0,
+                        base_price: parseFloat(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     min="0"
+                    placeholder="0.00"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Duration
+                    Turnaround Time
                   </label>
                   <input
                     type="text"
-                    value={editTest.duration}
+                    value={editTest.turnaround_time}
                     onChange={(e) =>
-                      setEditTest({ ...editTest, duration: e.target.value })
+                      setEditTest({
+                        ...editTest,
+                        turnaround_time: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Requirements
+                    Sample Type
                   </label>
                   <input
                     type="text"
-                    value={editTest.requirements}
+                    value={editTest.sample_type}
                     onChange={(e) =>
-                      setEditTest({ ...editTest, requirements: e.target.value })
+                      setEditTest({ ...editTest, sample_type: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
@@ -808,15 +1035,18 @@ const ManageTests: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Normal Range
+                    Preparation Instructions
                   </label>
-                  <input
-                    type="text"
-                    value={editTest.normalRange}
+                  <textarea
+                    value={editTest.preparation_instructions}
                     onChange={(e) =>
-                      setEditTest({ ...editTest, normalRange: e.target.value })
+                      setEditTest({
+                        ...editTest,
+                        preparation_instructions: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    rows={3}
                   />
                 </div>
               </div>
@@ -830,9 +1060,10 @@ const ManageTests: React.FC = () => {
               </button>
               <button
                 onClick={handleUpdateTest}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                disabled={loading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Update Test
+                {loading ? "Updating..." : "Update Test"}
               </button>
             </div>
           </div>
@@ -872,14 +1103,19 @@ const ManageTests: React.FC = () => {
               </button>
               <button
                 onClick={handleDeactivateConfirm}
-                className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                disabled={loading}
+                className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   selectedTest.status === "active"
                     ? "bg-red-600 hover:bg-red-700"
                     : "bg-green-600 hover:bg-green-700"
                 }`}
               >
                 <Power className="w-4 h-4 inline mr-2" />
-                {selectedTest.status === "active" ? "Deactivate" : "Activate"}
+                {loading
+                  ? "Updating..."
+                  : selectedTest.status === "active"
+                  ? "Deactivate"
+                  : "Activate"}
               </button>
             </div>
           </div>

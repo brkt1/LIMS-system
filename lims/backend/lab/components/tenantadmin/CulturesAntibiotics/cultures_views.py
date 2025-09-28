@@ -2,10 +2,16 @@ import time
 from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from .cultures_models import Culture, AntibioticSensitivity, SPECIMEN_TYPE_CHOICES, CULTURE_TYPE_CHOICES, STATUS_CHOICES, SENSITIVITY_CHOICES
 from .cultures_serializers import CultureSerializer, CultureListSerializer, AntibioticSensitivitySerializer, AntibioticSensitivityListSerializer
 from lab.components.superadmin.models import Tenant
+
+@api_view(['GET'])
+def test_api(request):
+    """Simple test endpoint to verify API is working"""
+    return Response({"message": "Cultures & Antibiotics API is working!", "status": "success"})
 
 class CultureListCreateView(generics.ListCreateAPIView):
     serializer_class = CultureSerializer
@@ -71,33 +77,40 @@ class CultureRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = 'id'
 
     def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        data = request.data.copy()
+        try:
+            instance = self.get_object()
+            data = request.data.copy()
+            
+            print(f"Updating culture {instance.id} with data: {data}")
 
-        # Validate specimen type if provided
-        if 'specimen_type' in data and data['specimen_type'] not in dict(SPECIMEN_TYPE_CHOICES):
-            return Response({"error": f"Specimen type must be one of {list(dict(SPECIMEN_TYPE_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
+            # Validate specimen type if provided
+            if 'specimen_type' in data and data['specimen_type'] not in dict(SPECIMEN_TYPE_CHOICES):
+                return Response({"error": f"Specimen type must be one of {list(dict(SPECIMEN_TYPE_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate culture type if provided
-        if 'culture_type' in data and data['culture_type'] not in dict(CULTURE_TYPE_CHOICES):
-            return Response({"error": f"Culture type must be one of {list(dict(CULTURE_TYPE_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
+            # Validate culture type if provided
+            if 'culture_type' in data and data['culture_type'] not in dict(CULTURE_TYPE_CHOICES):
+                return Response({"error": f"Culture type must be one of {list(dict(CULTURE_TYPE_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate status if provided
-        if 'status' in data and data['status'] not in dict(STATUS_CHOICES):
-            return Response({"error": f"Status must be one of {list(dict(STATUS_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
+            # Validate status if provided
+            if 'status' in data and data['status'] not in dict(STATUS_CHOICES):
+                return Response({"error": f"Status must be one of {list(dict(STATUS_CHOICES).keys())}"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check tenant exists if provided
-        if 'tenant' in data:
-            try:
-                tenant = Tenant.objects.get(id=data["tenant"])
-                data["tenant"] = tenant.id
-            except Tenant.DoesNotExist:
-                return Response({"error": f"Tenant '{data['tenant']}' does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+            # Remove tenant from data to avoid validation issues
+            if 'tenant' in data:
+                del data['tenant']
 
-        serializer = self.get_serializer(instance, data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response({"culture": serializer.data}, status=status.HTTP_200_OK)
+            serializer = self.get_serializer(instance, data=data, partial=True)
+            if serializer.is_valid():
+                self.perform_update(serializer)
+                print(f"Successfully updated culture {instance.id}")
+                return Response({"culture": serializer.data}, status=status.HTTP_200_OK)
+            else:
+                print(f"Serializer errors: {serializer.errors}")
+                return Response({"error": "Validation failed", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            print(f"Error updating culture: {str(e)}")
+            return Response({"error": f"Update failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class AntibioticSensitivityListCreateView(generics.ListCreateAPIView):
     serializer_class = AntibioticSensitivitySerializer

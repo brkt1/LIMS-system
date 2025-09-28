@@ -1,12 +1,12 @@
 import {
-    AlertTriangle,
-    Package,
-    Package2,
-    Plus,
-    Search,
-    TrendingDown,
-    TrendingUp,
-    X
+  AlertTriangle,
+  Package,
+  Package2,
+  Plus,
+  Search,
+  TrendingDown,
+  TrendingUp,
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { inventoryAPI } from "../../services/api";
@@ -21,6 +21,7 @@ const InventoryManagement: React.FC = () => {
   const [showViewItemModal, setShowViewItemModal] = useState(false);
   const [showEditItemModal, setShowEditItemModal] = useState(false);
   const [showRestockModal, setShowRestockModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   // Form states
@@ -63,6 +64,7 @@ const InventoryManagement: React.FC = () => {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Load inventory from backend API
   useEffect(() => {
@@ -157,6 +159,8 @@ const InventoryManagement: React.FC = () => {
 
   // Handler functions
   const handleAddItem = () => {
+    setError(null); // Clear any previous errors
+    setSuccess(null); // Clear any previous success messages
     setNewItem({
       name: "",
       category: "",
@@ -205,9 +209,60 @@ const InventoryManagement: React.FC = () => {
     setShowRestockModal(true);
   };
 
+  const handleDeleteItem = (item: any) => {
+    setSelectedItem(item);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (selectedItem) {
+      try {
+        setError(null); // Clear any previous errors
+
+        console.log("Deleting item:", selectedItem.id);
+        await inventoryAPI.deleteItem(selectedItem.id);
+        console.log("Item deleted successfully");
+
+        // Remove item from the list
+        setInventoryItems((prev: any) =>
+          prev.filter((item: any) => item.id !== selectedItem.id)
+        );
+        setShowDeleteModal(false);
+        setSelectedItem(null);
+
+        // Show success message
+        setSuccess(
+          `Item "${selectedItem.name}" has been deleted successfully!`
+        );
+        setTimeout(() => setSuccess(null), 5000); // Clear success message after 5 seconds
+      } catch (error: any) {
+        console.error("Error deleting item:", error);
+        console.error("Error response:", error.response?.data);
+
+        // Handle specific validation errors
+        let errorMessage = "Failed to delete item";
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+
+          // Handle general error message
+          if (errorData.error || errorData.message) {
+            errorMessage = errorData.error || errorData.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
+      }
+    }
+  };
+
   const handleCreateItem = async () => {
     if (newItem.name && newItem.category) {
       try {
+        setError(null); // Clear any previous errors
+
         // Find category and supplier IDs
         const selectedCategory = categories.find(
           (cat) => cat.name === newItem.category
@@ -226,7 +281,9 @@ const InventoryManagement: React.FC = () => {
           location: "Main Storage", // Default location
         };
 
+        console.log("Creating item with data:", itemData);
         const response = await inventoryAPI.createItem(itemData);
+        console.log("Item creation response:", response);
         const createdItem = response.data;
 
         // Map backend response to frontend format
@@ -260,9 +317,46 @@ const InventoryManagement: React.FC = () => {
           supplier: "",
           expiryDate: "",
         });
+
+        // Show success message
+        setSuccess(`Item "${createdItem.name}" has been created successfully!`);
+        setTimeout(() => setSuccess(null), 5000); // Clear success message after 5 seconds
       } catch (error: any) {
         console.error("Error creating item:", error);
-        setError(error.message || "Failed to create item");
+        console.error("Error response:", error.response?.data);
+
+        // Handle specific validation errors
+        let errorMessage = "Failed to create item";
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+
+          // Handle name uniqueness error
+          if (errorData.name && Array.isArray(errorData.name)) {
+            errorMessage = `Name error: ${errorData.name[0]}`;
+          }
+          // Handle category validation error
+          else if (errorData.category && Array.isArray(errorData.category)) {
+            errorMessage = `Category error: ${errorData.category[0]}`;
+          }
+          // Handle other field errors
+          else if (typeof errorData === "object") {
+            const firstError = Object.values(errorData)[0];
+            if (Array.isArray(firstError)) {
+              errorMessage = `${firstError[0]}`;
+            } else {
+              errorMessage = String(firstError);
+            }
+          }
+          // Handle general error message
+          else if (errorData.error || errorData.message) {
+            errorMessage = errorData.error || errorData.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
       }
     }
   };
@@ -270,20 +364,32 @@ const InventoryManagement: React.FC = () => {
   const handleUpdateItem = async () => {
     if (selectedItem && editItem.name && editItem.category) {
       try {
+        setError(null); // Clear any previous errors
+
+        // Find category and supplier IDs
+        const selectedCategory = categories.find(
+          (cat) => cat.name === editItem.category
+        );
+        const selectedSupplier = suppliers.find(
+          (sup) => sup.name === editItem.supplier
+        );
+
         const itemData = {
           name: editItem.name,
-          category_name: editItem.category,
+          category: selectedCategory?.id || 1, // Use category ID, not name
           quantity: editItem.currentStock || 0,
           threshold: editItem.minStock || 0,
           status: editItem.currentStock === 0 ? "out-of-stock" : "in-stock",
-          supplier_name: editItem.supplier || "Unknown Supplier",
+          supplier: selectedSupplier?.id || 1, // Use supplier ID, not name
           location: "Main Storage",
         };
 
+        console.log("Updating item with data:", itemData);
         const response = await inventoryAPI.updateItem(
           selectedItem.id,
           itemData
         );
+        console.log("Item update response:", response);
         const updatedItem = response.data;
 
         // Map backend response to frontend format
@@ -310,9 +416,46 @@ const InventoryManagement: React.FC = () => {
         );
         setShowEditItemModal(false);
         setSelectedItem(null);
+
+        // Show success message
+        setSuccess(`Item "${updatedItem.name}" has been updated successfully!`);
+        setTimeout(() => setSuccess(null), 5000); // Clear success message after 5 seconds
       } catch (error: any) {
         console.error("Error updating item:", error);
-        setError(error.message || "Failed to update item");
+        console.error("Error response:", error.response?.data);
+
+        // Handle specific validation errors
+        let errorMessage = "Failed to update item";
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+
+          // Handle name uniqueness error
+          if (errorData.name && Array.isArray(errorData.name)) {
+            errorMessage = `Name error: ${errorData.name[0]}`;
+          }
+          // Handle category validation error
+          else if (errorData.category && Array.isArray(errorData.category)) {
+            errorMessage = `Category error: ${errorData.category[0]}`;
+          }
+          // Handle other field errors
+          else if (typeof errorData === "object") {
+            const firstError = Object.values(errorData)[0];
+            if (Array.isArray(firstError)) {
+              errorMessage = `${firstError[0]}`;
+            } else {
+              errorMessage = String(firstError);
+            }
+          }
+          // Handle general error message
+          else if (errorData.error || errorData.message) {
+            errorMessage = errorData.error || errorData.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
       }
     }
   };
@@ -320,22 +463,31 @@ const InventoryManagement: React.FC = () => {
   const handleRestockConfirm = async () => {
     if (selectedItem && restockData.quantity > 0) {
       try {
-        const newStock = selectedItem.currentStock + restockData.quantity;
-        const itemData = {
-          name: selectedItem.name,
-          category_name: selectedItem.category,
-          quantity: newStock,
-          threshold: selectedItem.minStock,
-          status: newStock === 0 ? "out-of-stock" : "in-stock",
-          supplier_name: restockData.supplier || selectedItem.supplier,
-          location: "Main Storage",
+        setError(null); // Clear any previous errors
+
+        // Use the adjust_quantity endpoint for proper inventory transaction tracking
+        const adjustmentData = {
+          quantity: restockData.quantity, // Positive quantity for restock
+          transaction_type: "restock",
+          notes: `Restocked by ${
+            restockData.supplier || selectedItem.supplier
+          }. Cost: $${restockData.cost || 0}. ${
+            restockData.notes || ""
+          }`.trim(),
         };
 
-        const response = await inventoryAPI.updateItem(
+        console.log("Restocking item with data:", adjustmentData);
+        const response = await inventoryAPI.adjustQuantity(
           selectedItem.id,
-          itemData
+          adjustmentData
         );
-        const updatedItem = response.data;
+        console.log("Item restock response:", response);
+
+        // After successful restock, fetch the updated item to get the latest data
+        const updatedItemResponse = await inventoryAPI.getItemById(
+          selectedItem.id
+        );
+        const updatedItem = updatedItemResponse.data;
 
         // Map backend response to frontend format
         const mappedItem = {
@@ -367,9 +519,44 @@ const InventoryManagement: React.FC = () => {
           cost: 0,
           notes: "",
         });
+
+        // Show success message
+        setSuccess(
+          `Item "${updatedItem.name}" has been restocked successfully! Added ${restockData.quantity} units.`
+        );
+        setTimeout(() => setSuccess(null), 5000); // Clear success message after 5 seconds
       } catch (error: any) {
         console.error("Error restocking item:", error);
-        setError(error.message || "Failed to restock item");
+        console.error("Error response:", error.response?.data);
+
+        // Handle specific validation errors
+        let errorMessage = "Failed to restock item";
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+
+          // Handle quantity validation error
+          if (errorData.quantity && Array.isArray(errorData.quantity)) {
+            errorMessage = `Quantity error: ${errorData.quantity[0]}`;
+          }
+          // Handle other field errors
+          else if (typeof errorData === "object") {
+            const firstError = Object.values(errorData)[0];
+            if (Array.isArray(firstError)) {
+              errorMessage = `${firstError[0]}`;
+            } else {
+              errorMessage = String(firstError);
+            }
+          }
+          // Handle general error message
+          else if (errorData.error || errorData.message) {
+            errorMessage = errorData.error || errorData.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
       }
     }
   };
@@ -387,6 +574,44 @@ const InventoryManagement: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <p className="text-green-800 dark:text-green-200 text-sm">
+            {success}
+          </p>
+          <button
+            onClick={() => setSuccess(null)}
+            className="mt-2 text-green-600 dark:text-green-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading inventory...
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -429,10 +654,11 @@ const InventoryManagement: React.FC = () => {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Categories</option>
-            <option value="Supplies">Supplies</option>
-            <option value="Test Kits">Test Kits</option>
-            <option value="Imaging">Imaging</option>
-            <option value="Equipment">Equipment</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.name}>
+                {category.name}
+              </option>
+            ))}
           </select>
           <select
             value={filterStatus}
@@ -615,6 +841,12 @@ const InventoryManagement: React.FC = () => {
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
                       >
                         Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteItem(item)}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left"
+                      >
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -1011,10 +1243,12 @@ const InventoryManagement: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="Supplies">Supplies</option>
-                    <option value="Test Kits">Test Kits</option>
-                    <option value="Imaging">Imaging</option>
-                    <option value="Equipment">Equipment</option>
+                    <option value="">Select category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -1116,14 +1350,20 @@ const InventoryManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Supplier
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={editItem.supplier}
                     onChange={(e) =>
                       setEditItem({ ...editItem, supplier: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
+                  >
+                    <option value="">Select supplier</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.name}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1207,15 +1447,20 @@ const InventoryManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Supplier
                 </label>
-                <input
-                  type="text"
+                <select
                   value={restockData.supplier}
                   onChange={(e) =>
                     setRestockData({ ...restockData, supplier: e.target.value })
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter supplier name"
-                />
+                >
+                  <option value="">Select supplier</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.name}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1264,6 +1509,52 @@ const InventoryManagement: React.FC = () => {
               >
                 <Package2 className="w-4 h-4 inline mr-2" />
                 Restock Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Item
+              </h3>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Are you sure you want to delete the item{" "}
+                <strong>"{selectedItem.name}"</strong>? This action cannot be
+                undone.
+              </p>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                <p className="text-red-800 dark:text-red-200 text-sm">
+                  <strong>Warning:</strong> This will permanently remove the
+                  item from your inventory.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete Item
               </button>
             </div>
           </div>

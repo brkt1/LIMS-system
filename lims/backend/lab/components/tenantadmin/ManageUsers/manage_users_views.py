@@ -14,7 +14,11 @@ class TenantUserListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         tenant_id = self.request.query_params.get("tenant")
         if tenant_id:
-            return TenantUser.objects.filter(tenant_id=tenant_id)
+            try:
+                tenant_id_int = int(tenant_id)  # Convert to integer
+                return TenantUser.objects.filter(tenant_id=tenant_id_int)
+            except ValueError:
+                return TenantUser.objects.none()
         return TenantUser.objects.none()
 
     def create(self, request, *args, **kwargs):
@@ -40,9 +44,10 @@ class TenantUserListCreateView(generics.ListCreateAPIView):
 
         # Check tenant exists
         try:
-            tenant = Tenant.objects.get(id=data["tenant"])
-            data["tenant"] = tenant.id
-        except Tenant.DoesNotExist:
+            tenant_id = int(data["tenant"])  # Convert to integer since Tenant.id is BigAutoField
+            tenant = Tenant.objects.get(id=tenant_id)
+            data["tenant"] = tenant_id
+        except (ValueError, Tenant.DoesNotExist):
             return Response({"error": f"Tenant '{data['tenant']}' does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(data=data)

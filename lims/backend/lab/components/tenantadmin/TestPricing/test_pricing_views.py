@@ -34,8 +34,12 @@ class TestPricingListCreateView(generics.ListCreateAPIView):
         # Required fields check
         required_fields = ["test_name", "test_code", "category", "base_price", "effective_date", "tenant"]
         for field in required_fields:
-            if not data.get(field):
+            value = data.get(field)
+            if value is None or value == "":
                 return Response({"error": f"Field '{field}' is required."}, status=status.HTTP_400_BAD_REQUEST)
+            # Special validation for base_price - must be a valid number
+            if field == "base_price" and (not isinstance(value, (int, float)) or value < 0):
+                return Response({"error": f"Field '{field}' must be a valid positive number."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate category
         if data["category"] not in dict(TEST_CATEGORY_CHOICES):
@@ -62,9 +66,16 @@ class TestPricingListCreateView(generics.ListCreateAPIView):
             return Response({"error": f"Tenant '{data['tenant']}' does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        
+        if not serializer.is_valid():
+            return Response({"error": "Validation failed", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         self.perform_create(serializer)
         return Response({"test_pricing": serializer.data}, status=status.HTTP_201_CREATED)
+    
+    def perform_create(self, serializer):
+        # The ID should already be set in the data from the create method
+        serializer.save()
 
 class TestPricingRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TestPricingSerializer
@@ -93,7 +104,9 @@ class TestPricingRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
                 return Response({"error": f"Tenant '{data['tenant']}' does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(instance, data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response({"error": "Validation failed", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         self.perform_update(serializer)
         return Response({"test_pricing": serializer.data}, status=status.HTTP_200_OK)
 

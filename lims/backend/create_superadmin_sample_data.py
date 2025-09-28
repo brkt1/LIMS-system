@@ -25,7 +25,6 @@ def create_sample_tenants():
             "domain": "demolab1",
             "email": "demo1@lims.com",
             "password": "123",
-            "role": "tenant-admin",
             "is_paid": True,
             "created_by": "superadmin@lims.com",
             "billing_period": "monthly"
@@ -35,7 +34,6 @@ def create_sample_tenants():
             "domain": "demolab2", 
             "email": "demo2@lims.com",
             "password": "123",
-            "role": "tenant-admin",
             "is_paid": True,
             "created_by": "superadmin@lims.com",
             "billing_period": "yearly"
@@ -45,7 +43,6 @@ def create_sample_tenants():
             "domain": "demolab3",
             "email": "demo3@lims.com", 
             "password": "123",
-            "role": "tenant-admin",
             "is_paid": False,
             "created_by": "superadmin@lims.com",
             "billing_period": "monthly"
