@@ -1,37 +1,40 @@
 import {
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  Download,
-  RefreshCw,
-  Search,
-  XCircle,
+    Activity,
+    AlertTriangle,
+    CheckCircle,
+    Download,
+    RefreshCw,
+    Search,
+    XCircle,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 import { getClientIP } from "../../utils/helpers";
 
 const SystemLogs: React.FC = () => {
+  const { t } = useLanguage();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [logLevels, setLogLevels] = useState([
-    { id: "all", name: "All Levels", count: 0 },
-    { id: "error", name: "Error", count: 0 },
-    { id: "warning", name: "Warning", count: 0 },
-    { id: "info", name: "Info", count: 0 },
-    { id: "debug", name: "Debug", count: 0 },
+    { id: "all", name: t('systemLogs.allLevels'), count: 0 },
+    { id: "error", name: t('systemLogs.error'), count: 0 },
+    { id: "warning", name: t('systemLogs.warning'), count: 0 },
+    { id: "info", name: t('systemLogs.info'), count: 0 },
+    { id: "debug", name: t('systemLogs.debug'), count: 0 },
   ]);
 
   const [logCategories] = useState([
-    { id: "all", name: "All Categories" },
-    { id: "authentication", name: "Authentication" },
-    { id: "database", name: "Database" },
-    { id: "api", name: "API" },
-    { id: "system", name: "System" },
-    { id: "security", name: "Security" },
+    { id: "all", name: t('systemLogs.allCategories') },
+    { id: "authentication", name: t('systemLogs.authentication') },
+    { id: "database", name: t('systemLogs.database') },
+    { id: "api", name: t('systemLogs.api') },
+    { id: "system", name: t('systemLogs.system') },
+    { id: "security", name: t('systemLogs.security') },
   ]);
 
   const [systemLogs, setSystemLogs] = useState<any[]>([]);
@@ -228,7 +231,7 @@ const SystemLogs: React.FC = () => {
             onClick={() => setError(null)}
             className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
           >
-            Dismiss
+            {t('common.dismiss')}
           </button>
         </div>
       )}
@@ -238,7 +241,7 @@ const SystemLogs: React.FC = () => {
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className="ml-2 text-gray-600 dark:text-gray-300">
-            Loading system logs...
+            {t('systemLogs.loadingLogs')}
           </span>
         </div>
       )}
@@ -247,10 +250,10 @@ const SystemLogs: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              System Logs
+              {t('systemLogs.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Monitor system activity, errors, and security events
+              {t('systemLogs.description')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
@@ -262,14 +265,14 @@ const SystemLogs: React.FC = () => {
               <RefreshCw
                 className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
               />
-              <span>Refresh</span>
+              <span>{isRefreshing ? t('systemLogs.refreshing') : t('systemLogs.refresh')}</span>
             </button>
             <button
               onClick={handleExportLogs}
               className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               <Download className="w-4 h-4" />
-              <span>Export Logs</span>
+              <span>{t('systemLogs.exportLogs')}</span>
             </button>
           </div>
         </div>
@@ -283,7 +286,7 @@ const SystemLogs: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search logs by message, user, or tenant..."
+                placeholder={t('systemLogs.searchLogs')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
@@ -323,25 +326,25 @@ const SystemLogs: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Level
+                    {t('systemLogs.level')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Timestamp
+                    {t('systemLogs.timestamp')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Category
+                    {t('systemLogs.category')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Message
+                    {t('systemLogs.message')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    User
+                    {t('systemLogs.user')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Tenant
+                    {t('systemLogs.tenant')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    IP
+                    {t('systemLogs.ipAddress')}
                   </th>
                 </tr>
               </thead>
@@ -401,7 +404,7 @@ const SystemLogs: React.FC = () => {
         {/* Log Details Modal (would be implemented) */}
         <div className="text-center py-6 sm:py-8">
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            Click on any log entry to view detailed information
+            {t('systemLogs.clickToViewDetails')}
           </p>
         </div>
       </div>

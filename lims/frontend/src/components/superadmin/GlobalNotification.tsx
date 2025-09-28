@@ -1,18 +1,21 @@
 import {
-  Bell,
-  Calendar,
-  Edit,
-  Eye,
-  Plus,
-  Save,
-  Send,
-  Trash2,
-  X
+    Bell,
+    Calendar,
+    Edit,
+    Eye,
+    Plus,
+    Save,
+    Send,
+    Trash2,
+    X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { notificationAPI, superadminAPI } from "../../services/api";
 
 const GlobalNotification: React.FC = () => {
+  const { t } = useLanguage();
+  
   const [activeTab, setActiveTab] = useState("compose");
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [userCounts, setUserCounts] = useState({
@@ -419,10 +422,10 @@ const GlobalNotification: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Global Notifications
+              {t('globalNotification.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Send notifications to all users and manage notification templates
+              {t('globalNotification.description')}
             </p>
           </div>
           <button
@@ -430,7 +433,7 @@ const GlobalNotification: React.FC = () => {
             className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Compose Notification</span>
+            <span>{t('globalNotification.composeNotification')}</span>
           </button>
         </div>
       </div>

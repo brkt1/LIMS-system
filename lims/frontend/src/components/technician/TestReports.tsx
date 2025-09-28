@@ -188,16 +188,16 @@ const TestReports: React.FC = () => {
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      report.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.testName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (report.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (report.testName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (report.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || report.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "completed":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "processing":
@@ -212,7 +212,7 @@ const TestReports: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase() || '') {
       case "urgent":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "high":
