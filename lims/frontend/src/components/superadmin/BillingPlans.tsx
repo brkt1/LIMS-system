@@ -10,6 +10,7 @@ import {
   X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 import {
   extractErrorMessage,
@@ -23,6 +24,7 @@ import {
 } from "../../utils/validation";
 
 const BillingPlans: React.FC = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedPlan, setSelectedPlan] = useState("basic");
 
@@ -123,13 +125,13 @@ const BillingPlans: React.FC = () => {
 
   const generateBillingReportCSV = () => {
     const headers = [
-      "Plan Name",
-      "Price",
-      "Billing Cycle",
-      "Max Users",
-      "Active Tenants",
-      "Monthly Revenue",
-      "Features",
+      t('billingPlans.exportHeaders.planName'),
+      t('billingPlans.exportHeaders.price'),
+      t('billingPlans.exportHeaders.billingCycle'),
+      t('billingPlans.exportHeaders.maxUsers'),
+      t('billingPlans.exportHeaders.activeTenants'),
+      t('billingPlans.exportHeaders.monthlyRevenue'),
+      t('billingPlans.exportHeaders.features'),
     ];
 
     const currentDate = new Date().toISOString().split("T")[0];
@@ -283,13 +285,13 @@ const BillingPlans: React.FC = () => {
 
   const generateTransactionsCSV = () => {
     const headers = [
-      "Transaction ID",
-      "Tenant",
-      "Plan",
-      "Amount",
-      "Status",
-      "Date",
-      "Method",
+      t('billingPlans.exportHeaders.transactionId'),
+      t('billingPlans.exportHeaders.tenant'),
+      t('billingPlans.exportHeaders.plan'),
+      t('billingPlans.exportHeaders.amount'),
+      t('billingPlans.exportHeaders.status'),
+      t('billingPlans.exportHeaders.date'),
+      t('billingPlans.exportHeaders.method'),
     ];
 
     const currentDate = new Date().toISOString().split("T")[0];
@@ -333,10 +335,10 @@ const BillingPlans: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Billing & Plans
+              {t('billingPlans.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Manage subscription plans, billing, and revenue analytics
+              {t('billingPlans.description')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
@@ -345,14 +347,14 @@ const BillingPlans: React.FC = () => {
               className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               <Download className="w-4 h-4" />
-              <span>Export Report</span>
+              <span>{t('billingPlans.exportReport')}</span>
             </button>
             <button
               onClick={handleCreatePlan}
               className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Plan</span>
+              <span>{t('billingPlans.createPlan')}</span>
             </button>
           </div>
         </div>
@@ -367,7 +369,7 @@ const BillingPlans: React.FC = () => {
               onClick={() => setError(null)}
               className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
             >
-              Dismiss
+              {t('billingPlans.dismiss')}
             </button>
           </div>
         )}
@@ -377,7 +379,7 @@ const BillingPlans: React.FC = () => {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-gray-600 dark:text-gray-300">
-              Loading billing data...
+              {t('billingPlans.loadingBillingData')}
             </span>
           </div>
         )}
@@ -486,7 +488,7 @@ const BillingPlans: React.FC = () => {
                   Revenue Trends
                 </h3>
                 <div className="flex items-center space-x-2">
-                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto">
+                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent w-full sm:w-auto">
                     <option value="6m">Last 6 months</option>
                     <option value="1y">Last year</option>
                     <option value="2y">Last 2 years</option>
@@ -691,7 +693,7 @@ const BillingPlans: React.FC = () => {
                   Recent Transactions
                 </h3>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto">
+                  <select className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent w-full sm:w-auto">
                     <option value="all">All Status</option>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
@@ -889,7 +891,7 @@ const BillingPlans: React.FC = () => {
                       onChange={(e) =>
                         setNewPlan({ ...newPlan, name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                       placeholder="Enter plan name"
                     />
                   </div>
@@ -906,7 +908,7 @@ const BillingPlans: React.FC = () => {
                           price: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                       placeholder="Enter price"
                     />
                   </div>
@@ -919,7 +921,7 @@ const BillingPlans: React.FC = () => {
                       onChange={(e) =>
                         setNewPlan({ ...newPlan, billing: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     >
                       <option value="monthly">Monthly</option>
                       <option value="yearly">Yearly</option>
@@ -938,7 +940,7 @@ const BillingPlans: React.FC = () => {
                           users: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                       placeholder="Enter max users"
                     />
                   </div>
@@ -1132,7 +1134,7 @@ const BillingPlans: React.FC = () => {
                       onChange={(e) =>
                         setEditPlan({ ...editPlan, name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -1148,7 +1150,7 @@ const BillingPlans: React.FC = () => {
                           price: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -1160,7 +1162,7 @@ const BillingPlans: React.FC = () => {
                       onChange={(e) =>
                         setEditPlan({ ...editPlan, billing: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     >
                       <option value="monthly">Monthly</option>
                       <option value="yearly">Yearly</option>
@@ -1179,7 +1181,7 @@ const BillingPlans: React.FC = () => {
                           users: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     />
                   </div>
                 </div>

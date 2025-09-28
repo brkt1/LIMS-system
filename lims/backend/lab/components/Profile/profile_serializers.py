@@ -20,17 +20,34 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'phone',
             'address',
             'bio',
+            'date_of_birth',
+            'gender',
+            'blood_type',
+            'emergency_contact',
+            'emergency_phone',
+            'medical_history',
+            'allergies',
+            'medications',
+            'insurance_provider',
+            'insurance_number',
+            'employee_id',
+            'department',
+            'position',
+            'hire_date',
             'profile_picture',
             'timezone',
             'language',
             'email_notifications',
             'sms_notifications',
             'push_notifications',
+            'is_active',
+            'is_deleted',
+            'deleted_at',
             'full_name',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'is_deleted', 'deleted_at']
     
     def validate_first_name(self, value):
         """Validate first name"""
@@ -49,6 +66,31 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if value and len(value.strip()) < 10:
             raise serializers.ValidationError("Phone number must be at least 10 characters long.")
         return value.strip() if value else value
+    
+    def validate_emergency_phone(self, value):
+        """Validate emergency phone number"""
+        if value and len(value.strip()) < 10:
+            raise serializers.ValidationError("Emergency phone number must be at least 10 characters long.")
+        return value.strip() if value else value
+    
+    def validate_date_of_birth(self, value):
+        """Validate date of birth"""
+        if value:
+            from datetime import date
+            today = date.today()
+            age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+            if age < 0 or age > 150:
+                raise serializers.ValidationError("Please enter a valid date of birth.")
+        return value
+    
+    def validate_hire_date(self, value):
+        """Validate hire date"""
+        if value:
+            from datetime import date
+            today = date.today()
+            if value > today:
+                raise serializers.ValidationError("Hire date cannot be in the future.")
+        return value
 
 
 class ProfilePictureUploadSerializer(serializers.ModelSerializer):
@@ -97,3 +139,63 @@ class PasswordChangeSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class ProfileExportSerializer(serializers.ModelSerializer):
+    """Serializer for profile data export"""
+    email = serializers.EmailField(source='user.email', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    full_name = serializers.CharField(read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    date_joined = serializers.DateTimeField(source='user.date_joined', read_only=True)
+    last_login = serializers.DateTimeField(source='user.last_login', read_only=True)
+    
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user_id',
+            'username',
+            'email',
+            'full_name',
+            'first_name',
+            'last_name',
+            'phone',
+            'address',
+            'bio',
+            'date_of_birth',
+            'gender',
+            'blood_type',
+            'emergency_contact',
+            'emergency_phone',
+            'medical_history',
+            'allergies',
+            'medications',
+            'insurance_provider',
+            'insurance_number',
+            'employee_id',
+            'department',
+            'position',
+            'hire_date',
+            'timezone',
+            'language',
+            'email_notifications',
+            'sms_notifications',
+            'push_notifications',
+            'is_active',
+            'date_joined',
+            'last_login',
+            'created_at',
+            'updated_at',
+        ]
+
+
+class ProfileDeleteSerializer(serializers.Serializer):
+    """Serializer for profile deletion confirmation"""
+    confirm_deletion = serializers.BooleanField()
+    reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    
+    def validate_confirm_deletion(self, value):
+        """Validate deletion confirmation"""
+        if not value:
+            raise serializers.ValidationError("You must confirm the deletion to proceed.")
+        return value

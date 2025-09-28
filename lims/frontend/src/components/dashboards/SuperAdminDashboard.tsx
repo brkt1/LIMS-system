@@ -1,9 +1,11 @@
 import { Activity, BarChart3, Building2, Settings, Users } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { superadminAPI } from "../../services/api";
 import BaseDashboard from "./BaseDashboard";
-import { superadminAPI, analyticsAPI } from "../../services/api";
 
 const SuperAdminDashboard: React.FC = () => {
+  const { t } = useLanguage();
   const [dashboardData, setDashboardData] = useState({
     totalTenants: 0,
     systemUsers: 0,
@@ -58,36 +60,36 @@ const SuperAdminDashboard: React.FC = () => {
 
   const superAdminCards = [
     {
-      title: "Total Tenants",
+      title: t('superadmin.totalTenants'),
       value: dashboardData.loading
         ? "..."
         : dashboardData.totalTenants.toString(),
-      change: "+3 This Month",
+      change: `+3 ${t('superadmin.thisMonth')}`,
       color: "bg-blue-500",
       chartData: [10, 15, 12, 18, 20, 22, dashboardData.totalTenants],
     },
     {
-      title: "System Users",
+      title: t('superadmin.systemUsers'),
       value: dashboardData.loading
         ? "..."
         : dashboardData.systemUsers.toLocaleString(),
-      change: "+12% This Month",
+      change: `+12% ${t('superadmin.thisMonth')}`,
       color: "bg-green-500",
       chartData: [800, 900, 950, 1000, 1100, 1200, dashboardData.systemUsers],
     },
     {
-      title: "Active Sessions",
+      title: t('superadmin.activeSessions'),
       value: dashboardData.loading
         ? "..."
         : dashboardData.activeSessions.toString(),
-      change: "+5% Today",
+      change: `+5% ${t('superadmin.today')}`,
       color: "bg-purple-500",
       chartData: [60, 70, 65, 75, 80, 85, dashboardData.activeSessions],
     },
     {
-      title: "System Health",
+      title: t('superadmin.systemHealth'),
       value: dashboardData.loading ? "..." : `${dashboardData.systemHealth}%`,
-      change: "Stable",
+      change: t('superadmin.stable'),
       color: "bg-emerald-500",
       chartData: [98, 99, 99.5, 99.8, 99.9, 99.9, dashboardData.systemHealth],
     },
@@ -156,7 +158,7 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-              Tenant Growth
+              {t('superadmin.tenantGrowth')}
             </h3>
             <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -164,7 +166,7 @@ const SuperAdminDashboard: React.FC = () => {
             <div className="text-center">
               <BarChart3 className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2" />
               <p className="text-xs sm:text-sm">
-                Tenant growth chart would go here
+                {t('superadmin.tenantGrowthChart')}
               </p>
             </div>
           </div>
@@ -173,7 +175,7 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-              System Performance
+              {t('superadmin.systemPerformance')}
             </h3>
             <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -181,7 +183,7 @@ const SuperAdminDashboard: React.FC = () => {
             <div className="text-center">
               <Activity className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2" />
               <p className="text-xs sm:text-sm">
-                System performance metrics would go here
+                {t('superadmin.systemPerformanceMetrics')}
               </p>
             </div>
           </div>
@@ -192,7 +194,7 @@ const SuperAdminDashboard: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4 sm:mb-6 p-4 sm:p-6 pb-0">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-            Recent System Activity
+            {t('superadmin.recentSystemActivity')}
           </h3>
           <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
         </div>
@@ -201,16 +203,16 @@ const SuperAdminDashboard: React.FC = () => {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Timestamp
+                  {t('superadmin.timestamp')}
                 </th>
                 <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                  User
+                  {t('superadmin.user')}
                 </th>
                 <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Action
+                  {t('superadmin.action')}
                 </th>
                 <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Status
+                  {t('superadmin.status')}
                 </th>
               </tr>
             </thead>
@@ -221,13 +223,13 @@ const SuperAdminDashboard: React.FC = () => {
                     colSpan={4}
                     className="py-8 text-center text-gray-500 dark:text-gray-400"
                   >
-                    Loading system logs...
+                    {t('superadmin.loadingSystemLogs')}
                   </td>
                 </tr>
               ) : dashboardData.error ? (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-red-500">
-                    Error loading system logs: {dashboardData.error}
+                    {t('superadmin.errorLoadingLogs')} {dashboardData.error}
                   </td>
                 </tr>
               ) : systemLogs.length === 0 ? (
@@ -236,7 +238,7 @@ const SuperAdminDashboard: React.FC = () => {
                     colSpan={4}
                     className="py-8 text-center text-gray-500 dark:text-gray-400"
                   >
-                    No recent system activity
+                    {t('superadmin.noRecentActivity')}
                   </td>
                 </tr>
               ) : (
@@ -249,10 +251,10 @@ const SuperAdminDashboard: React.FC = () => {
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {log.user || "System"}
+                      {log.user || t('superadmin.system')}
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {log.action || "System activity"}
+                      {log.action || t('superadmin.systemActivity')}
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <span
@@ -266,8 +268,13 @@ const SuperAdminDashboard: React.FC = () => {
                             : "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
                         }`}
                       >
-                        {log.level?.charAt(0).toUpperCase() +
-                          log.level?.slice(1) || "Success"}
+                        {log.level === "error" 
+                          ? t('superadmin.error')
+                          : log.level === "warning"
+                          ? t('superadmin.warning')
+                          : log.level === "info"
+                          ? t('superadmin.info')
+                          : t('superadmin.success')}
                       </span>
                     </td>
                   </tr>

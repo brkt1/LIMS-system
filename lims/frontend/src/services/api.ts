@@ -324,14 +324,24 @@ export const faqAPI = {
 };
 
 export const profileAPI = {
+  // Basic CRUD operations
   getProfile: () => api.get('/profile/'),
   updateProfile: (data: any) => api.put('/profile/', data),
+  deleteProfile: (data: { confirm_deletion: boolean; reason?: string }) => 
+    api.delete('/profile/delete/', { data }),
+  restoreProfile: () => api.post('/profile/restore/'),
+  resetProfile: () => api.post('/profile/reset/'),
+  exportProfile: () => api.get('/profile/export/'),
+  
+  // Profile picture operations
   uploadProfilePicture: (formData: FormData) => api.post('/profile/upload-picture/', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   }),
   deleteProfilePicture: () => api.delete('/profile/picture/'),
+  
+  // Password operations
   changePassword: (data: { old_password: string; new_password: string }) => 
     api.post('/profile/change-password/', data),
   

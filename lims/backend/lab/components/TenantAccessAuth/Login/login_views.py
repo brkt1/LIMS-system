@@ -28,7 +28,7 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
 
         # Serialize user data
-        user_data = UserSerializer(user).data
+        user_data = UserSerializer(user, context={'request': request}).data
 
         # Handle tenant (check if user has tenant attribute)
         tenant_data = None

@@ -1,5 +1,6 @@
 import React from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
 import ChartsSection from "../ChartsSection";
 import DashboardCards from "../DashboardCards";
 import RecentDataTable from "../RecentDataTable";
@@ -10,12 +11,16 @@ interface BaseDashboardProps {
 
 const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   if (!user) return null;
 
   const getWelcomeMessage = () => {
+    if (user.role === 'superadmin') {
+      return t('superadmin.welcome');
+    }
+    
     const roleNames = {
-      superadmin: "Super Administrator",
       "tenant-admin": "Tenant Administrator",
       doctor: "Doctor",
       technician: "Technician",
@@ -27,9 +32,11 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
   };
 
   const getDashboardDescription = () => {
+    if (user.role === 'superadmin') {
+      return t('superadmin.description');
+    }
+    
     const descriptions = {
-      superadmin:
-        "Manage the entire LIMS system, tenants, and global analytics",
       "tenant-admin": "Manage your tenant organization, users, and operations",
       doctor: "Manage patient care, test requests, and appointments",
       technician: "Process samples, manage equipment, and create test reports",

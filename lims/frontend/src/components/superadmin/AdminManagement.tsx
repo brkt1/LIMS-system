@@ -1,19 +1,21 @@
 import {
-  Edit,
-  Eye,
-  MoreVertical,
-  Plus,
-  Search,
-  Shield,
-  Trash2,
-  UserCheck,
-  UserX,
-  X
+    Edit,
+    Eye,
+    MoreVertical,
+    Plus,
+    Search,
+    Shield,
+    Trash2,
+    UserCheck,
+    UserX,
+    X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 
 const AdminManagement: React.FC = () => {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -271,12 +273,12 @@ const AdminManagement: React.FC = () => {
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
           <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-          <button
-            onClick={() => setError(null)}
-            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
-          >
-            Dismiss
-          </button>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+            >
+              {t('adminManagement.dismiss')}
+            </button>
         </div>
       )}
 
@@ -284,9 +286,9 @@ const AdminManagement: React.FC = () => {
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600 dark:text-gray-300">
-            Loading admins...
-          </span>
+            <span className="ml-2 text-gray-600 dark:text-gray-300">
+              {t('adminManagement.loadingAdmins')}
+            </span>
         </div>
       )}
       {/* Header */}
@@ -294,10 +296,10 @@ const AdminManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Admin Management
+              {t('adminManagement.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Manage system administrators and their permissions
+              {t('adminManagement.description')}
             </p>
           </div>
           <button
@@ -305,7 +307,7 @@ const AdminManagement: React.FC = () => {
             className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Admin</span>
+            <span>{t('adminManagement.addAdmin')}</span>
           </button>
         </div>
       </div>
@@ -317,7 +319,7 @@ const AdminManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                  Total Admins
+                  {t('adminManagement.totalAdmins')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {totalAdmins}
@@ -330,7 +332,7 @@ const AdminManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                  Active Admins
+                  {t('adminManagement.activeAdmins')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {activeAdmins}
@@ -343,7 +345,7 @@ const AdminManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                  Super Admins
+                  {t('adminManagement.superAdmins')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {superAdmins}
@@ -356,7 +358,7 @@ const AdminManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                  Inactive
+                  {t('adminManagement.inactive')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {totalAdmins - activeAdmins}
@@ -374,7 +376,7 @@ const AdminManagement: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search admins by name or email..."
+                placeholder={t('adminManagement.searchAdmins')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
@@ -386,17 +388,17 @@ const AdminManagement: React.FC = () => {
                 onChange={(e) => setFilterRole(e.target.value)}
                 className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               >
-                <option value="all">All Roles</option>
-                <option value="super">Super Admin</option>
-                <option value="system">System Admin</option>
-                <option value="support">Support Admin</option>
-                <option value="billing">Billing Admin</option>
+                <option value="all">{t('adminManagement.allRoles')}</option>
+                <option value="super">{t('adminManagement.superAdmin')}</option>
+                <option value="system">{t('adminManagement.systemAdmin')}</option>
+                <option value="support">{t('adminManagement.supportAdmin')}</option>
+                <option value="billing">{t('adminManagement.billingAdmin')}</option>
               </select>
               <select className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
+                <option value="all">{t('adminManagement.allStatus')}</option>
+                <option value="active">{t('adminManagement.active')}</option>
+                <option value="inactive">{t('adminManagement.inactive')}</option>
+                <option value="pending">{t('adminManagement.pending')}</option>
               </select>
             </div>
           </div>

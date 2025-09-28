@@ -9,6 +9,12 @@ urlpatterns = [
     path('picture/', profile_views.delete_profile_picture, name='delete-profile-picture'),
     path('change-password/', profile_views.change_password, name='change-password'),
     
+    # Enhanced CRUD operations
+    path('delete/', profile_views.delete_profile, name='delete-profile'),
+    path('restore/', profile_views.restore_profile, name='restore-profile'),
+    path('export/', profile_views.export_profile, name='export-profile'),
+    path('reset/', profile_views.reset_profile, name='reset-profile'),
+    
     # Profile options
     path('options/timezones/', ProfileOptionsViewSet.as_view({'get': 'timezones'}), name='profile-timezones'),
     path('options/languages/', ProfileOptionsViewSet.as_view({'get': 'languages'}), name='profile-languages'),
