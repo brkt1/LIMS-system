@@ -5,15 +5,15 @@ import {
   Database,
   Download,
   Play,
+  Plus,
   RefreshCw,
   Settings,
   Trash2,
-  XCircle,
   X,
-  Plus,
-  Save,
+  XCircle
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { superadminAPI } from "../../services/api";
 
 const BackupDatabase: React.FC = () => {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -65,80 +65,55 @@ const BackupDatabase: React.FC = () => {
   // Filter states
   const [filterType, setFilterType] = useState("all");
 
-  const backupStats = {
-    totalBackups: 24,
-    lastBackup: "2025-01-20 02:00:00",
-    nextBackup: "2025-01-21 02:00:00",
-    totalSize: "2.3 GB",
-    availableSpace: "47.7 GB",
-    successRate: 98.5,
-  };
+  const [backupStats, setBackupStats] = useState({
+    totalBackups: 0,
+    lastBackup: "",
+    nextBackup: "",
+    totalSize: "0 GB",
+    availableSpace: "0 GB",
+    successRate: 0,
+  });
 
-  const [backupHistory, setBackupHistory] = useState([
-    {
-      id: "1",
-      name: "backup_2025-01-20_02-00-00.tar.gz",
-      size: "2.3 GB",
-      status: "completed",
-      createdAt: "2025-01-20 02:00:00",
-      duration: "15 minutes",
-      type: "Full Backup",
-      retention: "30 days",
-    },
-    {
-      id: "2",
-      name: "backup_2025-01-19_02-00-00.tar.gz",
-      size: "2.2 GB",
-      status: "completed",
-      createdAt: "2025-01-19 02:00:00",
-      duration: "14 minutes",
-      type: "Full Backup",
-      retention: "30 days",
-    },
-    {
-      id: "3",
-      name: "backup_2025-01-18_02-00-00.tar.gz",
-      size: "2.1 GB",
-      status: "completed",
-      createdAt: "2025-01-18 02:00:00",
-      duration: "13 minutes",
-      type: "Full Backup",
-      retention: "30 days",
-    },
-    {
-      id: "4",
-      name: "backup_2025-01-17_02-00-00.tar.gz",
-      size: "2.0 GB",
-      status: "failed",
-      createdAt: "2025-01-17 02:00:00",
-      duration: "5 minutes",
-      type: "Full Backup",
-      retention: "30 days",
-      error: "Insufficient disk space",
-    },
-    {
-      id: "5",
-      name: "backup_2025-01-16_02-00-00.tar.gz",
-      size: "1.9 GB",
-      status: "completed",
-      createdAt: "2025-01-16 02:00:00",
-      duration: "12 minutes",
-      type: "Incremental Backup",
-      retention: "30 days",
-    },
-  ]);
+  const [backupHistory, setBackupHistory] = useState<any[]>([]);
 
-  // Load data from localStorage on component mount
+  // Load data from backend API
   useEffect(() => {
-    const savedBackups = localStorage.getItem("superadmin-backup-history");
-    if (savedBackups) {
+    const fetchBackupData = async () => {
       try {
-        setBackupHistory(JSON.parse(savedBackups));
-      } catch (error) {
-        console.error("Error loading saved backups:", error);
+        setLoading(true);
+        setError(null);
+        const response = await superadminAPI.backups.getAll();
+        setBackupHistory(response.data);
+        loadBackupStats(response.data);
+      } catch (error: any) {
+        console.error("Error fetching backup history:", error);
+        setError(error.message || "Failed to load backup history");
+        setBackupHistory([]);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchBackupData();
   }, []);
+
+  const loadBackupStats = (backups: any[]) => {
+    const totalBackups = backups.length;
+    const completedBackups = backups.filter(b => b.status === 'completed');
+    const lastBackup = completedBackups.length > 0 ? completedBackups[0].created_at : '';
+    const nextBackup = backups.find(b => b.is_scheduled && b.status === 'pending')?.scheduled_at || '';
+    const totalSize = completedBackups.reduce((sum, b) => sum + (b.file_size || 0), 0);
+    const successRate = totalBackups > 0 ? (completedBackups.length / totalBackups) * 100 : 0;
+
+    setBackupStats({
+      totalBackups,
+      lastBackup,
+      nextBackup,
+      totalSize: `${(totalSize / (1024 * 1024 * 1024)).toFixed(1)} GB`,
+      availableSpace: "47.7 GB", // This would come from system info
+      successRate: Math.round(successRate * 10) / 10,
+    });
+  };
 
   // Save data to localStorage whenever data changes
   useEffect(() => {
@@ -1273,3 +1248,11 @@ const BackupDatabase: React.FC = () => {
 };
 
 export default BackupDatabase;
+function setLoading(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+
+function setError(arg0: null) {
+  throw new Error("Function not implemented.");
+}
+

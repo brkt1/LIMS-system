@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { profileAPI } from '../services/api';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { profileAPI } from '../services/api';
 
 export interface ProfileData {
   firstName: string;
@@ -23,10 +23,10 @@ export interface ProfileData {
 export const useProfile = () => {
   const { user } = useAuth();
   const [originalData, setOriginalData] = useState<ProfileData>({
-    firstName: user?.first_name || '',
-    lastName: user?.last_name || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     email: user?.email || '',
-    username: user?.username || '',
+    username: user?.name || '',
     phone: '',
     address: '',
     bio: '',
@@ -102,7 +102,7 @@ export const useProfile = () => {
         timezone: data.timezone || 'UTC',
         language: data.language || 'en',
         profilePicture: data.profile_picture ? 
-          (data.profile_picture.startsWith('http') ? data.profile_picture : `http://127.0.0.1:8000${data.profile_picture}`) 
+          (data.profile_picture.startsWith('http') ? data.profile_picture : `${window.location.origin}${data.profile_picture}`) 
           : '',
         notifications: {
           email: data.email_notifications ?? true,
@@ -115,15 +115,15 @@ export const useProfile = () => {
       setProfileData(profileData);
     } catch (err: any) {
       console.error('Failed to load profile:', err);
-      // Use mock data when API fails
-      const mockProfileData = {
-        firstName: user?.first_name || 'John',
-        lastName: user?.last_name || 'Doe',
-        email: user?.email || 'john.doe@example.com',
-        username: user?.username || 'johndoe',
-        phone: '+1 (555) 123-4567',
-        address: '123 Main St, City, State 12345',
-        bio: 'Experienced medical professional dedicated to patient care.',
+      // Set empty profile data when API fails
+      const emptyProfileData = {
+        firstName: user?.first_name || '',
+        lastName: user?.last_name || '',
+        email: user?.email || '',
+        username: user?.username || '',
+        phone: '',
+        address: '',
+        bio: '',
         timezone: 'UTC',
         language: 'en',
         profilePicture: '',
@@ -134,8 +134,8 @@ export const useProfile = () => {
         },
       };
       
-      setOriginalData(mockProfileData);
-      setProfileData(mockProfileData);
+      setOriginalData(emptyProfileData);
+      setProfileData(emptyProfileData);
     } finally {
       setLoading(false);
     }
@@ -193,13 +193,17 @@ export const useProfile = () => {
       setLoading(true);
       setError(null);
       
-      const response = await profileAPI.uploadProfilePicture(file);
+      // Create FormData to send the file
+      const formData = new FormData();
+      formData.append('profile_picture', file);
+      
+      const response = await profileAPI.uploadProfilePicture(formData);
       const { profile_picture } = response.data;
       
       // Construct full URL for the profile picture
       const fullUrl = profile_picture.startsWith('http') 
         ? profile_picture 
-        : `http://127.0.0.1:8000${profile_picture}`;
+        : `${window.location.origin}${profile_picture}`;
       
       // Update profile data with new picture URL
       setProfileData(prev => ({ ...prev, profilePicture: fullUrl }));

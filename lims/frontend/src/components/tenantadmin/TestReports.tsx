@@ -1,14 +1,12 @@
 import {
   Download,
-  FileText,
+  Eye,
   Plus,
   Search,
-  TrendingUp,
-  Eye,
   Share,
-  X,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { testReportAPI } from "../../services/api";
 
 const TestReports: React.FC = () => {
@@ -66,23 +64,7 @@ const TestReports: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching reports:", error);
         setError(error.message || "Failed to load reports");
-        // Fallback to mock data if API fails
-        setReports([
-          {
-            id: "RPT001",
-            patientName: "John Smith",
-            patientId: "P001",
-            testName: "Complete Blood Count",
-            doctor: "Dr. Sarah Johnson",
-            status: "completed",
-            generatedDate: "2025-01-22",
-            generatedTime: "10:30 AM",
-            fileSize: "2.3 MB",
-            format: "PDF",
-            downloadCount: 3,
-            priority: "normal",
-          },
-        ]);
+        setReports([]);
       } finally {
         setLoading(false);
       }

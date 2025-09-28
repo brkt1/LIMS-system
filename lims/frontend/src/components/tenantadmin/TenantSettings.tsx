@@ -1,13 +1,13 @@
 import {
-  Building2,
-  Save,
-  Settings,
-  Shield,
-  Users,
-  CheckCircle,
-  AlertCircle,
+    AlertCircle,
+    Building2,
+    CheckCircle,
+    Save,
+    Settings,
+    Shield,
+    Users,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { profileAPI } from "../../services/api";
 
 const TenantSettings: React.FC = () => {
@@ -77,15 +77,26 @@ const TenantSettings: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching settings:", error);
         setError(error.message || "Failed to load settings");
-        // Fallback to localStorage if API fails
-        const savedSettings = localStorage.getItem("tenant-settings");
-        if (savedSettings) {
-          try {
-            setSettings(JSON.parse(savedSettings));
-          } catch (parseError) {
-            console.error("Error parsing saved settings:", parseError);
-          }
-        }
+        // Set default settings when API fails
+        setSettings({
+          tenantName: "",
+          address: "",
+          phone: "",
+          email: "",
+          website: "",
+          timezone: "UTC",
+          currency: "USD",
+          language: "en",
+          businessHours: {
+            monday: { open: "09:00", close: "17:00", closed: false },
+            tuesday: { open: "09:00", close: "17:00", closed: false },
+            wednesday: { open: "09:00", close: "17:00", closed: false },
+            thursday: { open: "09:00", close: "17:00", closed: false },
+            friday: { open: "09:00", close: "17:00", closed: false },
+            saturday: { open: "09:00", close: "17:00", closed: true },
+            sunday: { open: "09:00", close: "17:00", closed: true },
+          },
+        });
       } finally {
         setLoading(false);
       }

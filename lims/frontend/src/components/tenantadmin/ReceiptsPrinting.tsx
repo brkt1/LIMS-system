@@ -1,16 +1,14 @@
 import {
-  Plus,
-  Printer,
-  Search,
-  FileText,
-  Download,
-  Calendar,
-  DollarSign,
-  Eye,
-  X,
+    Download,
+    Eye,
+    Plus,
+    Printer,
+    Search,
+    X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { receiptsAPI } from "../../services/api";
+import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
 
 const ReceiptsPrinting: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,6 +35,7 @@ const ReceiptsPrinting: React.FC = () => {
   const [receipts, setReceipts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
 
   // Load receipts from backend API
   useEffect(() => {
@@ -65,15 +64,8 @@ const ReceiptsPrinting: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching receipts:", error);
         setError(error.message || "Failed to load receipts");
-        // Fallback to localStorage if API fails
-        const savedReceipts = localStorage.getItem("receipts");
-        if (savedReceipts) {
-          try {
-            setReceipts(JSON.parse(savedReceipts));
-          } catch (parseError) {
-            console.error("Error parsing saved receipts:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setReceipts([]);
       } finally {
         setLoading(false);
       }
@@ -130,8 +122,8 @@ const ReceiptsPrinting: React.FC = () => {
           doctor: newReceipt.doctor,
           payment_method: newReceipt.paymentMethod.toLowerCase(),
           status: "draft",
-          tenant: 1, // Default tenant ID
-          created_by: 1, // Default user ID
+          tenant: getCurrentTenantId(), // Dynamic tenant ID
+          created_by: getCurrentUserId(), // Dynamic user ID
         };
 
         const response = await receiptsAPI.create(receiptData);

@@ -2,15 +2,16 @@ import {
   BarChart3,
   Building2,
   Download,
-  Search,
-  Users,
-  Eye,
   Edit,
-  Trash2,
+  Eye,
   MoreVertical,
+  Search,
+  Trash2,
+  Users,
   X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { superadminAPI } from "../../services/api";
 
 const AllTenants: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -36,103 +37,44 @@ const AllTenants: React.FC = () => {
     growth: 0,
   });
 
-  const [tenants, setTenants] = useState([
-    {
-      id: "1",
-      name: "MedLab Solutions",
-      domain: "medlab.lims.com",
-      status: "Active",
-      users: 45,
-      plan: "Professional",
-      created: "2024-01-15",
-      lastActive: "2025-01-20",
-      revenue: 2400,
-      growth: 12.5,
-      logo: "ML",
-    },
-    {
-      id: "2",
-      name: "City Hospital Lab",
-      domain: "cityhospital.lims.com",
-      status: "Active",
-      users: 78,
-      plan: "Enterprise",
-      created: "2024-02-20",
-      lastActive: "2025-01-20",
-      revenue: 5200,
-      growth: 8.3,
-      logo: "CH",
-    },
-    {
-      id: "3",
-      name: "Private Clinic Network",
-      domain: "pcn.lims.com",
-      status: "Suspended",
-      users: 23,
-      plan: "Basic",
-      created: "2024-03-10",
-      lastActive: "2025-01-18",
-      revenue: 800,
-      growth: -2.1,
-      logo: "PC",
-    },
-    {
-      id: "4",
-      name: "Research Institute",
-      domain: "research.lims.com",
-      status: "Active",
-      users: 156,
-      plan: "Enterprise",
-      created: "2024-01-05",
-      lastActive: "2025-01-20",
-      revenue: 8900,
-      growth: 15.7,
-      logo: "RI",
-    },
-    {
-      id: "5",
-      name: "Diagnostic Center",
-      domain: "diagnostic.lims.com",
-      status: "Pending",
-      users: 12,
-      plan: "Basic",
-      created: "2025-01-19",
-      lastActive: "2025-01-19",
-      revenue: 0,
-      growth: 0,
-      logo: "DC",
-    },
-    {
-      id: "6",
-      name: "Medical Group",
-      domain: "medicalgroup.lims.com",
-      status: "Active",
-      users: 67,
-      plan: "Professional",
-      created: "2024-04-12",
-      lastActive: "2025-01-20",
-      revenue: 3200,
-      growth: 6.8,
-      logo: "MG",
-    },
-  ]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [planOptions, setPlanOptions] = useState<string[]>([]);
 
-  // Load tenants from localStorage on component mount
+  // Load data from backend API
   useEffect(() => {
-    const savedTenants = localStorage.getItem("superadmin-all-tenants");
-    if (savedTenants) {
+    const fetchTenants = async () => {
       try {
-        setTenants(JSON.parse(savedTenants));
-      } catch (error) {
-        console.error("Error loading saved tenants:", error);
+        setLoading(true);
+        setError(null);
+        const response = await superadminAPI.tenants.getAll();
+        setTenants(response.data);
+      } catch (error: any) {
+        console.error("Error fetching tenants:", error);
+        setError(error.message || "Failed to load tenants");
+        setTenants([]);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    const fetchPlanOptions = async () => {
+      try {
+        const response = await superadminAPI.plans.getAll();
+        const plans = response.data.map((plan: any) => plan.name || plan.plan_name);
+        setPlanOptions(plans);
+      } catch (error: any) {
+        console.error("Error fetching plan options:", error);
+        // Fallback to default options
+        setPlanOptions(["Basic", "Professional", "Enterprise"]);
+      }
+    };
+
+    fetchTenants();
+    fetchPlanOptions();
   }, []);
 
-  // Save tenants to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("superadmin-all-tenants", JSON.stringify(tenants));
-  }, [tenants]);
 
   // Export functionality
   const handleExportAll = () => {
@@ -156,15 +98,15 @@ const AllTenants: React.FC = () => {
 
     const rows = data.map((tenant) => [
       tenant.id,
-      tenant.name,
-      tenant.domain,
-      tenant.status,
-      tenant.users,
-      tenant.plan,
-      tenant.created,
-      tenant.lastActive,
-      tenant.revenue,
-      tenant.growth,
+      tenant.company_name || tenant.name || 'N/A',
+      tenant.domain || 'N/A',
+      tenant.status || 'N/A',
+      tenant.current_users || tenant.users || 0,
+      tenant.plan_name || tenant.plan || 'N/A',
+      tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : tenant.created || 'N/A',
+      tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : tenant.lastActive || 'N/A',
+      tenant.revenue || 0,
+      tenant.growth || 0,
     ]);
 
     const csvContent = [headers, ...rows]
@@ -195,13 +137,13 @@ const AllTenants: React.FC = () => {
   const handleEditTenant = (tenant: any) => {
     setSelectedTenant(tenant);
     setEditTenant({
-      name: tenant.name,
-      domain: tenant.domain,
-      status: tenant.status,
-      users: tenant.users,
-      plan: tenant.plan,
-      revenue: tenant.revenue,
-      growth: tenant.growth,
+      name: tenant.company_name || tenant.name || '',
+      domain: tenant.domain || '',
+      status: tenant.status || '',
+      users: tenant.current_users || tenant.users || 0,
+      plan: tenant.plan_name || tenant.plan || '',
+      revenue: tenant.revenue || 0,
+      growth: tenant.growth || 0,
     });
     setShowEditTenantModal(true);
   };
@@ -216,65 +158,91 @@ const AllTenants: React.FC = () => {
     setShowMoreActionsModal(true);
   };
 
-  const handleUpdateTenant = () => {
+  const handleUpdateTenant = async () => {
     if (selectedTenant) {
-      setTenants((prev: any) =>
-        prev.map((tenant: any) =>
-          tenant.id === selectedTenant.id
-            ? { ...tenant, ...editTenant }
-            : tenant
-        )
-      );
-      setShowEditTenantModal(false);
-      setSelectedTenant(null);
+      try {
+        const response = await superadminAPI.tenants.update(selectedTenant.id, editTenant);
+        setTenants((prev: any) =>
+          prev.map((tenant: any) =>
+            tenant.id === selectedTenant.id
+              ? { ...tenant, ...response.data }
+              : tenant
+          )
+        );
+        setShowEditTenantModal(false);
+        setSelectedTenant(null);
+      } catch (error: any) {
+        console.error("Error updating tenant:", error);
+        setError(error.message || "Failed to update tenant");
+      }
     }
   };
 
-  const handleDeleteTenantConfirm = () => {
+  const handleDeleteTenantConfirm = async () => {
     if (selectedTenant) {
-      setTenants((prev: any) =>
-        prev.filter((tenant: any) => tenant.id !== selectedTenant.id)
-      );
-      setShowDeleteTenantModal(false);
-      setSelectedTenant(null);
+      try {
+        await superadminAPI.tenants.delete(selectedTenant.id);
+        setTenants((prev: any) =>
+          prev.filter((tenant: any) => tenant.id !== selectedTenant.id)
+        );
+        setShowDeleteTenantModal(false);
+        setSelectedTenant(null);
+      } catch (error: any) {
+        console.error("Error deleting tenant:", error);
+        setError(error.message || "Failed to delete tenant");
+      }
     }
   };
 
-  const handleSuspendTenant = () => {
+  const handleSuspendTenant = async () => {
     if (selectedTenant) {
-      setTenants((prev: any) =>
-        prev.map((tenant: any) =>
-          tenant.id === selectedTenant.id
-            ? { ...tenant, status: "Suspended" }
-            : tenant
-        )
-      );
-      setShowMoreActionsModal(false);
-      setSelectedTenant(null);
+      try {
+        await superadminAPI.tenants.suspend(selectedTenant.id);
+        setTenants((prev: any) =>
+          prev.map((tenant: any) =>
+            tenant.id === selectedTenant.id
+              ? { ...tenant, status: "Suspended" }
+              : tenant
+          )
+        );
+        setShowMoreActionsModal(false);
+        setSelectedTenant(null);
+      } catch (error: any) {
+        console.error("Error suspending tenant:", error);
+        setError(error.message || "Failed to suspend tenant");
+      }
     }
   };
 
-  const handleActivateTenant = () => {
+  const handleActivateTenant = async () => {
     if (selectedTenant) {
-      setTenants((prev: any) =>
-        prev.map((tenant: any) =>
-          tenant.id === selectedTenant.id
-            ? { ...tenant, status: "Active" }
-            : tenant
-        )
-      );
-      setShowMoreActionsModal(false);
-      setSelectedTenant(null);
+      try {
+        await superadminAPI.tenants.activate(selectedTenant.id);
+        setTenants((prev: any) =>
+          prev.map((tenant: any) =>
+            tenant.id === selectedTenant.id
+              ? { ...tenant, status: "Active" }
+              : tenant
+          )
+        );
+        setShowMoreActionsModal(false);
+        setSelectedTenant(null);
+      } catch (error: any) {
+        console.error("Error activating tenant:", error);
+        setError(error.message || "Failed to activate tenant");
+      }
     }
   };
 
   const filteredTenants = tenants.filter((tenant) => {
+    if (!tenant) return false;
+    
     const matchesStatus =
       filterStatus === "all" || tenant.status === filterStatus;
     const matchesSearch =
-      tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.plan.toLowerCase().includes(searchTerm.toLowerCase());
+      (tenant.company_name || tenant.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (tenant.domain || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (tenant.plan_name || tenant.plan || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -310,9 +278,9 @@ const AllTenants: React.FC = () => {
     return "text-gray-600";
   };
 
-  const totalRevenue = tenants.reduce((sum, tenant) => sum + tenant.revenue, 0);
-  const totalUsers = tenants.reduce((sum, tenant) => sum + tenant.users, 0);
-  const activeTenants = tenants.filter((t) => t.status === "Active").length;
+  const totalRevenue = tenants.reduce((sum, tenant) => sum + (tenant.revenue || 0), 0);
+  const totalUsers = tenants.reduce((sum, tenant) => sum + (tenant.current_users || tenant.users || 0), 0);
+  const activeTenants = tenants.filter((t) => t.status === "Active" || t.status === "active").length;
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
@@ -456,7 +424,7 @@ const AllTenants: React.FC = () => {
       {/* Tenants Display */}
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {filteredTenants.map((tenant) => (
+          {filteredTenants && filteredTenants.length > 0 ? filteredTenants.map((tenant) => (
             <div
               key={tenant.id}
               className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow"
@@ -470,10 +438,10 @@ const AllTenants: React.FC = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                      {tenant.name}
+                      {tenant.company_name || tenant.name || 'N/A'}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {tenant.domain}
+                      {tenant.domain || 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -492,7 +460,7 @@ const AllTenants: React.FC = () => {
                     Users
                   </span>
                   <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                    {tenant.users}
+                    {tenant.current_users || tenant.users || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -501,10 +469,10 @@ const AllTenants: React.FC = () => {
                   </span>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
-                      tenant.plan
+                      tenant.plan_name || tenant.plan
                     )}`}
                   >
-                    {tenant.plan}
+                    {tenant.plan_name || tenant.plan || 'N/A'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -512,7 +480,7 @@ const AllTenants: React.FC = () => {
                     Revenue
                   </span>
                   <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                    ${tenant.revenue.toLocaleString()}
+                    ${(tenant.revenue || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -521,19 +489,19 @@ const AllTenants: React.FC = () => {
                   </span>
                   <span
                     className={`font-medium text-sm sm:text-base ${getGrowthColor(
-                      tenant.growth
+                      tenant.growth || 0
                     )}`}
                   >
-                    {tenant.growth > 0 ? "+" : ""}
-                    {tenant.growth}%
+                    {(tenant.growth || 0) > 0 ? "+" : ""}
+                    {tenant.growth || 0}%
                   </span>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-y-1 sm:space-y-0 mb-3">
-                  <span>Created: {tenant.created}</span>
-                  <span>Last active: {tenant.lastActive}</span>
+                  <span>Created: {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : tenant.created || 'N/A'}</span>
+                  <span>Last active: {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : tenant.lastActive || 'N/A'}</span>
                 </div>
 
                 {/* Action Buttons */}
@@ -569,7 +537,13 @@ const AllTenants: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="col-span-full text-center py-12">
+              <div className="text-gray-500 dark:text-gray-400">
+                {loading ? "Loading tenants..." : "No tenants found"}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
@@ -604,7 +578,7 @@ const AllTenants: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredTenants.map((tenant) => (
+                {filteredTenants && filteredTenants.length > 0 ? filteredTenants.map((tenant) => (
                   <tr
                     key={tenant.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
@@ -618,10 +592,10 @@ const AllTenants: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {tenant.name}
+                            {tenant.company_name || tenant.name || 'N/A'}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {tenant.domain}
+                            {tenant.domain || 'N/A'}
                           </p>
                         </div>
                       </div>
@@ -636,32 +610,32 @@ const AllTenants: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-900">
-                      {tenant.users}
+                      {tenant.current_users || tenant.users || 0}
                     </td>
                     <td className="py-4 px-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
-                          tenant.plan
+                          tenant.plan_name || tenant.plan
                         )}`}
                       >
-                        {tenant.plan}
+                        {tenant.plan_name || tenant.plan || 'N/A'}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-900">
-                      ${tenant.revenue.toLocaleString()}
+                      ${(tenant.revenue || 0).toLocaleString()}
                     </td>
                     <td className="py-4 px-4">
                       <span
                         className={`text-sm font-medium ${getGrowthColor(
-                          tenant.growth
+                          tenant.growth || 0
                         )}`}
                       >
-                        {tenant.growth > 0 ? "+" : ""}
-                        {tenant.growth}%
+                        {(tenant.growth || 0) > 0 ? "+" : ""}
+                        {tenant.growth || 0}%
                       </span>
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-900">
-                      {tenant.created}
+                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : tenant.created || 'N/A'}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center space-x-2">
@@ -696,7 +670,13 @@ const AllTenants: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-gray-500 dark:text-gray-400">
+                      {loading ? "Loading tenants..." : "No tenants found"}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -889,9 +869,11 @@ const AllTenants: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                   >
-                    <option value="Basic">Basic</option>
-                    <option value="Professional">Professional</option>
-                    <option value="Enterprise">Enterprise</option>
+                    {planOptions.map((plan) => (
+                      <option key={plan} value={plan}>
+                        {plan}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -1056,3 +1038,4 @@ const AllTenants: React.FC = () => {
 };
 
 export default AllTenants;
+

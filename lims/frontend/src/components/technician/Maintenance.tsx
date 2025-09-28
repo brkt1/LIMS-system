@@ -1,17 +1,17 @@
 import {
-  Plus,
-  Wrench,
-  Eye,
-  Edit,
-  X,
-  Search,
-  Clock,
   AlertTriangle,
-  CheckCircle,
   Calendar,
-  Settings,
+  CheckCircle,
+  Clock,
+  Edit,
+  Eye,
+  Plus,
+  Search,
+  Wrench,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { labWorkflowAPI } from "../../services/api";
 
 const Maintenance: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,88 +39,30 @@ const Maintenance: React.FC = () => {
     estimatedDuration: "",
   });
 
-  const [maintenanceRecords, setMaintenanceRecords] = useState([
-    {
-      id: "MNT001",
-      equipmentName: "Centrifuge Model CF-2000",
-      equipmentId: "EQP001",
-      maintenanceType: "Preventive",
-      status: "completed",
-      technician: "Mike Davis",
-      scheduledDate: "2025-01-15",
-      completedDate: "2025-01-15",
-      priority: "normal",
-      description: "Routine cleaning and lubrication",
-      estimatedDuration: "2 hours",
-      actualDuration: "1.5 hours",
-      notes: "All components in good condition",
-    },
-    {
-      id: "MNT002",
-      equipmentName: "Microscope Olympus BX51",
-      equipmentId: "EQP002",
-      maintenanceType: "Corrective",
-      status: "scheduled",
-      technician: "Lisa Wilson",
-      scheduledDate: "2025-01-25",
-      completedDate: "",
-      priority: "high",
-      description: "Lens cleaning and alignment",
-      estimatedDuration: "3 hours",
-      actualDuration: "",
-      notes: "Urgent maintenance required",
-    },
-    {
-      id: "MNT003",
-      equipmentName: "Blood Analyzer Sysmex XN-1000",
-      equipmentId: "EQP003",
-      maintenanceType: "Preventive",
-      status: "in_progress",
-      technician: "Robert Brown",
-      scheduledDate: "2025-01-20",
-      completedDate: "",
-      priority: "normal",
-      description: "Monthly calibration and cleaning",
-      estimatedDuration: "4 hours",
-      actualDuration: "",
-      notes: "Maintenance in progress",
-    },
-    {
-      id: "MNT004",
-      equipmentName: "PCR Machine Applied Biosystems",
-      equipmentId: "EQP005",
-      maintenanceType: "Emergency",
-      status: "overdue",
-      technician: "Mike Davis",
-      scheduledDate: "2025-01-10",
-      completedDate: "",
-      priority: "high",
-      description: "Temperature sensor replacement",
-      estimatedDuration: "6 hours",
-      actualDuration: "",
-      notes: "Critical maintenance overdue",
-    },
-  ]);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load maintenance records from localStorage on component mount
+  // Load maintenance records from API
   useEffect(() => {
-    const savedMaintenance = localStorage.getItem("technician-maintenance");
-    if (savedMaintenance) {
+    const fetchMaintenanceRecords = async () => {
       try {
-        setMaintenanceRecords(JSON.parse(savedMaintenance));
-      } catch (error) {
-        console.error("Error loading saved maintenance records:", error);
+        setLoading(true);
+        setError(null);
+        const response = await labWorkflowAPI.getByWorkflowType('equipment_maintenance');
+        setMaintenanceRecords(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching maintenance records:", error);
+        setError(error.message || "Failed to load maintenance records");
+        // Fallback to empty array if API fails
+        setMaintenanceRecords([]);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save maintenance records to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(
-      "technician-maintenance",
-      JSON.stringify(maintenanceRecords)
-    );
-  }, [maintenanceRecords]);
+    fetchMaintenanceRecords();
+  }, []);
 
   // CRUD Functions
   const handleScheduleMaintenance = () => {
@@ -238,6 +180,41 @@ const Maintenance: React.FC = () => {
         return <Wrench className="w-4 h-4 text-gray-600" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading maintenance records...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading maintenance records
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

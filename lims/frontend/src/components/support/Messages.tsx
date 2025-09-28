@@ -1,5 +1,6 @@
 import { MessageSquare, Plus, Search, Send, User, X } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { supportTicketAPI } from "../../services/api";
 
 const Messages: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,104 +21,35 @@ const Messages: React.FC = () => {
     priority: "normal",
   });
 
-  const [conversations, setConversations] = useState([
-    {
-      id: "CONV001",
-      user: "Dr. Sarah Johnson",
-      userRole: "Doctor",
-      lastMessage:
-        "I'm having trouble accessing the test reports section. Can you help?",
-      lastMessageTime: "2025-01-22 10:30 AM",
-      unreadCount: 2,
-      status: "active",
-      priority: "high",
-    },
-    {
-      id: "CONV002",
-      user: "Mike Davis",
-      userRole: "Technician",
-      lastMessage:
-        "The equipment calibration is complete. All systems are operational.",
-      lastMessageTime: "2025-01-21 3:45 PM",
-      unreadCount: 0,
-      status: "active",
-      priority: "normal",
-    },
-    {
-      id: "CONV003",
-      user: "Lisa Wilson",
-      userRole: "Tenant Admin",
-      lastMessage: "Thank you for resolving the user management issue.",
-      lastMessageTime: "2025-01-20 2:15 PM",
-      unreadCount: 0,
-      status: "resolved",
-      priority: "low",
-    },
-    {
-      id: "CONV004",
-      user: "Robert Brown",
-      userRole: "Doctor",
-      lastMessage: "I need help with the appointment scheduling system.",
-      lastMessageTime: "2025-01-19 11:20 AM",
-      unreadCount: 1,
-      status: "active",
-      priority: "medium",
-    },
-  ]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [messages, setMessages] = useState([
-    {
-      id: "MSG001",
-      conversationId: "CONV001",
-      sender: "user",
-      senderName: "Dr. Sarah Johnson",
-      message:
-        "I'm having trouble accessing the test reports section. Can you help?",
-      timestamp: "2025-01-22 10:15 AM",
-      isRead: true,
-    },
-    {
-      id: "MSG002",
-      conversationId: "CONV001",
-      sender: "support",
-      senderName: "Support Team",
-      message:
-        "Hello Dr. Johnson! I can help you with that. Let me check your permissions and guide you through accessing the test reports.",
-      timestamp: "2025-01-22 10:30 AM",
-      isRead: true,
-    },
-    {
-      id: "MSG003",
-      conversationId: "CONV001",
-      sender: "user",
-      senderName: "Dr. Sarah Johnson",
-      message:
-        "Thank you! I can see the reports now. The issue was with my browser cache.",
-      timestamp: "2025-01-22 10:45 AM",
-      isRead: false,
-    },
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
 
-  // Load data from localStorage on component mount
+  // Load data from API
   useEffect(() => {
-    const savedConversations = localStorage.getItem("supportConversations");
-    const savedMessages = localStorage.getItem("supportMessages");
-    if (savedConversations) {
-      setConversations(JSON.parse(savedConversations));
-    }
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Fetch conversations and messages from support ticket API
+        const conversationsResponse = await supportTicketAPI.getMessages();
+        setConversations(conversationsResponse.data || []);
+        setMessages([]); // Messages will be loaded per conversation
+      } catch (error: any) {
+        console.error("Error fetching conversations:", error);
+        setError(error.message || "Failed to load conversations");
+        // Fallback to empty arrays if API fails
+        setConversations([]);
+        setMessages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
-
-  // Save data to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("supportConversations", JSON.stringify(conversations));
-  }, [conversations]);
-
-  useEffect(() => {
-    localStorage.setItem("supportMessages", JSON.stringify(messages));
-  }, [messages]);
 
   // Handler functions
   const handleNewMessage = () => {

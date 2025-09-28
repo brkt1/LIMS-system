@@ -1,17 +1,16 @@
 import {
+  Calendar,
+  Edit,
+  Eye,
   Plus,
   Search,
-  Wrench,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Calendar,
-  Eye,
-  Edit,
-  X,
   Settings,
+  Wrench,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { equipmentAPI } from "../../services/api";
+import { getCurrentTenantId } from "../../utils/helpers";
 
 const Equipment: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,117 +67,52 @@ const Equipment: React.FC = () => {
     notes: "",
   });
 
-  // Convert static data to state
-  const [equipment, setEquipment] = useState([
-    {
-      id: "EQ001",
-      name: "Centrifuge Model CF-2000",
-      type: "Laboratory",
-      category: "Centrifuge",
-      serialNumber: "CF2000-001",
-      manufacturer: "LabTech Industries",
-      model: "CF-2000",
-      status: "operational",
-      location: "Lab Room 1",
-      purchaseDate: "2023-01-15",
-      warrantyExpiry: "2025-01-15",
-      lastMaintenance: "2024-12-15",
-      nextMaintenance: "2025-03-15",
-      maintenanceInterval: "3 months",
-      responsible: "Dr. Sarah Johnson",
-      cost: 15000,
-      condition: "Excellent",
-    },
-    {
-      id: "EQ002",
-      name: "Microscope Olympus BX51",
-      type: "Laboratory",
-      category: "Microscope",
-      serialNumber: "OLY-BX51-002",
-      manufacturer: "Olympus",
-      model: "BX51",
-      status: "maintenance",
-      location: "Lab Room 2",
-      purchaseDate: "2022-06-20",
-      warrantyExpiry: "2024-06-20",
-      lastMaintenance: "2024-11-20",
-      nextMaintenance: "2025-02-20",
-      maintenanceInterval: "3 months",
-      responsible: "Dr. Mike Davis",
-      cost: 8500,
-      condition: "Good",
-    },
-    {
-      id: "EQ003",
-      name: "Blood Analyzer Sysmex XN-1000",
-      type: "Laboratory",
-      category: "Analyzer",
-      serialNumber: "SYS-XN1000-003",
-      manufacturer: "Sysmex",
-      model: "XN-1000",
-      status: "operational",
-      location: "Lab Room 1",
-      purchaseDate: "2023-03-10",
-      warrantyExpiry: "2025-03-10",
-      lastMaintenance: "2024-12-10",
-      nextMaintenance: "2025-03-10",
-      maintenanceInterval: "3 months",
-      responsible: "Dr. Lisa Wilson",
-      cost: 25000,
-      condition: "Excellent",
-    },
-    {
-      id: "EQ004",
-      name: "X-Ray Machine GE Definium 8000",
-      type: "Imaging",
-      category: "X-Ray",
-      serialNumber: "GE-DEF8000-004",
-      manufacturer: "GE Healthcare",
-      model: "Definium 8000",
-      status: "out_of_service",
-      location: "Radiology Room",
-      purchaseDate: "2021-09-05",
-      warrantyExpiry: "2023-09-05",
-      lastMaintenance: "2024-10-05",
-      nextMaintenance: "2025-01-05",
-      maintenanceInterval: "3 months",
-      responsible: "Dr. Robert Brown",
-      cost: 120000,
-      condition: "Needs Repair",
-    },
-    {
-      id: "EQ005",
-      name: "Autoclave Tuttnauer 3870EA",
-      type: "Sterilization",
-      category: "Autoclave",
-      serialNumber: "TUT-3870EA-005",
-      manufacturer: "Tuttnauer",
-      model: "3870EA",
-      status: "operational",
-      location: "Sterilization Room",
-      purchaseDate: "2023-08-12",
-      warrantyExpiry: "2025-08-12",
-      lastMaintenance: "2024-11-12",
-      nextMaintenance: "2025-02-12",
-      maintenanceInterval: "3 months",
-      responsible: "Dr. Jennifer Smith",
-      cost: 12000,
-      condition: "Good",
-    },
-  ]);
+  // Equipment state
+  const [equipment, setEquipment] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load equipment from localStorage on component mount
+  // Load equipment from backend API
   useEffect(() => {
-    const savedEquipment = localStorage.getItem("tenantEquipment");
-    if (savedEquipment) {
-      setEquipment(JSON.parse(savedEquipment));
-    }
+    const fetchEquipment = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await equipmentAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedEquipment = response.data.results ? response.data.results.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          type: item.equipment_type,
+          category: item.category,
+          serialNumber: item.serial_number,
+          manufacturer: item.manufacturer,
+          model: item.model,
+          status: item.status,
+          location: item.location,
+          purchaseDate: item.purchase_date,
+          warrantyExpiry: item.warranty_expiry,
+          lastMaintenance: item.last_maintenance,
+          nextMaintenance: item.next_maintenance,
+          maintenanceInterval: item.maintenance_interval,
+          responsible: item.responsible_person,
+          cost: parseFloat(item.cost),
+          condition: item.condition,
+        })) : [];
+
+        setEquipment(mappedEquipment);
+      } catch (error: any) {
+        console.error("Error fetching equipment:", error);
+        setError(error.message || "Failed to load equipment");
+        setEquipment([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEquipment();
   }, []);
-
-  // Save equipment to localStorage whenever equipment changes
-  useEffect(() => {
-    localStorage.setItem("tenantEquipment", JSON.stringify(equipment));
-  }, [equipment]);
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch =
@@ -279,20 +213,57 @@ const Equipment: React.FC = () => {
     setShowEditEquipmentModal(true);
   };
 
-  const handleCreateEquipment = () => {
-    const newId = `EQ${String(equipment.length + 1).padStart(3, "0")}`;
-    const equipmentItem = {
-      id: newId,
-      ...newEquipment,
-      cost: parseFloat(newEquipment.cost),
-      status: "operational",
-      lastMaintenance: new Date().toISOString().split("T")[0],
-      nextMaintenance: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0], // 90 days from now
-    };
-    setEquipment((prev: any) => [...prev, equipmentItem]);
-    setShowAddEquipmentModal(false);
+  const handleCreateEquipment = async () => {
+    try {
+      const equipmentData = {
+        name: newEquipment.name,
+        type: newEquipment.type,
+        category: newEquipment.category,
+        serial_number: newEquipment.serialNumber,
+        manufacturer: newEquipment.manufacturer,
+        model: newEquipment.model,
+        location: newEquipment.location,
+        purchase_date: newEquipment.purchaseDate,
+        warranty_expiry: newEquipment.warrantyExpiry || null,
+        last_maintenance: newEquipment.lastMaintenance || null,
+        next_maintenance: newEquipment.nextMaintenance || null,
+        maintenance_interval: newEquipment.maintenanceInterval || null,
+        responsible: newEquipment.responsible || null,
+        cost: newEquipment.cost ? parseFloat(newEquipment.cost) : null,
+        condition: newEquipment.condition || "good",
+        tenant: getCurrentTenantId(), // Dynamic tenant
+      };
+
+      const response = await equipmentAPI.create(equipmentData);
+      const createdEquipment = response.data.equipment || response.data;
+
+      // Map backend response to frontend format
+      const mappedEquipment = {
+        id: createdEquipment.id,
+        name: createdEquipment.name,
+        type: createdEquipment.type,
+        category: createdEquipment.category,
+        serialNumber: createdEquipment.serial_number,
+        manufacturer: createdEquipment.manufacturer,
+        model: createdEquipment.model,
+        status: createdEquipment.status,
+        location: createdEquipment.location,
+        purchaseDate: createdEquipment.purchase_date,
+        warrantyExpiry: createdEquipment.warranty_expiry,
+        lastMaintenance: createdEquipment.last_maintenance,
+        nextMaintenance: createdEquipment.next_maintenance,
+        maintenanceInterval: createdEquipment.maintenance_interval,
+        responsible: createdEquipment.responsible,
+        cost: createdEquipment.cost,
+        condition: createdEquipment.condition,
+      };
+
+      setEquipment((prev: any) => [...prev, mappedEquipment]);
+      setShowAddEquipmentModal(false);
+    } catch (error: any) {
+      console.error("Error creating equipment:", error);
+      setError(error.message || "Failed to create equipment");
+    }
   };
 
   const handleUpdateEquipment = () => {
@@ -333,6 +304,27 @@ const Equipment: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading equipment...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

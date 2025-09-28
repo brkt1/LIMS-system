@@ -1,16 +1,14 @@
 import {
-  AlertTriangle,
-  Package,
-  Plus,
-  Search,
-  TrendingDown,
-  TrendingUp,
-  Eye,
-  Edit,
-  X,
-  Package2,
+    AlertTriangle,
+    Package,
+    Package2,
+    Plus,
+    Search,
+    TrendingDown,
+    TrendingUp,
+    X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { inventoryAPI } from "../../services/api";
 
 const InventoryManagement: React.FC = () => {
@@ -108,15 +106,8 @@ const InventoryManagement: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching inventory:", error);
         setError(error.message || "Failed to load inventory");
-        // Fallback to localStorage if API fails
-        const savedInventory = localStorage.getItem("inventory-items");
-        if (savedInventory) {
-          try {
-            setInventoryItems(JSON.parse(savedInventory));
-          } catch (parseError) {
-            console.error("Error parsing saved inventory:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setInventoryItems([]);
       } finally {
         setLoading(false);
       }

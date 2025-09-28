@@ -1,17 +1,15 @@
 import {
-  Calculator,
-  Plus,
-  Search,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  FileText,
-  Eye,
   Edit,
-  X,
+  Eye,
+  Plus,
   Receipt,
+  Search,
+  Trash2,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { accountingAPI } from "../../services/api";
+import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
 
 const Accounting: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,84 +44,93 @@ const Accounting: React.FC = () => {
     account: "",
   });
 
-  // Convert static data to state
-  const [transactions, setTransactions] = useState([
-    {
-      id: "TXN001",
-      date: "2025-01-22",
-      description: "Patient Payment - John Smith",
-      type: "income",
-      category: "Patient Payments",
-      amount: 150.0,
-      paymentMethod: "Insurance",
-      reference: "INV-001",
-      status: "completed",
-      account: "Accounts Receivable",
-    },
-    {
-      id: "TXN002",
-      date: "2025-01-21",
-      description: "Medical Equipment Purchase",
-      type: "expense",
-      category: "Equipment",
-      amount: 2500.0,
-      paymentMethod: "Credit Card",
-      reference: "PO-002",
-      status: "completed",
-      account: "Equipment Expenses",
-    },
-    {
-      id: "TXN003",
-      date: "2025-01-20",
-      description: "Laboratory Supplies",
-      type: "expense",
-      category: "Supplies",
-      amount: 450.0,
-      paymentMethod: "Bank Transfer",
-      reference: "PO-003",
-      status: "pending",
-      account: "Supplies Expenses",
-    },
-    {
-      id: "TXN004",
-      date: "2025-01-19",
-      description: "Insurance Payment - Sarah Johnson",
-      type: "income",
-      category: "Insurance Payments",
-      amount: 320.0,
-      paymentMethod: "Insurance",
-      reference: "INV-004",
-      status: "completed",
-      account: "Accounts Receivable",
-    },
-    {
-      id: "TXN005",
-      date: "2025-01-18",
-      description: "Rent Payment",
-      type: "expense",
-      category: "Rent",
-      amount: 3500.0,
-      paymentMethod: "Bank Transfer",
-      reference: "RENT-001",
-      status: "completed",
-      account: "Rent Expenses",
-    },
-  ]);
+  // Accounting transactions state
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [financialSummary, setFinancialSummary] = useState<any>(null);
 
-  // Load transactions from localStorage on component mount
-  useEffect(() => {
-    const savedTransactions = localStorage.getItem("accountingTransactions");
-    if (savedTransactions) {
-      setTransactions(JSON.parse(savedTransactions));
-    }
-  }, []);
 
-  // Save transactions to localStorage whenever transactions change
+  // Load transactions from backend API
   useEffect(() => {
-    localStorage.setItem(
-      "accountingTransactions",
-      JSON.stringify(transactions)
-    );
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Build query parameters based on filters
+        const params: any = {};
+        if (filterType !== "all") {
+          params.entry_type = filterType;
+        }
+        if (filterPeriod !== "all") {
+          const now = new Date();
+          switch (filterPeriod) {
+            case "today":
+              params.date = now.toISOString().split('T')[0];
+              break;
+            case "week":
+              const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+              params.date__gte = weekStart.toISOString().split('T')[0];
+              break;
+            case "month":
+              const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+              params.date__gte = monthStart.toISOString().split('T')[0];
+              break;
+            case "quarter":
+              const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+              params.date__gte = quarterStart.toISOString().split('T')[0];
+              break;
+          }
+        }
+        if (searchTerm) {
+          params.search = searchTerm;
+        }
+
+        const response = await accountingAPI.getAll(params);
+
+        // Map backend data to frontend expected format
+        const mappedTransactions = response.data.results ? response.data.results.map((item: any) => ({
+          id: item.id,
+          date: item.date,
+          description: item.description,
+          type: item.entry_type,
+          category: item.category,
+          amount: parseFloat(item.amount),
+          paymentMethod: item.payment_method,
+          reference: item.reference_number || "",
+          status: "completed", // Default status
+          account: item.account,
+          notes: item.notes || "",
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        })) : [];
+
+        setTransactions(mappedTransactions);
+      } catch (error: any) {
+        console.error("Error fetching accounting transactions:", error);
+        setError(error.response?.data?.detail || error.message || "Failed to load accounting transactions");
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [filterType, filterPeriod, searchTerm]);
+
+  // Load financial summary
+  useEffect(() => {
+    const fetchFinancialSummary = async () => {
+      try {
+        const response = await accountingAPI.getFinancialSummary();
+        setFinancialSummary(response.data);
+      } catch (error) {
+        console.error("Error fetching financial summary:", error);
+      }
+    };
+
+    fetchFinancialSummary();
   }, [transactions]);
 
   const filteredTransactions = transactions.filter((transaction) => {
@@ -201,32 +208,187 @@ const Accounting: React.FC = () => {
     setShowReceiptModal(true);
   };
 
-  const handleCreateEntry = () => {
-    const newId = `TXN${String(transactions.length + 1).padStart(3, "0")}`;
-    const transaction = {
-      id: newId,
-      date: new Date().toISOString().split("T")[0],
-      ...newEntry,
-      amount: parseFloat(newEntry.amount),
-      status: "completed",
-    };
-    setTransactions((prev: any) => [...prev, transaction]);
-    setShowAddEntryModal(false);
+  const handleDeleteEntry = async (transactionId: string) => {
+    if (!window.confirm("Are you sure you want to delete this transaction?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await accountingAPI.delete(transactionId);
+      
+      // Remove the transaction from the list
+      setTransactions((prev: any) => prev.filter((t: any) => t.id !== transactionId));
+    } catch (error: any) {
+      console.error("Error deleting transaction:", error);
+      setError(error.response?.data?.detail || error.message || "Failed to delete transaction");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateEntry = () => {
-    setTransactions((prev: any) =>
-      prev.map((transaction: any) =>
-        transaction.id === selectedTransaction.id
-          ? {
-              ...transaction,
-              ...editEntry,
-              amount: parseFloat(editEntry.amount),
-            }
-          : transaction
-      )
-    );
-    setShowEditEntryModal(false);
+  const handleCreateEntry = async () => {
+    // Validate form data
+    if (!newEntry.description.trim()) {
+      setError("Description is required");
+      return;
+    }
+    if (!newEntry.type) {
+      setError("Type is required");
+      return;
+    }
+    if (!newEntry.category.trim()) {
+      setError("Category is required");
+      return;
+    }
+    if (!newEntry.amount || parseFloat(newEntry.amount) <= 0) {
+      setError("Amount must be greater than 0");
+      return;
+    }
+    if (!newEntry.paymentMethod) {
+      setError("Payment method is required");
+      return;
+    }
+    if (!newEntry.account.trim()) {
+      setError("Account is required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Prepare data for backend
+      const transactionData = {
+        description: newEntry.description.trim(),
+        entry_type: newEntry.type,
+        category: newEntry.category.trim(),
+        amount: parseFloat(newEntry.amount),
+        payment_method: newEntry.paymentMethod,
+        reference_number: newEntry.reference.trim(),
+        account: newEntry.account.trim(),
+        date: new Date().toISOString().split("T")[0],
+        notes: "",
+        tenant: getCurrentTenantId(), // Dynamic tenant
+        created_by: getCurrentUserId(), // Dynamic user
+      };
+
+      const response = await accountingAPI.create(transactionData);
+      
+      // Add the new transaction to the list
+      const newTransaction = {
+        id: response.data.id,
+        date: response.data.date,
+        description: response.data.description,
+        type: response.data.entry_type,
+        category: response.data.category,
+        amount: parseFloat(response.data.amount),
+        paymentMethod: response.data.payment_method,
+        reference: response.data.reference_number || "",
+        status: "completed",
+        account: response.data.account,
+        notes: response.data.notes || "",
+        created_at: response.data.created_at,
+        updated_at: response.data.updated_at,
+      };
+      
+      setTransactions((prev: any) => [newTransaction, ...prev]);
+      setShowAddEntryModal(false);
+      
+      // Reset form
+      setNewEntry({
+        description: "",
+        type: "",
+        category: "",
+        amount: "",
+        paymentMethod: "",
+        reference: "",
+        account: "",
+      });
+    } catch (error: any) {
+      console.error("Error creating transaction:", error);
+      setError(error.response?.data?.detail || error.message || "Failed to create transaction");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateEntry = async () => {
+    // Validate form data
+    if (!editEntry.description.trim()) {
+      setError("Description is required");
+      return;
+    }
+    if (!editEntry.type) {
+      setError("Type is required");
+      return;
+    }
+    if (!editEntry.category.trim()) {
+      setError("Category is required");
+      return;
+    }
+    if (!editEntry.amount || parseFloat(editEntry.amount) <= 0) {
+      setError("Amount must be greater than 0");
+      return;
+    }
+    if (!editEntry.paymentMethod) {
+      setError("Payment method is required");
+      return;
+    }
+    if (!editEntry.account.trim()) {
+      setError("Account is required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Prepare data for backend
+      const updateData = {
+        description: editEntry.description.trim(),
+        entry_type: editEntry.type,
+        category: editEntry.category.trim(),
+        amount: parseFloat(editEntry.amount),
+        payment_method: editEntry.paymentMethod,
+        reference_number: editEntry.reference.trim(),
+        account: editEntry.account.trim(),
+        notes: "",
+      };
+
+      const response = await accountingAPI.update(selectedTransaction.id, updateData);
+      
+      // Update the transaction in the list
+      const updatedTransaction = {
+        id: response.data.id,
+        date: response.data.date,
+        description: response.data.description,
+        type: response.data.entry_type,
+        category: response.data.category,
+        amount: parseFloat(response.data.amount),
+        paymentMethod: response.data.payment_method,
+        reference: response.data.reference_number || "",
+        status: "completed",
+        account: response.data.account,
+        notes: response.data.notes || "",
+        created_at: response.data.created_at,
+        updated_at: response.data.updated_at,
+      };
+      
+      setTransactions((prev: any) =>
+        prev.map((transaction: any) =>
+          transaction.id === selectedTransaction.id ? updatedTransaction : transaction
+        )
+      );
+      setShowEditEntryModal(false);
+    } catch (error: any) {
+      console.error("Error updating transaction:", error);
+      setError(error.response?.data?.detail || error.message || "Failed to update transaction");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGenerateReceipt = () => {
@@ -264,6 +426,27 @@ Generated on: ${new Date().toLocaleString()}
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading accounting data...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -282,6 +465,71 @@ Generated on: ${new Date().toLocaleString()}
           <span>Add Entry</span>
         </button>
       </div>
+
+      {/* Financial Summary */}
+      {financialSummary && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 dark:text-green-400 text-sm font-medium">+</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Income</p>
+                <p className="text-2xl font-semibold text-green-600 dark:text-green-400">
+                  ${financialSummary.total_income?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                  <span className="text-red-600 dark:text-red-400 text-sm font-medium">-</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Expenses</p>
+                <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
+                  ${financialSummary.total_expenses?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  (financialSummary.net_profit || 0) >= 0 
+                    ? 'bg-green-100 dark:bg-green-900' 
+                    : 'bg-red-100 dark:bg-red-900'
+                }`}>
+                  <span className={`text-sm font-medium ${
+                    (financialSummary.net_profit || 0) >= 0 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {(financialSummary.net_profit || 0) >= 0 ? '+' : ''}
+                  </span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Net Profit</p>
+                <p className={`text-2xl font-semibold ${
+                  (financialSummary.net_profit || 0) >= 0 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-red-600 dark:text-red-400'
+                }`}>
+                  ${financialSummary.net_profit?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col lg:flex-row gap-4">
@@ -306,7 +554,9 @@ Generated on: ${new Date().toLocaleString()}
             <option value="all">All Types</option>
             <option value="income">Income</option>
             <option value="expense">Expense</option>
-            <option value="transfer">Transfer</option>
+            <option value="asset">Asset</option>
+            <option value="liability">Liability</option>
+            <option value="equity">Equity</option>
           </select>
           <select
             value={filterPeriod}
@@ -445,6 +695,13 @@ Generated on: ${new Date().toLocaleString()}
                         <Receipt className="w-4 h-4" />
                         <span>Receipt</span>
                       </button>
+                      <button
+                        onClick={() => handleDeleteEntry(transaction.id)}
+                        className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -499,22 +756,42 @@ Generated on: ${new Date().toLocaleString()}
                     <option value="">Select type</option>
                     <option value="income">Income</option>
                     <option value="expense">Expense</option>
-                    <option value="transfer">Transfer</option>
+                    <option value="asset">Asset</option>
+                    <option value="liability">Liability</option>
+                    <option value="equity">Equity</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Category
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={newEntry.category}
                     onChange={(e) =>
                       setNewEntry({ ...newEntry, category: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter category"
-                  />
+                  >
+                    <option value="">Select category</option>
+                    <optgroup label="Income Categories">
+                      <option value="patient_fees">Patient Fees</option>
+                      <option value="insurance_payments">Insurance Payments</option>
+                      <option value="consultation_fees">Consultation Fees</option>
+                      <option value="test_fees">Test Fees</option>
+                      <option value="other_income">Other Income</option>
+                    </optgroup>
+                    <optgroup label="Expense Categories">
+                      <option value="salaries">Salaries</option>
+                      <option value="rent">Rent</option>
+                      <option value="utilities">Utilities</option>
+                      <option value="medical_supplies">Medical Supplies</option>
+                      <option value="equipment">Equipment</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="insurance">Insurance</option>
+                      <option value="other_expenses">Other Expenses</option>
+                    </optgroup>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -546,11 +823,12 @@ Generated on: ${new Date().toLocaleString()}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select payment method</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Check">Check</option>
+                    <option value="cash">Cash</option>
+                    <option value="check">Check</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="insurance">Insurance</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
                 <div>
@@ -782,14 +1060,33 @@ Generated on: ${new Date().toLocaleString()}
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Category
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={editEntry.category}
                     onChange={(e) =>
                       setEditEntry({ ...editEntry, category: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
+                  >
+                    <option value="">Select category</option>
+                    <optgroup label="Income Categories">
+                      <option value="patient_fees">Patient Fees</option>
+                      <option value="insurance_payments">Insurance Payments</option>
+                      <option value="consultation_fees">Consultation Fees</option>
+                      <option value="test_fees">Test Fees</option>
+                      <option value="other_income">Other Income</option>
+                    </optgroup>
+                    <optgroup label="Expense Categories">
+                      <option value="salaries">Salaries</option>
+                      <option value="rent">Rent</option>
+                      <option value="utilities">Utilities</option>
+                      <option value="medical_supplies">Medical Supplies</option>
+                      <option value="equipment">Equipment</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="insurance">Insurance</option>
+                      <option value="other_expenses">Other Expenses</option>
+                    </optgroup>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -819,11 +1116,12 @@ Generated on: ${new Date().toLocaleString()}
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Cash">Cash</option>
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Check">Check</option>
+                    <option value="cash">Cash</option>
+                    <option value="check">Check</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="insurance">Insurance</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
                 <div>

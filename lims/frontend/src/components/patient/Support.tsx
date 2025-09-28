@@ -5,12 +5,10 @@ import {
   Phone,
   Plus,
   Search,
-  Send,
-  Ticket,
-  Clock,
-  CheckCircle,
+  Send
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { patientSupportTicketAPI } from "../../services/api";
 
 const Support: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,60 +21,30 @@ const Support: React.FC = () => {
   });
   const [showNewTicketForm, setShowNewTicketForm] = useState(false);
 
-  const supportTickets = [
-    {
-      id: "TKT001",
-      subject: "Unable to access test results",
-      description:
-        "I'm having trouble viewing my recent blood test results. The page keeps loading but doesn't show the results.",
-      status: "open",
-      priority: "high",
-      category: "Technical",
-      createdDate: "2025-01-22",
-      createdTime: "10:30 AM",
-      lastUpdated: "2025-01-22 2:15 PM",
-      assignedTo: "Support Team",
-    },
-    {
-      id: "TKT002",
-      subject: "Appointment booking issue",
-      description:
-        "When I try to book an appointment, the calendar doesn't show available time slots for next week.",
-      status: "in_progress",
-      priority: "medium",
-      category: "Appointments",
-      createdDate: "2025-01-21",
-      createdTime: "3:45 PM",
-      lastUpdated: "2025-01-21 4:20 PM",
-      assignedTo: "Sarah Johnson",
-    },
-    {
-      id: "TKT003",
-      subject: "Password reset not working",
-      description:
-        "I requested a password reset but didn't receive the email. I've checked my spam folder as well.",
-      status: "resolved",
-      priority: "low",
-      category: "Account",
-      createdDate: "2025-01-20",
-      createdTime: "11:20 AM",
-      lastUpdated: "2025-01-20 1:30 PM",
-      assignedTo: "Mike Davis",
-    },
-    {
-      id: "TKT004",
-      subject: "Video consultation technical issues",
-      description:
-        "During my video consultation yesterday, the audio was cutting in and out. This made it difficult to communicate with my doctor.",
-      status: "open",
-      priority: "medium",
-      category: "Technical",
-      createdDate: "2025-01-19",
-      createdTime: "2:15 PM",
-      lastUpdated: "2025-01-19 3:00 PM",
-      assignedTo: "Support Team",
-    },
-  ];
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+
+  // Load support tickets from API
+  useEffect(() => {
+    const fetchSupportTickets = async () => {
+      try {
+        setTicketsLoading(true);
+        setTicketsError(null);
+        const response = await patientSupportTicketAPI.getAll();
+        console.log("🎫 Support tickets fetched:", response.data);
+        setSupportTickets(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching support tickets:", error);
+        setTicketsError(error.message || "Failed to fetch support tickets");
+        setSupportTickets([]);
+      } finally {
+        setTicketsLoading(false);
+      }
+    };
+
+    fetchSupportTickets();
+  }, []);
 
   const filteredTickets = supportTickets.filter((ticket) => {
     const matchesSearch =
@@ -148,8 +116,12 @@ const Support: React.FC = () => {
 
   // Contact handler functions
   const handleCallSupport = () => {
+    const supportPhone = process.env.REACT_APP_SUPPORT_PHONE || "(555) 123-4567";
+    const emergencyPhone = process.env.REACT_APP_EMERGENCY_PHONE || "(555) 911-HELP";
+    const supportHours = process.env.REACT_APP_SUPPORT_HOURS || "Monday-Friday, 8:00 AM - 6:00 PM";
+    
     alert(
-      "Calling support...\n\nPhone: (555) 123-4567\nHours: Monday-Friday, 8:00 AM - 6:00 PM\n\nEmergency Line: (555) 911-HELP (24/7)"
+      `Calling support...\n\nPhone: ${supportPhone}\nHours: ${supportHours}\n\nEmergency Line: ${emergencyPhone} (24/7)`
     );
   };
 
@@ -158,12 +130,14 @@ const Support: React.FC = () => {
     const body = encodeURIComponent(
       `Hello Support Team,\n\nI need assistance with:\n\n[Please describe your issue here]\n\nThank you.`
     );
-    window.open(`mailto:support@clinic.com?subject=${subject}&body=${body}`);
+    const supportEmail = process.env.REACT_APP_SUPPORT_EMAIL || "support@clinic.com";
+    window.open(`mailto:${supportEmail}?subject=${subject}&body=${body}`);
   };
 
   const handleLiveChat = () => {
+    const chatHours = process.env.REACT_APP_CHAT_HOURS || "Monday-Friday, 9:00 AM - 5:00 PM";
     alert(
-      "Live Chat Support\n\nConnecting you to our support team...\n\nAvailable: Monday-Friday, 9:00 AM - 5:00 PM\n\nA support agent will be with you shortly."
+      `Live Chat Support\n\nConnecting you to our support team...\n\nAvailable: ${chatHours}\n\nA support agent will be with you shortly.`
     );
   };
 

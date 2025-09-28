@@ -9,7 +9,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { inventoryAPI } from "../../services/api";
 
 const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,120 +54,30 @@ const Inventory: React.FC = () => {
   });
 
   // Inventory data state
-  const [inventoryItems, setInventoryItems] = useState([
-    {
-      id: "INV001",
-      name: "Blood Collection Tubes",
-      category: "Consumables",
-      description: "Sterile blood collection tubes for laboratory testing",
-      quantity: 150,
-      minQuantity: 50,
-      maxQuantity: 500,
-      unit: "pieces",
-      supplier: "MedSupply Inc.",
-      cost: 2.5,
-      status: "in_stock",
-      location: "Storage Room A",
-      lastUpdated: "2025-01-22",
-      expiryDate: "2026-12-31",
-    },
-    {
-      id: "INV002",
-      name: "Microscope Slides",
-      category: "Equipment",
-      description: "Glass slides for microscopic examination",
-      quantity: 25,
-      minQuantity: 20,
-      maxQuantity: 100,
-      unit: "boxes",
-      supplier: "LabTech Solutions",
-      cost: 15.0,
-      status: "low_stock",
-      location: "Lab Room 1",
-      lastUpdated: "2025-01-20",
-      expiryDate: "N/A",
-    },
-    {
-      id: "INV003",
-      name: "Chemical Reagents",
-      category: "Chemicals",
-      description: "Various chemical reagents for testing procedures",
-      quantity: 0,
-      minQuantity: 10,
-      maxQuantity: 50,
-      unit: "bottles",
-      supplier: "ChemCorp",
-      cost: 45.0,
-      status: "out_of_stock",
-      location: "Chemical Storage",
-      lastUpdated: "2025-01-18",
-      expiryDate: "2025-06-30",
-    },
-    {
-      id: "INV004",
-      name: "Disposable Gloves",
-      category: "Safety",
-      description: "Nitrile gloves for laboratory safety",
-      quantity: 200,
-      minQuantity: 100,
-      maxQuantity: 1000,
-      unit: "boxes",
-      supplier: "SafetyFirst",
-      cost: 8.5,
-      status: "in_stock",
-      location: "Storage Room B",
-      lastUpdated: "2025-01-21",
-      expiryDate: "2027-03-15",
-    },
-    {
-      id: "INV005",
-      name: "Test Strips",
-      category: "Consumables",
-      description: "Diagnostic test strips for various tests",
-      quantity: 75,
-      minQuantity: 30,
-      maxQuantity: 200,
-      unit: "packs",
-      supplier: "DiagnosticPro",
-      cost: 12.0,
-      status: "in_stock",
-      location: "Lab Room 2",
-      lastUpdated: "2025-01-19",
-      expiryDate: "2025-09-30",
-    },
-    {
-      id: "INV006",
-      name: "Centrifuge Machine",
-      category: "Equipment",
-      description: "Laboratory centrifuge for sample processing",
-      quantity: 2,
-      minQuantity: 1,
-      maxQuantity: 5,
-      unit: "units",
-      supplier: "LabEquipment Co.",
-      cost: 2500.0,
-      status: "in_stock",
-      location: "Lab Room 1",
-      lastUpdated: "2025-01-15",
-      expiryDate: "N/A",
-    },
-  ]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load inventory from localStorage on component mount
+  // Load inventory from API
   useEffect(() => {
-    const savedInventory = localStorage.getItem("supportInventoryItems");
-    if (savedInventory) {
-      setInventoryItems(JSON.parse(savedInventory));
-    }
+    const fetchInventory = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await inventoryAPI.getItems();
+        setInventoryItems(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching inventory:", error);
+        setError(error.message || "Failed to load inventory");
+        // Fallback to empty array if API fails
+        setInventoryItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInventory();
   }, []);
-
-  // Save inventory to localStorage whenever inventory changes
-  useEffect(() => {
-    localStorage.setItem(
-      "supportInventoryItems",
-      JSON.stringify(inventoryItems)
-    );
-  }, [inventoryItems]);
 
   // Handler functions
   const handleAddItem = () => {

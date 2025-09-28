@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { authAPI } from "../services/api";
 import type {
-  AuthContextType,
-  AuthResponse,
-  LoginCredentials,
-  User,
-  UserRole,
+    AuthContextType,
+    AuthResponse,
+    LoginCredentials,
+    User,
+    UserRole,
 } from "../types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,87 +55,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
 
-      // Mock authentication for development
-      const mockUsers = {
-        "superadmin@lims.com": {
-          access: "mock_access_token_superadmin",
-          refresh: "mock_refresh_token_superadmin",
-          user: {
-            id: 1,
-            email: "superadmin@lims.com",
-            role: "superadmin" as UserRole,
-            tenant: null,
-            isPaid: true,
-            created_by: null,
-          },
-          tenant: null,
-        },
-        "tenantadmin@lims.com": {
-          access: "mock_access_token_tenantadmin",
-          refresh: "mock_refresh_token_tenantadmin",
-          user: {
-            id: 2,
-            email: "tenantadmin@lims.com",
-            role: "tenant-admin" as UserRole,
-            tenant: "Demo Lab",
-            isPaid: true,
-            created_by: "superadmin@lims.com",
-          },
-          tenant: { name: "Demo Lab" },
-        },
-        "doctor@lims.com": {
-          access: "mock_access_token_doctor",
-          refresh: "mock_refresh_token_doctor",
-          user: {
-            id: 3,
-            email: "doctor@lims.com",
-            role: "doctor" as UserRole,
-            tenant: "Demo Lab",
-            isPaid: true,
-            created_by: "tenantadmin@lims.com",
-          },
-          tenant: { name: "Demo Lab" },
-        },
-        "technician@lims.com": {
-          access: "mock_access_token_technician",
-          refresh: "mock_refresh_token_technician",
-          user: {
-            id: 4,
-            email: "technician@lims.com",
-            role: "technician" as UserRole,
-            tenant: "Demo Lab",
-            isPaid: true,
-            created_by: "tenantadmin@lims.com",
-          },
-          tenant: { name: "Demo Lab" },
-        },
-        "support@lims.com": {
-          access: "mock_access_token_support",
-          refresh: "mock_refresh_token_support",
-          user: {
-            id: 5,
-            email: "support@lims.com",
-            role: "support" as UserRole,
-            tenant: "Demo Lab",
-            isPaid: true,
-            created_by: "tenantadmin@lims.com",
-          },
-          tenant: { name: "Demo Lab" },
-        },
-        "patient@lims.com": {
-          access: "mock_access_token_patient",
-          refresh: "mock_refresh_token_patient",
-          user: {
-            id: 6,
-            email: "patient@lims.com",
-            role: "patient" as UserRole,
-            tenant: "Demo Lab",
-            isPaid: false,
-            created_by: "doctor@lims.com",
-          },
-          tenant: { name: "Demo Lab" },
-        },
-      };
 
       // Try real API call first
       try {
@@ -170,29 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           );
         }
 
-        // Fallback to mock authentication for development
-        const mockPassword = "123"; // Simple password for all test accounts
-        if (
-          credentials.password === mockPassword &&
-          mockUsers[credentials.email as keyof typeof mockUsers]
-        ) {
-          const data = mockUsers[credentials.email as keyof typeof mockUsers];
-
-          // Store tokens and user data
-          localStorage.setItem("access_token", data.access);
-          localStorage.setItem("refresh_token", data.refresh);
-          localStorage.setItem("user_data", JSON.stringify(data.user));
-          localStorage.setItem("tenant_data", JSON.stringify(data.tenant));
-
-          // Set user state
-          setUser(data.user);
-          setTenant(data.tenant);
-
-          console.log("Mock login successful:", data.user);
-          return;
-        }
-
-        // If neither backend nor mock works, throw error
+        // If API call fails, throw error
         throw new Error(
           apiError.response?.data?.detail ||
             "Invalid credentials. Please check your email and password."

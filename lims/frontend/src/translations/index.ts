@@ -269,7 +269,6 @@ export const translations = {
     "nav.supportTickets": "Support Tickets",
     "nav.myAppointments": "My Appointments",
     "nav.faq": "FAQ",
-    "nav.help": "Help",
 
     // Languages
     "language.english": "English",
@@ -317,7 +316,6 @@ export const translations = {
     "common.reject": "Dhiisuu",
     "common.schedule": "Yeroo",
     "common.book": "Bookii",
-    "common.cancel": "Dhaabuu",
     "common.reschedule": "Yeroo haaraa",
     "common.track": "Hordofuu",
     "common.process": "Hojjechuu",
@@ -547,7 +545,6 @@ export const translations = {
     "nav.supportTickets": "Deeggarsa Tikkeettii",
     "nav.myAppointments": "Walitti dhufiinsa Koo",
     "nav.faq": "Gaafii fi Deebii",
-    "nav.help": "Gargaarsa",
 
     // Languages
     "language.english": "Ingiliizii",
@@ -595,7 +592,6 @@ export const translations = {
     "common.reject": "አስተባብል",
     "common.schedule": "ጊዜ",
     "common.book": "ቦክ",
-    "common.cancel": "ሰርዝ",
     "common.reschedule": "ጊዜ አድስ",
     "common.track": "ክትትል",
     "common.process": "ሂደት",
@@ -825,7 +821,6 @@ export const translations = {
     "nav.supportTickets": "የድጋፍ ትኬቶች",
     "nav.myAppointments": "የእኔ ጉባኤዎች",
     "nav.faq": "ተደጋጋሚ ጥያቄዎች",
-    "nav.help": "እርዳታ",
 
     // Languages
     "language.english": "እንግሊዝኛ",

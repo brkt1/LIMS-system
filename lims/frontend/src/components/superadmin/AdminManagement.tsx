@@ -1,17 +1,16 @@
 import {
   Edit,
+  Eye,
   MoreVertical,
   Plus,
   Search,
   Shield,
   Trash2,
-  User,
   UserCheck,
   UserX,
-  X,
-  Eye,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
 
 const AdminManagement: React.FC = () => {
@@ -51,15 +50,8 @@ const AdminManagement: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching admins:", error);
         setError(error.message || "Failed to load admins");
-        // Fallback to localStorage if API fails
-        const savedAdmins = localStorage.getItem("superadmin-admins");
-        if (savedAdmins) {
-          try {
-            setAdmins(JSON.parse(savedAdmins));
-          } catch (parseError) {
-            console.error("Error parsing saved admins:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setAdmins([]);
       } finally {
         setLoading(false);
       }
@@ -77,11 +69,11 @@ const AdminManagement: React.FC = () => {
   const handleEditAdmin = (admin: any) => {
     setSelectedAdmin(admin);
     setEditAdmin({
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
-      status: admin.status,
-      permissions: admin.permissions,
+      name: admin.name || "",
+      email: admin.email || "",
+      role: admin.role || "",
+      status: admin.status || "",
+      permissions: admin.permissions || [],
     });
     setShowEditAdminModal(true);
   };
@@ -146,11 +138,11 @@ const AdminManagement: React.FC = () => {
 
   const filteredAdmins = admins.filter((admin) => {
     const matchesSearch =
-      admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      admin.email.toLowerCase().includes(searchTerm.toLowerCase());
+      (admin.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (admin.email || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole =
       filterRole === "all" ||
-      admin.role.toLowerCase().includes(filterRole.toLowerCase());
+      (admin.role || "").toLowerCase().includes(filterRole.toLowerCase());
     return matchesSearch && matchesRole;
   });
 
@@ -184,10 +176,10 @@ const AdminManagement: React.FC = () => {
 
   const totalAdmins = admins.length;
   const activeAdmins = admins.filter(
-    (admin) => admin.status === "Active"
+    (admin) => (admin.status || "").toLowerCase() === "active"
   ).length;
   const superAdmins = admins.filter(
-    (admin) => admin.role === "Super Admin"
+    (admin) => (admin.role || "").toLowerCase() === "super admin"
   ).length;
 
   return (
@@ -357,7 +349,7 @@ const AdminManagement: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredAdmins.map((admin) => (
+                {filteredAdmins && filteredAdmins.length > 0 ? filteredAdmins.map((admin) => (
                   <tr
                     key={admin.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
@@ -371,10 +363,10 @@ const AdminManagement: React.FC = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {admin.name}
+                            {admin.name || "Unknown"}
                           </p>
                           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                            {admin.email}
+                            {admin.email || "No email"}
                           </p>
                         </div>
                       </div>
@@ -382,24 +374,24 @@ const AdminManagement: React.FC = () => {
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
-                          admin.role
+                          admin.role || "Unknown"
                         )}`}
                       >
-                        {admin.role}
+                        {admin.role || "Unknown"}
                       </span>
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          admin.status
+                          admin.status || "Unknown"
                         )}`}
                       >
-                        {admin.status}
+                        {admin.status || "Unknown"}
                       </span>
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <div className="flex flex-wrap gap-1">
-                        {admin.permissions
+                        {(admin.permissions || [])
                           .slice(0, 2)
                           .map((permission, index) => (
                             <span
@@ -409,9 +401,9 @@ const AdminManagement: React.FC = () => {
                               {permission}
                             </span>
                           ))}
-                        {admin.permissions.length > 2 && (
+                        {(admin.permissions || []).length > 2 && (
                           <span className="inline-flex px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
-                            +{admin.permissions.length - 2} more
+                            +{(admin.permissions || []).length - 2} more
                           </span>
                         )}
                       </div>
@@ -455,7 +447,13 @@ const AdminManagement: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                      {loading ? "Loading admins..." : "No admins found"}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -640,7 +638,7 @@ const AdminManagement: React.FC = () => {
                     Permissions
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {selectedAdmin.permissions.map(
+                    {(selectedAdmin.permissions || []).map(
                       (permission: string, index: number) => (
                         <span
                           key={index}

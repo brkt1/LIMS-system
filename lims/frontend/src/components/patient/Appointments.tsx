@@ -1,17 +1,18 @@
 import {
   Calendar,
+  CheckCircle,
   Clock,
   MapPin,
   Plus,
+  RotateCcw,
   Search,
   User,
   Video,
   X,
-  CheckCircle,
   XCircle,
-  RotateCcw,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { patientAppointmentAPI } from "../../services/api";
 
 const Appointments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,86 +42,30 @@ const Appointments: React.FC = () => {
   });
 
   // Appointments data state
-  const [appointments, setAppointments] = useState([
-    {
-      id: "APT001",
-      doctor: "Dr. Sarah Johnson",
-      doctorSpecialty: "Cardiologist",
-      date: "2025-01-25",
-      time: "10:00 AM",
-      duration: 30,
-      type: "In-Person",
-      status: "confirmed",
-      location: "Main Clinic - Room 201",
-      reason: "Follow-up consultation",
-      notes: "Please bring your recent test results",
-    },
-    {
-      id: "APT002",
-      doctor: "Dr. Michael Chen",
-      doctorSpecialty: "General Practitioner",
-      date: "2025-01-28",
-      time: "2:30 PM",
-      duration: 45,
-      type: "Video Call",
-      status: "pending",
-      location: "Online - Zoom",
-      reason: "Annual checkup",
-      notes: "Virtual consultation link will be sent 15 minutes before",
-    },
-    {
-      id: "APT003",
-      doctor: "Dr. Emily Rodriguez",
-      doctorSpecialty: "Dermatologist",
-      date: "2025-01-20",
-      time: "11:15 AM",
-      duration: 30,
-      type: "In-Person",
-      status: "completed",
-      location: "Skin Clinic - Room 105",
-      reason: "Skin examination",
-      notes: "Appointment completed successfully",
-    },
-    {
-      id: "APT004",
-      doctor: "Dr. David Wilson",
-      doctorSpecialty: "Orthopedist",
-      date: "2025-02-02",
-      time: "9:00 AM",
-      duration: 60,
-      type: "In-Person",
-      status: "confirmed",
-      location: "Orthopedic Center - Room 301",
-      reason: "Knee pain consultation",
-      notes: "Please bring X-ray images if available",
-    },
-    {
-      id: "APT005",
-      doctor: "Dr. Lisa Anderson",
-      doctorSpecialty: "Pediatrician",
-      date: "2025-01-18",
-      time: "3:45 PM",
-      duration: 30,
-      type: "Video Call",
-      status: "cancelled",
-      location: "Online - Teams",
-      reason: "Child's vaccination",
-      notes: "Cancelled due to scheduling conflict",
-    },
-  ]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
 
-  // Load appointments from localStorage on component mount
+  // Load appointments from API
   useEffect(() => {
-    const savedAppointments = localStorage.getItem("patientAppointments");
-    if (savedAppointments) {
-      setAppointments(JSON.parse(savedAppointments));
-    }
+    const fetchAppointments = async () => {
+      try {
+        setAppointmentsLoading(true);
+        setAppointmentsError(null);
+        const response = await patientAppointmentAPI.getAll();
+        console.log("📅 Appointments fetched:", response.data);
+        setAppointments(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching appointments:", error);
+        setAppointmentsError(error.message || "Failed to fetch appointments");
+        setAppointments([]);
+      } finally {
+        setAppointmentsLoading(false);
+      }
+    };
+
+    fetchAppointments();
   }, []);
-
-  // Save appointments to localStorage whenever appointments change
-  useEffect(() => {
-    localStorage.setItem("patientAppointments", JSON.stringify(appointments));
-  }, [appointments]);
 
   // Handler functions
   const handleBookAppointment = () => {

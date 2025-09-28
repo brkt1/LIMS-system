@@ -1,5 +1,7 @@
-import { Plus, Search, Stethoscope, UserCheck, Users, Eye, Edit, Calendar, X } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { Plus, Search, Stethoscope, UserCheck, Users, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { doctorAPI } from "../../services/api";
+import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
 
 const DoctorsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,101 +44,66 @@ const DoctorsManagement: React.FC = () => {
   });
 
   // Dynamic doctors state
-  const [doctors, setDoctors] = useState([
-    {
-      id: "DOC001",
-      name: "Dr. Sarah Johnson",
-      email: "sarah.johnson@clinic.com",
-      specialty: "Cardiology",
-      licenseNumber: "MD-12345",
-      phone: "+1 (555) 123-4567",
-      status: "active",
-      experience: "8 years",
-      education: "MD, Harvard Medical School",
-      joinDate: "2020-03-15",
-      totalPatients: 245,
-      rating: 4.8,
-      schedule: "Mon-Fri 9AM-5PM",
-    },
-    {
-      id: "DOC002",
-      name: "Dr. Michael Davis",
-      email: "michael.davis@clinic.com",
-      specialty: "Neurology",
-      licenseNumber: "MD-67890",
-      phone: "+1 (555) 234-5678",
-      status: "active",
-      experience: "12 years",
-      education: "MD, Johns Hopkins University",
-      joinDate: "2019-08-20",
-      totalPatients: 189,
-      rating: 4.9,
-      schedule: "Mon-Thu 8AM-4PM",
-    },
-    {
-      id: "DOC003",
-      name: "Dr. Lisa Wilson",
-      email: "lisa.wilson@clinic.com",
-      specialty: "Pediatrics",
-      licenseNumber: "MD-54321",
-      phone: "+1 (555) 345-6789",
-      status: "inactive",
-      experience: "6 years",
-      education: "MD, Stanford University",
-      joinDate: "2021-01-10",
-      totalPatients: 156,
-      rating: 4.7,
-      schedule: "Tue-Sat 10AM-6PM",
-    },
-    {
-      id: "DOC004",
-      name: "Dr. Robert Brown",
-      email: "robert.brown@clinic.com",
-      specialty: "Orthopedics",
-      licenseNumber: "MD-98765",
-      phone: "+1 (555) 456-7890",
-      status: "active",
-      experience: "15 years",
-      education: "MD, Mayo Clinic",
-      joinDate: "2018-06-05",
-      totalPatients: 312,
-      rating: 4.9,
-      schedule: "Mon-Fri 7AM-3PM",
-    },
-    {
-      id: "DOC005",
-      name: "Dr. Jennifer Smith",
-      email: "jennifer.smith@clinic.com",
-      specialty: "Dermatology",
-      licenseNumber: "MD-13579",
-      phone: "+1 (555) 567-8901",
-      status: "pending",
-      experience: "4 years",
-      education: "MD, Yale University",
-      joinDate: "2025-01-20",
-      totalPatients: 0,
-      rating: 0,
-      schedule: "Wed-Sun 9AM-5PM",
-    },
-  ]);
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [specialties, setSpecialties] = useState<any[]>([]);
 
-  // Load doctors from localStorage on component mount
+  // Load doctors and specialties from backend API
   useEffect(() => {
-    const savedDoctors = localStorage.getItem("doctors-management");
-    if (savedDoctors) {
+    const fetchData = async () => {
       try {
-        const parsedDoctors = JSON.parse(savedDoctors);
-        setDoctors(parsedDoctors);
-      } catch (error) {
-        console.error("Error loading doctors:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
+        
+        // Load doctors
+        const response = await doctorAPI.getAll();
 
-  // Save doctors to localStorage whenever doctors changes
-  useEffect(() => {
-    localStorage.setItem("doctors-management", JSON.stringify(doctors));
-  }, [doctors]);
+        // Map backend data to frontend expected format
+        const mappedDoctors = response.data.map((doctor: any) => ({
+          id: doctor.id,
+          name: doctor.name,
+          email: doctor.email,
+          specialty: doctor.specialty,
+          licenseNumber: doctor.license_number,
+          phone: doctor.phone || "No phone",
+          status: doctor.status,
+          experience: doctor.experience || "Not specified",
+          education: doctor.education || "Not specified",
+          joinDate: doctor.join_date,
+          totalPatients: doctor.total_patients,
+          rating: doctor.rating,
+          schedule: doctor.schedule || "Not specified",
+        }));
+
+        setDoctors(mappedDoctors);
+        
+        // Load specialties from backend API
+        try {
+          const specialtiesResponse = await doctorAPI.getSpecialties();
+          if (specialtiesResponse.data.success) {
+            setSpecialties(specialtiesResponse.data.data);
+          } else {
+            throw new Error('Failed to load specialties');
+          }
+        } catch (specialtyError) {
+          console.error("Error fetching specialties:", specialtyError);
+          // Fallback to empty array if API fails
+          setSpecialties([]);
+        }
+        
+      } catch (error: any) {
+        console.error("Error fetching doctors:", error);
+        setError(error.message || "Failed to load doctors");
+        // Fallback to empty array if API fails
+        setDoctors([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const filteredDoctors = doctors.filter((doctor) => {
     const matchesSearch =
@@ -209,56 +176,132 @@ const DoctorsManagement: React.FC = () => {
     setShowScheduleModal(true);
   };
 
-  const handleCreateDoctor = () => {
+  const handleCreateDoctor = async () => {
     if (newDoctor.name && newDoctor.email && newDoctor.specialty && newDoctor.licenseNumber) {
-      const doctor = {
-        id: `DOC${String(doctors.length + 1).padStart(3, "0")}`,
-        ...newDoctor,
-        status: "active",
-        joinDate: new Date().toISOString().split("T")[0],
-        totalPatients: 0,
-        rating: 0,
-      };
-      setDoctors((prev: any) => [doctor, ...prev]);
-      setShowAddDoctorModal(false);
-      setNewDoctor({
-        name: "",
-        email: "",
-        specialty: "",
-        licenseNumber: "",
-        phone: "",
-        experience: "",
-        education: "",
-        schedule: "",
-      });
+      try {
+        const doctorData = {
+          name: newDoctor.name,
+          email: newDoctor.email,
+          specialty: newDoctor.specialty,
+          license_number: newDoctor.licenseNumber,
+          phone: newDoctor.phone,
+          experience: newDoctor.experience,
+          education: newDoctor.education,
+          schedule: newDoctor.schedule,
+          tenant: getCurrentTenantId(), // Dynamic tenant ID
+          created_by: getCurrentUserId(), // Current user
+        };
+
+        const response = await doctorAPI.create(doctorData);
+        const createdDoctor = response.data.doctor || response.data;
+
+        // Map backend response to frontend format
+        const mappedDoctor = {
+          id: createdDoctor.id,
+          name: createdDoctor.name,
+          email: createdDoctor.email,
+          specialty: createdDoctor.specialty,
+          licenseNumber: createdDoctor.license_number,
+          phone: createdDoctor.phone || "No phone",
+          status: createdDoctor.status,
+          experience: createdDoctor.experience || "Not specified",
+          education: createdDoctor.education || "Not specified",
+          joinDate: createdDoctor.join_date,
+          totalPatients: createdDoctor.total_patients,
+          rating: createdDoctor.rating,
+          schedule: createdDoctor.schedule || "Not specified",
+        };
+
+        setDoctors((prev: any) => [mappedDoctor, ...prev]);
+        setShowAddDoctorModal(false);
+        setNewDoctor({
+          name: "",
+          email: "",
+          specialty: "",
+          licenseNumber: "",
+          phone: "",
+          experience: "",
+          education: "",
+          schedule: "",
+        });
+      } catch (error: any) {
+        console.error("Error creating doctor:", error);
+        setError(error.message || "Failed to create doctor");
+      }
     }
   };
 
-  const handleUpdateDoctor = () => {
+  const handleUpdateDoctor = async () => {
     if (selectedDoctor && editDoctor.name && editDoctor.email && editDoctor.specialty && editDoctor.licenseNumber) {
-      setDoctors((prev: any) =>
-        prev.map((doctor: any) =>
-          doctor.id === selectedDoctor.id
-            ? { ...doctor, ...editDoctor }
-            : doctor
-        )
-      );
-      setShowEditDoctorModal(false);
-      setSelectedDoctor(null);
+      try {
+        const doctorData = {
+          name: editDoctor.name,
+          email: editDoctor.email,
+          specialty: editDoctor.specialty,
+          license_number: editDoctor.licenseNumber,
+          phone: editDoctor.phone,
+          experience: editDoctor.experience,
+          education: editDoctor.education,
+          schedule: editDoctor.schedule,
+        };
+
+        const response = await doctorAPI.update(selectedDoctor.id, doctorData);
+        const updatedDoctor = response.data.doctor || response.data;
+
+        // Map backend response to frontend format
+        const mappedDoctor = {
+          id: updatedDoctor.id,
+          name: updatedDoctor.name,
+          email: updatedDoctor.email,
+          specialty: updatedDoctor.specialty,
+          licenseNumber: updatedDoctor.license_number,
+          phone: updatedDoctor.phone || "No phone",
+          status: updatedDoctor.status,
+          experience: updatedDoctor.experience || "Not specified",
+          education: updatedDoctor.education || "Not specified",
+          joinDate: updatedDoctor.join_date,
+          totalPatients: updatedDoctor.total_patients,
+          rating: updatedDoctor.rating,
+          schedule: updatedDoctor.schedule || "Not specified",
+        };
+
+        setDoctors((prev: any) =>
+          prev.map((doctor: any) =>
+            doctor.id === selectedDoctor.id ? mappedDoctor : doctor
+          )
+        );
+        setShowEditDoctorModal(false);
+        setSelectedDoctor(null);
+      } catch (error: any) {
+        console.error("Error updating doctor:", error);
+        setError(error.message || "Failed to update doctor");
+      }
     }
   };
 
-  const handleUpdateSchedule = () => {
+  const handleUpdateSchedule = async () => {
     if (selectedDoctor && scheduleData.schedule) {
-      setDoctors((prev: any) =>
-        prev.map((doctor: any) =>
-          doctor.id === selectedDoctor.id
-            ? { ...doctor, schedule: scheduleData.schedule }
-            : doctor
-        )
-      );
-      setShowScheduleModal(false);
-      setSelectedDoctor(null);
+      try {
+        const doctorData = {
+          schedule: scheduleData.schedule,
+        };
+
+        const response = await doctorAPI.update(selectedDoctor.id, doctorData);
+        const updatedDoctor = response.data.doctor || response.data;
+
+        setDoctors((prev: any) =>
+          prev.map((doctor: any) =>
+            doctor.id === selectedDoctor.id
+              ? { ...doctor, schedule: updatedDoctor.schedule }
+              : doctor
+          )
+        );
+        setShowScheduleModal(false);
+        setSelectedDoctor(null);
+      } catch (error: any) {
+        console.error("Error updating schedule:", error);
+        setError(error.message || "Failed to update schedule");
+      }
     }
   };
 
@@ -270,6 +313,29 @@ const DoctorsManagement: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading doctors...
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -312,11 +378,11 @@ const DoctorsManagement: React.FC = () => {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Specialties</option>
-            <option value="Cardiology">Cardiology</option>
-            <option value="Neurology">Neurology</option>
-            <option value="Pediatrics">Pediatrics</option>
-            <option value="Orthopedics">Orthopedics</option>
-            <option value="Dermatology">Dermatology</option>
+            {specialties.map((specialty) => (
+              <option key={specialty.value} value={specialty.value}>
+                {specialty.label}
+              </option>
+            ))}
           </select>
           <select
             value={filterStatus}
@@ -558,11 +624,11 @@ const DoctorsManagement: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select specialty</option>
-                    <option value="Cardiology">Cardiology</option>
-                    <option value="Neurology">Neurology</option>
-                    <option value="Pediatrics">Pediatrics</option>
-                    <option value="Orthopedics">Orthopedics</option>
-                    <option value="Dermatology">Dermatology</option>
+                    {specialties.map((specialty) => (
+                      <option key={specialty.value} value={specialty.value}>
+                        {specialty.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -800,11 +866,11 @@ const DoctorsManagement: React.FC = () => {
                     onChange={(e) => setEditDoctor({...editDoctor, specialty: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="Cardiology">Cardiology</option>
-                    <option value="Neurology">Neurology</option>
-                    <option value="Pediatrics">Pediatrics</option>
-                    <option value="Orthopedics">Orthopedics</option>
-                    <option value="Dermatology">Dermatology</option>
+                    {specialties.map((specialty) => (
+                      <option key={specialty.value} value={specialty.value}>
+                        {specialty.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

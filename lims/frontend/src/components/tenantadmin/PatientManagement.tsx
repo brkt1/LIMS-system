@@ -1,17 +1,14 @@
 import {
+  Calendar,
+  Mail,
+  Phone,
   Plus,
   Search,
-  Users,
   UserCheck,
-  Calendar,
-  Phone,
-  Mail,
-  Eye,
-  Edit,
-  History,
-  X,
+  Users,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { patientAPI } from "../../services/api";
 
 const PatientManagement: React.FC = () => {
@@ -83,23 +80,7 @@ const PatientManagement: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching patients:", error);
         setError(error.message || "Failed to load patients");
-        // Fallback to mock data if API fails
-        setPatients([
-          {
-            id: "P001",
-            name: "John Smith",
-            email: "john.smith@email.com",
-            phone: "+1 (555) 123-4567",
-            age: 45,
-            gender: "Male",
-            status: "active",
-            lastVisit: "2025-01-20",
-            totalVisits: 12,
-            primaryDoctor: "Dr. Sarah Johnson",
-            insurance: "Blue Cross Blue Shield",
-            emergencyContact: "Jane Smith (555) 987-6543",
-          },
-        ]);
+        setPatients([]);
       } finally {
         setLoading(false);
       }

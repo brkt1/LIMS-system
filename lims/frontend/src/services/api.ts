@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getCurrentTenantId } from '../utils/helpers';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -34,7 +35,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          const response = await axios.post('http://127.0.0.1:8000/api/token/refresh/', {
+          const response = await axios.post('/api/token/refresh/', {
             refresh: refreshToken,
           });
           
@@ -56,7 +57,9 @@ api.interceptors.response.use(
   }
 );
 
-// API endpoints
+// ============================================================================
+// AUTHENTICATION API
+// ============================================================================
 export const authAPI = {
   login: (credentials: { email: string; password: string }) =>
     api.post('/login/', credentials),
@@ -64,6 +67,148 @@ export const authAPI = {
     api.post('/token/refresh/', { refresh }),
 };
 
+// ============================================================================
+// TENANT ADMIN APIs
+// ============================================================================
+
+// User Management API
+export const userManagementAPI = {
+  getAll: (tenantId?: string) => api.get(`/tenant/users/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/tenant/users/${id}/`),
+  create: (data: any) => api.post('/tenant/users/', data),
+  update: (id: string, data: any) => api.put(`/tenant/users/${id}/`, data),
+  delete: (id: string) => api.delete(`/tenant/users/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/tenant/users/?tenant=${tenantId}`),
+};
+
+// Doctor Management API
+export const doctorAPI = {
+  // Basic CRUD operations
+  getAll: (tenantId?: string) => api.get(`/doctors/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/doctors/${id}/`),
+  create: (data: any) => api.post('/doctors/', data),
+  update: (id: string, data: any) => api.put(`/doctors/${id}/`, data),
+  delete: (id: string) => api.delete(`/doctors/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/doctors/?tenant=${tenantId}`),
+  getBySpecialty: (specialty: string) => api.get(`/doctors/?specialty=${specialty}`),
+  getByStatus: (status: string) => api.get(`/doctors/?status=${status}`),
+  
+  // Specialties
+  getSpecialties: () => api.get('/doctors/specialties/'),
+  getSpecialtyStats: () => api.get('/doctors/specialties/stats/'),
+  
+  // Clinical workflow - Test Requests
+  testRequests: {
+    getAll: (params?: any) => api.get('/test-requests/', { params }),
+    getById: (id: string) => api.get(`/test-requests/${id}/`),
+    create: (data: any) => api.post('/test-requests/', data),
+    update: (id: string, data: any) => api.put(`/test-requests/${id}/`, data),
+    delete: (id: string) => api.delete(`/test-requests/${id}/`),
+    getByDoctor: (doctorId: string) => api.get(`/test-requests/?doctor=${doctorId}`),
+    assignTechnician: (id: string, technicianId: string) => api.post(`/test-requests/${id}/assign_technician/`, { technician_id: technicianId }),
+    complete: (id: string) => api.post(`/test-requests/${id}/complete/`),
+  },
+  
+  // Clinical workflow - Patient Records
+  patientRecords: {
+    getAll: (params?: any) => api.get('/patient-records/', { params }),
+    getById: (id: string) => api.get(`/patient-records/${id}/`),
+    create: (data: any) => api.post('/patient-records/', data),
+    update: (id: string, data: any) => api.put(`/patient-records/${id}/`, data),
+    delete: (id: string) => api.delete(`/patient-records/${id}/`),
+    getByDoctor: (doctorId: string) => api.get(`/patient-records/?doctor=${doctorId}`),
+    getByPatient: (patientId: string) => api.get(`/patient-records/?patient_id=${patientId}`),
+  },
+  
+  // Clinical workflow - Test Results
+  testResults: {
+    getAll: (params?: any) => api.get('/test-results/', { params }),
+    getById: (id: string) => api.get(`/test-results/${id}/`),
+    getByDoctor: (doctorId: string) => api.get(`/test-results/?doctor=${doctorId}`),
+    review: (id: string, action: 'approve' | 'reject', notes?: string) => 
+      api.post(`/test-results/${id}/review/`, { action, doctor_notes: notes }),
+  },
+  
+  // Clinical workflow - Appointments
+  appointments: {
+    getAll: (params?: any) => api.get('/appointments/', { params }),
+    getById: (id: string) => api.get(`/appointments/${id}/`),
+    create: (data: any) => api.post('/appointments/', data),
+    update: (id: string, data: any) => api.put(`/appointments/${id}/`, data),
+    delete: (id: string) => api.delete(`/appointments/${id}/`),
+    getByDoctor: (doctorId: string) => api.get(`/appointments/?doctor=${doctorId}`),
+    getByPatient: (patientId: string) => api.get(`/appointments/?patient_id=${patientId}`),
+    confirm: (id: string) => api.post(`/appointments/${id}/confirm/`),
+    complete: (id: string) => api.post(`/appointments/${id}/complete/`),
+  },
+};
+
+// Equipment Management API (Tenant Admin)
+export const equipmentAPI = {
+  getAll: (tenantId?: string) => api.get(`/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/equipment/${id}/`),
+  create: (data: any) => api.post('/equipment/', data),
+  update: (id: string, data: any) => api.put(`/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/equipment/?status=${status}`),
+};
+
+// Branch Management API (Tenant Admin)
+export const branchAPI = {
+  getAll: (tenantId?: string) => api.get(`/api/branches/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/api/branches/${id}/`),
+  create: (data: any) => api.post('/api/branches/', data),
+  update: (id: string, data: any) => api.put(`/api/branches/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/branches/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/branches/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/api/branches/?status=${status}`),
+  getByCity: (city: string) => api.get(`/api/branches/?city=${city}`),
+};
+
+export const testPricingAPI = {
+  getAll: (tenantId?: string) => api.get(`/test-pricing/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/test-pricing/${id}/`),
+  create: (data: any) => api.post('/test-pricing/', data),
+  update: (id: string, data: any) => api.put(`/test-pricing/${id}/`, data),
+  delete: (id: string) => api.delete(`/test-pricing/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/test-pricing/?tenant=${tenantId}`),
+  getByCategory: (category: string) => api.get(`/test-pricing/?category=${category}`),
+  getByPricingType: (pricingType: string) => api.get(`/test-pricing/?pricing_type=${pricingType}`),
+  getActive: () => api.get('/test-pricing/?is_active=true'),
+  
+  // Test Categories
+  getCategories: () => api.get('/test-categories/'),
+  getCategoryStats: (tenantId?: string) => api.get(`/test-categories/stats/?tenant=${tenantId || getCurrentTenantId()}`),
+};
+
+export const culturesAntibioticsAPI = {
+  // Cultures
+  getAllCultures: (tenantId?: string) => api.get(`/cultures/?tenant=${tenantId || getCurrentTenantId()}`),
+  getCultureById: (id: string) => api.get(`/cultures/${id}/`),
+  createCulture: (data: any) => api.post('/cultures/', data),
+  updateCulture: (id: string, data: any) => api.put(`/cultures/${id}/`, data),
+  deleteCulture: (id: string) => api.delete(`/cultures/${id}/`),
+  getCulturesByTenant: (tenantId: string) => api.get(`/cultures/?tenant=${tenantId}`),
+  getCulturesByStatus: (status: string) => api.get(`/cultures/?status=${status}`),
+  getCulturesBySpecimenType: (specimenType: string) => api.get(`/cultures/?specimen_type=${specimenType}`),
+  
+  // Antibiotic Sensitivities
+  getAllAntibioticSensitivities: (tenantId?: string) => api.get(`/antibiotic-sensitivities/?tenant=${tenantId || getCurrentTenantId()}`),
+  getAntibioticSensitivityById: (id: string) => api.get(`/antibiotic-sensitivities/${id}/`),
+  createAntibioticSensitivity: (data: any) => api.post('/antibiotic-sensitivities/', data),
+  updateAntibioticSensitivity: (id: string, data: any) => api.put(`/antibiotic-sensitivities/${id}/`, data),
+  deleteAntibioticSensitivity: (id: string) => api.delete(`/antibiotic-sensitivities/${id}/`),
+  getAntibioticSensitivitiesByCulture: (cultureId: string) => api.get(`/antibiotic-sensitivities/?culture=${cultureId}`),
+  getAntibioticSensitivitiesByTenant: (tenantId: string) => api.get(`/antibiotic-sensitivities/?tenant=${tenantId}`),
+};
+
+// ============================================================================
+// TECHNICIAN APIs
+// ============================================================================
+
+// Test Request API (Technician)
 export const testRequestAPI = {
   getAll: () => api.get('/test-requests/test-requests/'),
   getById: (id: number) => api.get(`/test-requests/test-requests/${id}/`),
@@ -72,6 +217,7 @@ export const testRequestAPI = {
   delete: (id: number) => api.delete(`/test-requests/test-requests/${id}/`),
 };
 
+// Test Report API
 export const testReportAPI = {
   getAll: () => api.get('/test-reports/'),
   getById: (id: number) => api.get(`/test-reports/${id}/`),
@@ -81,15 +227,7 @@ export const testReportAPI = {
   getByPatient: (patientId: string) => api.get(`/test-reports/?patient_id=${patientId}`),
 };
 
-export const userManagementAPI = {
-  getAll: () => api.get('/tenant/users/?tenant=1'), // Default to tenant 1
-  getById: (id: string) => api.get(`/tenant/users/${id}/`),
-  create: (data: any) => api.post('/tenant/users/', data),
-  update: (id: string, data: any) => api.put(`/tenant/users/${id}/`, data),
-  delete: (id: string) => api.delete(`/tenant/users/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/tenant/users/?tenant=${tenantId}`),
-};
-
+// Sample API
 export const sampleAPI = {
   getAll: () => api.get('/samples/'),
   getById: (id: number) => api.get(`/samples/${id}/`),
@@ -98,7 +236,8 @@ export const sampleAPI = {
   delete: (id: number) => api.delete(`/samples/${id}/`),
 };
 
-export const equipmentAPI = {
+// Technician Equipment API
+export const technicianEquipmentAPI = {
   getAll: () => api.get('/equipment/equipment/'),
   getById: (id: number) => api.get(`/equipment/equipment/${id}/`),
   create: (data: any) => api.post('/equipment/equipment/', data),
@@ -117,6 +256,9 @@ export const equipmentAPI = {
   updateStatus: (id: number, status: string) => api.post(`/equipment/equipment/${id}/update_status/`, { status }),
 };
 
+// ============================================================================
+// ANALYTICS & NOTIFICATIONS
+// ============================================================================
 
 export const analyticsAPI = {
   getLabAnalytics: () => api.get('/analytics/lab-analytics/'),
@@ -143,11 +285,29 @@ export const notificationAPI = {
   deletePreference: (id: number) => api.delete(`/notifications/preferences/${id}/`),
 };
 
+// ============================================================================
+// SUPPORT & PROFILE
+// ============================================================================
+
 export const supportAPI = {
   getTickets: () => api.get('/support/tickets/'),
   getMessages: () => api.get('/support/messages/'),
   createTicket: (data: any) => api.post('/support/tickets/', data),
   createMessage: (data: any) => api.post('/support/messages/', data),
+};
+
+// FAQ API
+export const faqAPI = {
+  getAll: (params?: any) => api.get('/faq/faqs/', { params }),
+  getById: (id: string) => api.get(`/faq/faqs/${id}/`),
+  create: (data: any) => api.post('/faq/faqs/', data),
+  update: (id: string, data: any) => api.put(`/faq/faqs/${id}/`, data),
+  delete: (id: string) => api.delete(`/faq/faqs/${id}/`),
+  getCategories: (userType?: string) => api.get(`/faq/faqs/categories/?user_type=${userType || 'all'}`),
+  getPopular: (userType?: string, limit?: number) => api.get(`/faq/faqs/popular/?user_type=${userType || 'all'}&limit=${limit || 10}`),
+  markHelpful: (id: string) => api.post(`/faq/faqs/${id}/mark_helpful/`),
+  markNotHelpful: (id: string) => api.post(`/faq/faqs/${id}/mark_not_helpful/`),
+  search: (query: string, userType?: string) => api.get(`/faq/faqs/?search=${query}&user_type=${userType || 'all'}`),
 };
 
 export const profileAPI = {
@@ -161,9 +321,18 @@ export const profileAPI = {
   deleteProfilePicture: () => api.delete('/profile/picture/'),
   changePassword: (data: { old_password: string; new_password: string }) => 
     api.post('/profile/change-password/', data),
+  
+  // Profile options
+  getTimezones: () => api.get('/profile/options/timezones/'),
+  getLanguages: () => api.get('/profile/options/languages/'),
+  getGenders: () => api.get('/profile/options/genders/'),
+  getBloodTypes: () => api.get('/profile/options/blood-types/'),
 };
 
-// Superadmin API endpoints
+// ============================================================================
+// SUPERADMIN APIs
+// ============================================================================
+
 export const superadminAPI = {
   // Tenant Management
   tenants: {
@@ -214,17 +383,66 @@ export const superadminAPI = {
     getOverallStatus: () => api.get('/superadmin/health/overall_status/'),
   },
   
-  // User Management (across all tenants)
+  // Superadmin User Management
   users: {
-    getAll: () => api.get('/tenant/users/'),
-    getCount: () => api.get('/tenant/users/').then(res => ({ count: res.data.length })),
-    getById: (id: number) => api.get(`/tenant/users/${id}/`),
-    update: (id: number, data: any) => api.put(`/tenant/users/${id}/`, data),
-    delete: (id: number) => api.delete(`/tenant/users/${id}/`),
+    getAll: (params?: any) => api.get('/superadmin/users/', { params }),
+    getById: (id: number) => api.get(`/superadmin/users/${id}/`),
+    create: (data: any) => api.post('/superadmin/users/', data),
+    update: (id: number, data: any) => api.put(`/superadmin/users/${id}/`, data),
+    delete: (id: number) => api.delete(`/superadmin/users/${id}/`),
+    suspend: (id: number) => api.post(`/superadmin/users/${id}/suspend/`),
+    activate: (id: number) => api.post(`/superadmin/users/${id}/activate/`),
+  },
+  
+  // User Session Monitoring
+  sessions: {
+    getAll: (params?: any) => api.get('/superadmin/sessions/', { params }),
+    getStats: () => api.get('/superadmin/sessions/stats/'),
+  },
+  
+  // Database Backup Management
+  backups: {
+    getAll: (params?: any) => api.get('/superadmin/backups/', { params }),
+    getById: (id: number) => api.get(`/superadmin/backups/${id}/`),
+    create: (data: any) => api.post('/superadmin/backups/', data),
+    update: (id: number, data: any) => api.put(`/superadmin/backups/${id}/`, data),
+    delete: (id: number) => api.delete(`/superadmin/backups/${id}/`),
+    startBackup: (id: number) => api.post(`/superadmin/backups/${id}/start_backup/`),
+    download: (id: number) => api.post(`/superadmin/backups/${id}/download/`),
+  },
+  
+  // Global Notifications
+  globalNotifications: {
+    getAll: (params?: any) => api.get('/superadmin/notifications/', { params }),
+    getById: (id: number) => api.get(`/superadmin/notifications/${id}/`),
+    create: (data: any) => api.post('/superadmin/notifications/', data),
+    update: (id: number, data: any) => api.put(`/superadmin/notifications/${id}/`, data),
+    delete: (id: number) => api.delete(`/superadmin/notifications/${id}/`),
+    send: (id: number) => api.post(`/superadmin/notifications/${id}/send/`),
+    getTemplates: () => api.get('/superadmin/notifications/templates/'),
+  },
+  
+  // Notification Templates
+  notificationTemplates: {
+    getAll: () => api.get('/superadmin/notification-templates/'),
+    getById: (id: number) => api.get(`/superadmin/notification-templates/${id}/`),
+    create: (data: any) => api.post('/superadmin/notification-templates/', data),
+    update: (id: number, data: any) => api.put(`/superadmin/notification-templates/${id}/`, data),
+    delete: (id: number) => api.delete(`/superadmin/notification-templates/${id}/`),
+    useTemplate: (id: number, data: any) => api.post(`/superadmin/notification-templates/${id}/use_template/`, data),
+  },
+  
+  // Notification History
+  notificationHistory: {
+    getAll: (params?: any) => api.get('/superadmin/notification-history/', { params }),
+    getById: (id: number) => api.get(`/superadmin/notification-history/${id}/`),
   },
 };
 
-// New API endpoints for Doctor Dashboard integration
+// ============================================================================
+// DOCTOR DASHBOARD APIs
+// ============================================================================
+
 export const appointmentAPI = {
   getAll: () => api.get('/appointments/appointments/'),
   getById: (id: number) => api.get(`/appointments/appointments/${id}/`),
@@ -256,7 +474,10 @@ export const messageAPI = {
   markAsRead: (id: number) => api.post(`/messages/messages/${id}/mark_read/`),
 };
 
-// Inventory Management API
+// ============================================================================
+// INVENTORY MANAGEMENT APIs
+// ============================================================================
+
 export const inventoryAPI = {
   // Items
   getItems: () => api.get('/inventory/items/'),
@@ -294,28 +515,85 @@ export const inventoryAPI = {
   deleteReorderRequest: (id: number) => api.delete(`/inventory/reorders/${id}/`),
 };
 
-// Support Tickets API
+// ============================================================================
+// SUPPORT TICKETS APIs
+// ============================================================================
+
 export const supportTicketAPI = {
   // Tickets
-  getTickets: () => api.get('/support/tickets/'),
-  getTicketById: (id: number) => api.get(`/support/tickets/${id}/`),
-  createTicket: (data: any) => api.post('/support/tickets/', data),
-  updateTicket: (id: number, data: any) => api.put(`/support/tickets/${id}/`, data),
-  deleteTicket: (id: number) => api.delete(`/support/tickets/${id}/`),
-  assignTicket: (id: number, data: any) => api.post(`/support/tickets/${id}/assign/`, data),
-  resolveTicket: (id: number) => api.post(`/support/tickets/${id}/resolve/`),
-  closeTicket: (id: number) => api.post(`/support/tickets/${id}/close/`),
+  getTickets: () => api.get('/api/support/tickets/'),
+  getTicketById: (id: number) => api.get(`/api/support/tickets/${id}/`),
+  createTicket: (data: any) => api.post('/api/support/tickets/', data),
+  updateTicket: (id: number, data: any) => api.put(`/api/support/tickets/${id}/`, data),
+  deleteTicket: (id: number) => api.delete(`/api/support/tickets/${id}/`),
+  assignTicket: (id: number, data: any) => api.post(`/api/support/tickets/${id}/assign/`, data),
+  resolveTicket: (id: number) => api.post(`/api/support/tickets/${id}/resolve/`),
+  closeTicket: (id: number) => api.post(`/api/support/tickets/${id}/close/`),
+  escalateTicket: (id: number, data: any) => api.post(`/api/support/tickets/${id}/escalate/`, data),
+  addSatisfactionRating: (id: number, data: any) => api.post(`/api/support/tickets/${id}/add_satisfaction_rating/`, data),
+  addMessage: (id: number, data: any) => api.post(`/api/support/tickets/${id}/add_message/`, data),
   
   // Messages
-  getMessages: () => api.get('/support/messages/'),
-  getMessageById: (id: number) => api.get(`/support/messages/${id}/`),
-  createMessage: (data: any) => api.post('/support/messages/', data),
-  updateMessage: (id: number, data: any) => api.put(`/support/messages/${id}/`, data),
-  deleteMessage: (id: number) => api.delete(`/support/messages/${id}/`),
-  getMessagesByTicket: (ticketId: number) => api.get(`/support/messages/?ticket=${ticketId}`),
+  getMessages: () => api.get('/api/support/messages/'),
+  getMessageById: (id: number) => api.get(`/api/support/messages/${id}/`),
+  createMessage: (data: any) => api.post('/api/support/messages/', data),
+  updateMessage: (id: number, data: any) => api.put(`/api/support/messages/${id}/`, data),
+  deleteMessage: (id: number) => api.delete(`/api/support/messages/${id}/`),
+  getMessagesByTicket: (ticketId: number) => api.get(`/api/support/messages/?ticket=${ticketId}`),
 };
 
-// Receipts/Billing API
+// Support Staff Management API
+export const supportStaffAPI = {
+  // Staff Management
+  getAll: (params?: any) => api.get('/api/support/staff/', { params }),
+  getById: (id: string) => api.get(`/api/support/staff/${id}/`),
+  create: (data: any) => api.post('/api/support/staff/', data),
+  update: (id: string, data: any) => api.put(`/api/support/staff/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/support/staff/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/support/staff/?tenant=${tenantId}`),
+  getBySpecialization: (specialization: string) => api.get(`/api/support/staff/?specialization=${specialization}`),
+  getByLevel: (level: string) => api.get(`/api/support/staff/?level=${level}`),
+  getAvailable: () => api.get('/api/support/staff/?is_available=true'),
+  updateAvailability: (id: string, data: any) => api.post(`/api/support/staff/${id}/update_availability/`, data),
+  getWorkload: (id: string) => api.get(`/api/support/staff/${id}/workload/`),
+};
+
+// Support Teams API
+export const supportTeamAPI = {
+  getAll: (params?: any) => api.get('/api/support/teams/', { params }),
+  getById: (id: string) => api.get(`/api/support/teams/${id}/`),
+  create: (data: any) => api.post('/api/support/teams/', data),
+  update: (id: string, data: any) => api.put(`/api/support/teams/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/support/teams/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/support/teams/?tenant=${tenantId}`),
+};
+
+// Support SLA API
+export const supportSLAAPI = {
+  getAll: (params?: any) => api.get('/api/support/slas/', { params }),
+  getById: (id: string) => api.get(`/api/support/slas/${id}/`),
+  create: (data: any) => api.post('/api/support/slas/', data),
+  update: (id: string, data: any) => api.put(`/api/support/slas/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/support/slas/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/support/slas/?tenant=${tenantId}`),
+  getByPriority: (priority: string) => api.get(`/api/support/slas/?priority=${priority}`),
+  getByCategory: (category: string) => api.get(`/api/support/slas/?category=${category}`),
+};
+
+// Support Analytics API
+export const supportAnalyticsAPI = {
+  getAll: (params?: any) => api.get('/api/support/analytics/', { params }),
+  getById: (id: string) => api.get(`/api/support/analytics/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/support/analytics/?tenant=${tenantId}`),
+  getByDateRange: (startDate: string, endDate: string) => 
+    api.get(`/api/support/analytics/?date__gte=${startDate}&date__lte=${endDate}`),
+  getSummary: (params?: any) => api.get('/api/support/analytics/summary/', { params }),
+};
+
+// ============================================================================
+// BILLING & RECEIPTS APIs
+// ============================================================================
+
 export const receiptsAPI = {
   getAll: () => api.get('/receipts/receipts/'),
   getById: (id: string) => api.get(`/receipts/receipts/${id}/`),
@@ -326,7 +604,6 @@ export const receiptsAPI = {
   generateReceipt: (id: string) => api.post(`/receipts/receipts/${id}/generate_receipt/`),
 };
 
-// Billing Transactions API
 export const billingTransactionAPI = {
   getAll: () => api.get('/receipts/transactions/'),
   getById: (id: string) => api.get(`/receipts/transactions/${id}/`),
@@ -335,7 +612,10 @@ export const billingTransactionAPI = {
   delete: (id: string) => api.delete(`/receipts/transactions/${id}/`),
 };
 
-// Home Visit Requests API
+// ============================================================================
+// HOME VISIT APIs
+// ============================================================================
+
 export const homeVisitRequestAPI = {
   getAll: () => api.get('/home-visits/requests/'),
   getById: (id: string) => api.get(`/home-visits/requests/${id}/`),
@@ -347,7 +627,6 @@ export const homeVisitRequestAPI = {
   schedule: (id: string, data: any) => api.post(`/home-visits/requests/${id}/schedule/`, data),
 };
 
-// Home Visit Schedules API
 export const homeVisitScheduleAPI = {
   getAll: () => api.get('/home-visits/schedules/'),
   getById: (id: string) => api.get(`/home-visits/schedules/${id}/`),
@@ -358,8 +637,11 @@ export const homeVisitScheduleAPI = {
   completeVisit: (id: string) => api.post(`/home-visits/schedules/${id}/complete_visit/`),
 };
 
-// Branch Management API
-export const branchAPI = {
+// ============================================================================
+// BRANCH MANAGEMENT APIs
+// ============================================================================
+
+export const branchManagementAPI = {
   getAll: () => api.get('/branches/branches/'),
   getById: (id: string) => api.get(`/branches/branches/${id}/`),
   create: (data: any) => api.post('/branches/branches/', data),
@@ -369,7 +651,6 @@ export const branchAPI = {
   deactivate: (id: string) => api.post(`/branches/branches/${id}/deactivate/`),
 };
 
-// Branch Staff API
 export const branchStaffAPI = {
   getAll: () => api.get('/branches/staff/'),
   getById: (id: string) => api.get(`/branches/staff/${id}/`),
@@ -380,7 +661,10 @@ export const branchStaffAPI = {
   deactivate: (id: string) => api.post(`/branches/staff/${id}/deactivate/`),
 };
 
-// Contract Management API
+// ============================================================================
+// CONTRACT MANAGEMENT APIs
+// ============================================================================
+
 export const contractAPI = {
   getAll: () => api.get('/contracts/contracts/'),
   getById: (id: string) => api.get(`/contracts/contracts/${id}/`),
@@ -392,7 +676,6 @@ export const contractAPI = {
   renew: (id: string, data: any) => api.post(`/contracts/contracts/${id}/renew/`, data),
 };
 
-// Contract Renewals API
 export const contractRenewalAPI = {
   getAll: () => api.get('/contracts/renewals/'),
   getById: (id: string) => api.get(`/contracts/renewals/${id}/`),
@@ -401,23 +684,226 @@ export const contractRenewalAPI = {
   delete: (id: string) => api.delete(`/contracts/renewals/${id}/`),
 };
 
-// Accounting API
+// ============================================================================
+// ACCOUNTING APIs
+// ============================================================================
+
 export const accountingAPI = {
-  getAll: () => api.get('/accounting/entries/'),
+  // Basic CRUD operations
+  getAll: (params?: any) => api.get('/accounting/entries/', { params }),
   getById: (id: string) => api.get(`/accounting/entries/${id}/`),
   create: (data: any) => api.post('/accounting/entries/', data),
   update: (id: string, data: any) => api.put(`/accounting/entries/${id}/`, data),
   delete: (id: string) => api.delete(`/accounting/entries/${id}/`),
+  
+  // Filtering and search
+  getByType: (type: string) => api.get(`/accounting/entries/?entry_type=${type}`),
+  getByCategory: (category: string) => api.get(`/accounting/entries/?category=${category}`),
+  getByDateRange: (startDate: string, endDate: string) => 
+    api.get(`/accounting/entries/?date__gte=${startDate}&date__lte=${endDate}`),
+  search: (query: string) => api.get(`/accounting/entries/?search=${query}`),
+  
+  // Financial summary and analytics
   getSummary: (params?: any) => api.get('/accounting/entries/summary/', { params }),
+  getFinancialSummary: (startDate?: string, endDate?: string) => {
+    const params: any = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    return api.get('/accounting/entries/summary/', { params });
+  },
+  
+  // Reports
+  getReports: () => api.get('/accounting/reports/'),
+  getReportById: (id: string) => api.get(`/accounting/reports/${id}/`),
+  createReport: (data: any) => api.post('/accounting/reports/', data),
+  updateReport: (id: string, data: any) => api.put(`/accounting/reports/${id}/`, data),
+  deleteReport: (id: string) => api.delete(`/accounting/reports/${id}/`),
 };
 
-// Financial Reports API
 export const financialReportAPI = {
   getAll: () => api.get('/accounting/reports/'),
   getById: (id: string) => api.get(`/accounting/reports/${id}/`),
   create: (data: any) => api.post('/accounting/reports/', data),
   update: (id: string, data: any) => api.put(`/accounting/reports/${id}/`, data),
   delete: (id: string) => api.delete(`/accounting/reports/${id}/`),
+};
+
+// ============================================================================
+// PATIENT MANAGEMENT API
+// ============================================================================
+
+// Patient API
+export const patientManagementAPI = {
+  // Patients
+  getAll: (params?: any) => api.get('/patient/patients/', { params }),
+  getById: (id: string) => api.get(`/patient/patients/${id}/`),
+  create: (data: any) => api.post('/patient/patients/', data),
+  update: (id: string, data: any) => api.put(`/patient/patients/${id}/`, data),
+  delete: (id: string) => api.delete(`/patient/patients/${id}/`),
+  updateProfile: (id: string, data: any) => api.post(`/patient/patients/${id}/update_profile/`, data),
+  getAppointments: (id: string) => api.get(`/patient/patients/${id}/appointments/`),
+  getTestResults: (id: string) => api.get(`/patient/patients/${id}/test_results/`),
+  getMessages: (id: string) => api.get(`/patient/patients/${id}/messages/`),
+  getSupportTickets: (id: string) => api.get(`/patient/patients/${id}/support_tickets/`),
+  getNotifications: (id: string) => api.get(`/patient/patients/${id}/notifications/`),
+};
+
+// Patient Appointments API
+export const patientAppointmentAPI = {
+  getAll: (params?: any) => api.get('/patient/appointments/', { params }),
+  getById: (id: string) => api.get(`/patient/appointments/${id}/`),
+  create: (data: any) => api.post('/patient/appointments/', data),
+  update: (id: string, data: any) => api.put(`/patient/appointments/${id}/`, data),
+  delete: (id: string) => api.delete(`/patient/appointments/${id}/`),
+  confirm: (id: string) => api.post(`/patient/appointments/${id}/confirm/`),
+  cancel: (id: string) => api.post(`/patient/appointments/${id}/cancel/`),
+  reschedule: (id: string, data: any) => api.post(`/patient/appointments/${id}/reschedule/`, data),
+  getUpcoming: () => api.get('/patient/appointments/upcoming/'),
+  getToday: () => api.get('/patient/appointments/today/'),
+};
+
+// Patient Test Results API
+export const patientTestResultAPI = {
+  getAll: (params?: any) => api.get('/patient/test-results/', { params }),
+  getById: (id: string) => api.get(`/patient/test-results/${id}/`),
+  create: (data: any) => api.post('/patient/test-results/', data),
+  update: (id: string, data: any) => api.put(`/patient/test-results/${id}/`, data),
+  delete: (id: string) => api.delete(`/patient/test-results/${id}/`),
+  markAbnormal: (id: string) => api.post(`/patient/test-results/${id}/mark_abnormal/`),
+  markCritical: (id: string) => api.post(`/patient/test-results/${id}/mark_critical/`),
+  getAbnormal: () => api.get('/patient/test-results/abnormal/'),
+  getCritical: () => api.get('/patient/test-results/critical/'),
+  getRecent: (days?: number) => api.get(`/patient/test-results/recent/?days=${days || 30}`),
+};
+
+// Patient Messages API
+export const patientMessageAPI = {
+  getAll: (params?: any) => api.get('/patient/messages/', { params }),
+  getById: (id: string) => api.get(`/patient/messages/${id}/`),
+  create: (data: any) => api.post('/patient/messages/', data),
+  update: (id: string, data: any) => api.put(`/patient/messages/${id}/`, data),
+  delete: (id: string) => api.delete(`/patient/messages/${id}/`),
+  markRead: (id: string) => api.post(`/patient/messages/${id}/mark_read/`),
+  archive: (id: string) => api.post(`/patient/messages/${id}/archive/`),
+  getUnread: () => api.get('/patient/messages/unread/'),
+  getSent: () => api.get('/patient/messages/sent/'),
+  getReceived: () => api.get('/patient/messages/received/'),
+};
+
+// Patient Support Tickets API
+export const patientSupportTicketAPI = {
+  getAll: (params?: any) => api.get('/patient/support-tickets/', { params }),
+  getById: (id: string) => api.get(`/patient/support-tickets/${id}/`),
+  create: (data: any) => api.post('/patient/support-tickets/', data),
+  update: (id: string, data: any) => api.put(`/patient/support-tickets/${id}/`, data),
+  delete: (id: string) => api.delete(`/patient/support-tickets/${id}/`),
+  assign: (id: string, data: any) => api.post(`/patient/support-tickets/${id}/assign/`, data),
+  resolve: (id: string, data: any) => api.post(`/patient/support-tickets/${id}/resolve/`, data),
+  close: (id: string) => api.post(`/patient/support-tickets/${id}/close/`),
+  getOpen: () => api.get('/patient/support-tickets/open/'),
+  getAssigned: () => api.get('/patient/support-tickets/assigned/'),
+};
+
+// Patient Notifications API
+export const patientNotificationAPI = {
+  getAll: (params?: any) => api.get('/patient/notifications/', { params }),
+  getById: (id: string) => api.get(`/patient/notifications/${id}/`),
+  create: (data: any) => api.post('/patient/notifications/', data),
+  update: (id: string, data: any) => api.put(`/patient/notifications/${id}/`, data),
+  delete: (id: string) => api.delete(`/patient/notifications/${id}/`),
+  markRead: (id: string) => api.post(`/patient/notifications/${id}/mark_read/`),
+  getUnread: () => api.get('/patient/notifications/unread/'),
+  markAllRead: () => api.post('/patient/notifications/mark_all_read/'),
+};
+
+// ============================================================================
+// TECHNICIAN MANAGEMENT API
+// ============================================================================
+
+// Technician Management API
+export const technicianAPI = {
+  // Technicians
+  getAll: (params?: any) => api.get('/technician/technicians/', { params }),
+  getById: (id: string) => api.get(`/technician/technicians/${id}/`),
+  create: (data: any) => api.post('/technician/technicians/', data),
+  update: (id: string, data: any) => api.put(`/technician/technicians/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/technicians/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/technicians/?tenant=${tenantId}`),
+  getBySpecialization: (specialization: string) => api.get(`/technician/technicians/?specialization=${specialization}`),
+  getByStatus: (status: string) => api.get(`/technician/technicians/?status=${status}`),
+  updateStatus: (id: string, data: any) => api.post(`/technician/technicians/${id}/update_status/`, data),
+  getPerformanceMetrics: (id: string) => api.get(`/technician/technicians/${id}/performance_metrics/`),
+  getStatistics: (params?: any) => api.get('/technician/technicians/statistics/', { params }),
+};
+
+// Sample Management API
+export const technicianSampleAPI = {
+  getAll: (params?: any) => api.get('/technician/samples/', { params }),
+  getById: (id: string) => api.get(`/technician/samples/${id}/`),
+  create: (data: any) => api.post('/technician/samples/', data),
+  update: (id: string, data: any) => api.put(`/technician/samples/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/samples/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/samples/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/technician/samples/?status=${status}`),
+  getByTechnician: (technicianId: string) => api.get(`/technician/samples/?technician=${technicianId}`),
+  getBySampleType: (sampleType: string) => api.get(`/technician/samples/?sample_type=${sampleType}`),
+  getPending: () => api.get('/technician/samples/pending_samples/'),
+  assignTechnician: (id: string, data: any) => api.post(`/technician/samples/${id}/assign_technician/`, data),
+  updateStatus: (id: string, data: any) => api.post(`/technician/samples/${id}/update_status/`, data),
+  rejectSample: (id: string, data: any) => api.post(`/technician/samples/${id}/reject_sample/`, data),
+  getStatistics: (params?: any) => api.get('/technician/samples/statistics/', { params }),
+};
+
+// Test Result Management API
+export const testResultAPI = {
+  getAll: (params?: any) => api.get('/technician/test-results/', { params }),
+  getById: (id: string) => api.get(`/technician/test-results/${id}/`),
+  create: (data: any) => api.post('/technician/test-results/', data),
+  update: (id: string, data: any) => api.put(`/technician/test-results/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/test-results/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/test-results/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/technician/test-results/?status=${status}`),
+  getByTechnician: (technicianId: string) => api.get(`/technician/test-results/?technician=${technicianId}`),
+  getBySample: (sampleId: string) => api.get(`/technician/test-results/?sample=${sampleId}`),
+  getAbnormal: () => api.get('/technician/test-results/abnormal_results/'),
+  getCritical: () => api.get('/technician/test-results/critical_results/'),
+  completeResult: (id: string, data: any) => api.post(`/technician/test-results/${id}/complete_result/`, data),
+  markAbnormal: (id: string, data: any) => api.post(`/technician/test-results/${id}/mark_abnormal/`, data),
+  reviewResult: (id: string, data: any) => api.post(`/technician/test-results/${id}/review_result/`, data),
+  getStatistics: (params?: any) => api.get('/technician/test-results/statistics/', { params }),
+};
+
+// Quality Control API
+export const qualityControlAPI = {
+  getAll: (params?: any) => api.get('/technician/quality-controls/', { params }),
+  getById: (id: string) => api.get(`/technician/quality-controls/${id}/`),
+  create: (data: any) => api.post('/technician/quality-controls/', data),
+  update: (id: string, data: any) => api.put(`/technician/quality-controls/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/quality-controls/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/quality-controls/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/technician/quality-controls/?status=${status}`),
+  getByTechnician: (technicianId: string) => api.get(`/technician/quality-controls/?technician=${technicianId}`),
+  getByEquipment: (equipmentId: string) => api.get(`/technician/quality-controls/?equipment=${equipmentId}`),
+  getFailed: () => api.get('/technician/quality-controls/failed_qc/'),
+  updateStatus: (id: string, data: any) => api.post(`/technician/quality-controls/${id}/update_status/`, data),
+  getStatistics: (params?: any) => api.get('/technician/quality-controls/statistics/', { params }),
+};
+
+// Lab Workflow API
+export const labWorkflowAPI = {
+  getAll: (params?: any) => api.get('/technician/workflows/', { params }),
+  getById: (id: string) => api.get(`/technician/workflows/${id}/`),
+  create: (data: any) => api.post('/technician/workflows/', data),
+  update: (id: string, data: any) => api.put(`/technician/workflows/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/workflows/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/workflows/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/technician/workflows/?status=${status}`),
+  getByTechnician: (technicianId: string) => api.get(`/technician/workflows/?assigned_to=${technicianId}`),
+  getByWorkflowType: (workflowType: string) => api.get(`/technician/workflows/?workflow_type=${workflowType}`),
+  getPending: () => api.get('/technician/workflows/pending_workflows/'),
+  assignWorkflow: (id: string, data: any) => api.post(`/technician/workflows/${id}/assign_workflow/`, data),
+  completeWorkflow: (id: string, data: any) => api.post(`/technician/workflows/${id}/complete_workflow/`, data),
+  getStatistics: (params?: any) => api.get('/technician/workflows/statistics/', { params }),
 };
 
 export default api;

@@ -5,9 +5,9 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import { testRequestAPI } from "../../services/api";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { patientTestResultAPI } from "../../services/api";
 
 const TestResults: React.FC = () => {
   const { user } = useAuth();
@@ -19,35 +19,18 @@ const TestResults: React.FC = () => {
   const [testResultsLoading, setTestResultsLoading] = useState(false);
   const [testResultsError, setTestResultsError] = useState<string | null>(null);
 
-  // Fetch patient's test requests from backend
-  const fetchPatientTestRequests = async () => {
+  // Fetch patient's test results from backend
+  const fetchPatientTestResults = async () => {
     setTestResultsLoading(true);
     setTestResultsError(null);
     try {
-      const response = await testRequestAPI.getAll();
-      // Filter for current patient's test requests
-      const patientRequests = response.data.filter(
-        (request: any) =>
-          request.patient_id === user?.id || request.patient_name === user?.name
-      );
-
-      // Transform test requests to test results format
-      const transformedResults = patientRequests.map((request: any) => ({
-        id: `TR-${request.id}`,
-        testName: request.test_type,
-        testDate: request.date_requested,
-        doctor: "Dr. Current Doctor", // This could be enhanced with actual doctor info
-        status: mapTestStatus(request.status),
-        results: generateMockResults(request.test_type, request.status),
-        notes: request.notes || "Test request submitted",
-        reportUrl: request.status === "Completed" ? "#" : null,
-        originalRequest: request, // Keep reference to original request
-      }));
-
-      setTestResults(transformedResults);
-    } catch (error) {
-      console.error("Error fetching patient test requests:", error);
-      setTestResultsError("Failed to load test results");
+      const response = await patientTestResultAPI.getAll();
+      console.log("🧪 Test results fetched:", response.data);
+      setTestResults(response.data || []);
+    } catch (error: any) {
+      console.error("Error fetching test results:", error);
+      setTestResultsError(error.message || "Failed to fetch test results");
+      setTestResults([]);
     } finally {
       setTestResultsLoading(false);
     }
@@ -71,44 +54,11 @@ const TestResults: React.FC = () => {
     }
   };
 
-  const generateMockResults = (testType: string, status: string) => {
-    if (status !== "Completed") return [];
-
-    // Generate mock results based on test type
-    if (testType.toLowerCase().includes("blood")) {
-      return [
-        {
-          parameter: "Hemoglobin",
-          value: "14.2",
-          unit: "g/dL",
-          normal: "12-16",
-          status: "normal",
-        },
-        {
-          parameter: "White Blood Cells",
-          value: "7.5",
-          unit: "K/μL",
-          normal: "4.5-11.0",
-          status: "normal",
-        },
-        {
-          parameter: "Platelets",
-          value: "320",
-          unit: "K/μL",
-          normal: "150-450",
-          status: "normal",
-        },
-      ];
-    }
-    return [];
-  };
 
   // Load test results on component mount
   useEffect(() => {
-    if (user) {
-      fetchPatientTestRequests();
-    }
-  }, [user]);
+    fetchPatientTestResults();
+  }, []);
 
   // Handler functions
   const handleDownloadResult = (result: any) => {
@@ -364,7 +314,7 @@ ${allReportsContent}
               {testResultsError}
             </p>
             <button
-              onClick={fetchPatientTestRequests}
+              onClick={fetchPatientTestResults}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               Retry

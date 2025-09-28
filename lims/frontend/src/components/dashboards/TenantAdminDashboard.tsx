@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
+import { getCurrentUserEmail, generateSecurePassword, getCurrentTenantId } from "../../utils/helpers";
 import {
   testRequestAPI,
   userManagementAPI,
@@ -149,9 +150,9 @@ const TenantAdminDashboard: React.FC = () => {
           email: newUser.email,
           role: newUser.role,
           department: newUser.department,
-          tenant: "current-tenant", // In real app, this would come from user context
-          created_by: "current-admin", // In real app, this would come from user context
-          password: "defaultPassword123", // In real app, this would be generated or set by user
+          tenant: getCurrentTenantId(), // Dynamic tenant ID
+          created_by: getCurrentUserEmail(), // Dynamic user email
+          password: generateSecurePassword(), // Generate secure password
         };
 
         await userManagementAPI.create(userData);

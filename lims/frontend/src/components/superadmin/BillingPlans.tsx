@@ -7,10 +7,9 @@ import {
   Edit,
   Plus,
   TrendingUp,
-  Eye,
-  X,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
 
 const BillingPlans: React.FC = () => {
@@ -71,18 +70,11 @@ const BillingPlans: React.FC = () => {
         setPlans(plansResponse.data);
         setBillingData(analyticsResponse.data);
         setTransactions(transactionsResponse.data);
+        setRecentTransactions(transactionsResponse.data.slice(0, 10)); // Get recent 10 transactions
       } catch (error: any) {
         console.error("Error fetching billing data:", error);
         setError(error.message || "Failed to load billing data");
-        // Fallback to localStorage if API fails
-        const savedPlans = localStorage.getItem("superadmin-billing-plans");
-        if (savedPlans) {
-          try {
-            setPlans(JSON.parse(savedPlans));
-          } catch (parseError) {
-            console.error("Error parsing saved plans:", parseError);
-          }
-        }
+        setPlans([]);
       } finally {
         setLoading(false);
       }
@@ -254,44 +246,7 @@ const BillingPlans: React.FC = () => {
     return csvContent;
   };
 
-  const recentTransactions = [
-    {
-      id: "1",
-      tenant: "Research Institute",
-      plan: "Enterprise",
-      amount: 199,
-      status: "Paid",
-      date: "2025-01-20",
-      method: "Credit Card",
-    },
-    {
-      id: "2",
-      tenant: "City Hospital Lab",
-      plan: "Enterprise",
-      amount: 199,
-      status: "Paid",
-      date: "2025-01-20",
-      method: "Bank Transfer",
-    },
-    {
-      id: "3",
-      tenant: "MedLab Solutions",
-      plan: "Professional",
-      amount: 79,
-      status: "Pending",
-      date: "2025-01-19",
-      method: "Credit Card",
-    },
-    {
-      id: "4",
-      tenant: "Private Clinic Network",
-      plan: "Basic",
-      amount: 29,
-      status: "Failed",
-      date: "2025-01-18",
-      method: "Credit Card",
-    },
-  ];
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -399,7 +354,7 @@ const BillingPlans: React.FC = () => {
                       Total Revenue
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      ${billingData.totalRevenue.toLocaleString()}
+                      ${(billingData.totalRevenue || 0).toLocaleString()}
                     </p>
                     <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">
                       <TrendingUp className="w-3 h-3 mr-1" />
@@ -416,7 +371,7 @@ const BillingPlans: React.FC = () => {
                       Monthly Recurring
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      ${billingData.monthlyRecurring.toLocaleString()}
+                      ${(billingData.monthlyRecurring || 0).toLocaleString()}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       MRR
@@ -540,7 +495,7 @@ const BillingPlans: React.FC = () => {
                     <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       <span>Revenue</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${plan.revenue.toLocaleString()}
+                        ${(plan.revenue || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -641,9 +596,9 @@ const BillingPlans: React.FC = () => {
                         </span>
                         <span className="font-medium text-gray-900 dark:text-white">
                           $
-                          {plans
+                          {(plans
                             .find((plan) => plan.id === selectedPlan)
-                            ?.revenue.toLocaleString()}
+                            ?.revenue || 0).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -791,7 +746,7 @@ const BillingPlans: React.FC = () => {
                           />
                         </div>
                         <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                          ${plan.revenue.toLocaleString()}
+                          ${(plan.revenue || 0).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -1051,7 +1006,7 @@ const BillingPlans: React.FC = () => {
                       Monthly Revenue
                     </label>
                     <p className="text-sm text-gray-900 dark:text-white">
-                      ${selectedPlanData.revenue.toLocaleString()}
+                      ${(selectedPlanData.revenue || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>

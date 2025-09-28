@@ -6,14 +6,16 @@ import {
   HelpCircle,
   MessageSquare,
   User,
-  X,
-  Send,
-  Eye,
-  Download,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  appointmentAPI,
+  messageAPI,
+  patientMessageAPI,
+  patientTestResultAPI
+} from "../../services/api";
 import BaseDashboard from "./BaseDashboard";
-import { testReportAPI, appointmentAPI, messageAPI } from "../../services/api";
 
 const PatientDashboard: React.FC = () => {
   // State management for modals
@@ -67,7 +69,7 @@ const PatientDashboard: React.FC = () => {
       setMessagesLoading(true);
       setMessagesError(null);
       // For now, get all messages - in a real app, this would be filtered by patient ID
-      const response = await messageAPI.getAll();
+      const response = await patientMessageAPI.getAll();
       console.log("💬 Messages fetched:", response.data);
       setMessages(response.data);
     } catch (err: any) {
@@ -83,7 +85,7 @@ const PatientDashboard: React.FC = () => {
       setTestResultsLoading(true);
       setTestResultsError(null);
       // For now, get all test reports - in a real app, this would be filtered by patient ID
-      const response = await testReportAPI.getAll();
+      const response = await patientTestResultAPI.getAll();
       console.log("📊 Test Results fetched:", response.data);
       setTestResults(response.data);
     } catch (err: any) {

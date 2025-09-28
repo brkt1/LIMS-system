@@ -1,14 +1,13 @@
 import {
-  BarChart3,
   Download,
+  Eye,
   FileText,
   Plus,
   Search,
-  TrendingUp,
-  Eye,
-  X,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { supportAnalyticsAPI } from "../../services/api";
 
 const Reports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,105 +29,30 @@ const Reports: React.FC = () => {
   });
 
   // Reports data state
-  const [reports, setReports] = useState([
-    {
-      id: "RPT001",
-      title: "Support Ticket Analysis",
-      description:
-        "Comprehensive analysis of support tickets, resolution times, and customer satisfaction",
-      type: "Analytics",
-      category: "Support",
-      generatedDate: "2025-01-22",
-      generatedBy: "Support Team",
-      fileSize: "2.3 MB",
-      format: "PDF",
-      downloadCount: 15,
-      status: "completed",
-    },
-    {
-      id: "RPT002",
-      title: "System Performance Report",
-      description:
-        "Monthly system performance metrics including uptime, response times, and error rates",
-      type: "Performance",
-      category: "System",
-      generatedDate: "2025-01-21",
-      generatedBy: "Technical Team",
-      fileSize: "1.8 MB",
-      format: "Excel",
-      downloadCount: 8,
-      status: "completed",
-    },
-    {
-      id: "RPT003",
-      title: "User Activity Summary",
-      description:
-        "Weekly summary of user activities, login patterns, and feature usage statistics",
-      type: "Usage",
-      category: "Users",
-      generatedDate: "2025-01-20",
-      generatedBy: "Analytics Team",
-      fileSize: "3.1 MB",
-      format: "PDF",
-      downloadCount: 12,
-      status: "completed",
-    },
-    {
-      id: "RPT004",
-      title: "Error Log Analysis",
-      description:
-        "Analysis of system errors, their frequency, and resolution patterns",
-      type: "Error Analysis",
-      category: "System",
-      generatedDate: "2025-01-19",
-      generatedBy: "Technical Team",
-      fileSize: "4.2 MB",
-      format: "CSV",
-      downloadCount: 5,
-      status: "completed",
-    },
-    {
-      id: "RPT005",
-      title: "Customer Satisfaction Survey",
-      description:
-        "Results from the quarterly customer satisfaction survey and feedback analysis",
-      type: "Survey",
-      category: "Customer",
-      generatedDate: "2025-01-18",
-      generatedBy: "Support Team",
-      fileSize: "1.5 MB",
-      format: "PDF",
-      downloadCount: 22,
-      status: "completed",
-    },
-    {
-      id: "RPT006",
-      title: "Security Audit Report",
-      description:
-        "Monthly security audit findings and recommendations for system improvements",
-      type: "Security",
-      category: "Security",
-      generatedDate: "2025-01-17",
-      generatedBy: "Security Team",
-      fileSize: "5.7 MB",
-      format: "PDF",
-      downloadCount: 3,
-      status: "completed",
-    },
-  ]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load reports from localStorage on component mount
+  // Load reports from API
   useEffect(() => {
-    const savedReports = localStorage.getItem("supportReports");
-    if (savedReports) {
-      setReports(JSON.parse(savedReports));
-    }
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await supportAnalyticsAPI.getAll();
+        setReports(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching reports:", error);
+        setError(error.message || "Failed to load reports");
+        // Fallback to empty array if API fails
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
   }, []);
-
-  // Save reports to localStorage whenever reports change
-  useEffect(() => {
-    localStorage.setItem("supportReports", JSON.stringify(reports));
-  }, [reports]);
 
   // Handler functions
   const handleGenerateReport = () => {
@@ -300,10 +224,45 @@ const Reports: React.FC = () => {
   };
 
   const totalReports = reports.length;
-  const totalDownloads = reports.reduce((sum, r) => sum + r.downloadCount, 0);
-  const avgFileSize =
-    reports.reduce((sum, r) => sum + parseFloat(r.fileSize), 0) /
-    reports.length;
+  const totalDownloads = reports.reduce((sum, r) => sum + (r.downloadCount || 0), 0);
+  const avgFileSize = reports.length > 0 
+    ? reports.reduce((sum, r) => sum + parseFloat(r.fileSize || '0'), 0) / reports.length
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading reports...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading reports
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

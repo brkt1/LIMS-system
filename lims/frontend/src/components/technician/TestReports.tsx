@@ -1,16 +1,13 @@
 import {
   Download,
-  FileText,
+  Edit,
+  Eye,
   Plus,
   Search,
-  TrendingUp,
-  Eye,
-  Edit,
-  X,
-  Check,
-  Clock,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { testResultAPI } from "../../services/api";
 
 const TestReports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,100 +30,30 @@ const TestReports: React.FC = () => {
     notes: "",
   });
 
-  const [reports, setReports] = useState([
-    {
-      id: "RPT001",
-      patientName: "John Smith",
-      patientId: "P001",
-      testName: "Complete Blood Count",
-      sampleId: "SMP001",
-      status: "completed",
-      generatedDate: "2025-01-22",
-      generatedTime: "2:30 PM",
-      technician: "Mike Davis",
-      fileSize: "2.3 MB",
-      format: "PDF",
-      downloadCount: 3,
-      priority: "normal",
-    },
-    {
-      id: "RPT002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      testName: "X-Ray Chest",
-      sampleId: "SMP002",
-      status: "completed",
-      generatedDate: "2025-01-22",
-      generatedTime: "12:15 PM",
-      technician: "Lisa Wilson",
-      fileSize: "5.7 MB",
-      format: "PDF",
-      downloadCount: 1,
-      priority: "high",
-    },
-    {
-      id: "RPT003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      testName: "MRI Brain",
-      sampleId: "SMP003",
-      status: "processing",
-      generatedDate: "2025-01-21",
-      generatedTime: "4:45 PM",
-      technician: "Robert Brown",
-      fileSize: "0 MB",
-      format: "PDF",
-      downloadCount: 0,
-      priority: "urgent",
-    },
-    {
-      id: "RPT004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      testName: "Urine Analysis",
-      sampleId: "SMP004",
-      status: "completed",
-      generatedDate: "2025-01-22",
-      generatedTime: "1:30 PM",
-      technician: "Mike Davis",
-      fileSize: "1.8 MB",
-      format: "PDF",
-      downloadCount: 2,
-      priority: "normal",
-    },
-    {
-      id: "RPT005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      testName: "COVID-19 PCR Test",
-      sampleId: "SMP005",
-      status: "completed",
-      generatedDate: "2025-01-22",
-      generatedTime: "10:00 AM",
-      technician: "Lisa Wilson",
-      fileSize: "3.2 MB",
-      format: "PDF",
-      downloadCount: 5,
-      priority: "high",
-    },
-  ]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load reports from localStorage on component mount
+  // Load reports from API
   useEffect(() => {
-    const savedReports = localStorage.getItem("technician-test-reports");
-    if (savedReports) {
+    const fetchReports = async () => {
       try {
-        setReports(JSON.parse(savedReports));
-      } catch (error) {
-        console.error("Error loading saved reports:", error);
+        setLoading(true);
+        setError(null);
+        const response = await testResultAPI.getAll();
+        setReports(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching test reports:", error);
+        setError(error.message || "Failed to load test reports");
+        // Fallback to empty array if API fails
+        setReports([]);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save reports to localStorage whenever reports change
-  useEffect(() => {
-    localStorage.setItem("technician-test-reports", JSON.stringify(reports));
-  }, [reports]);
+    fetchReports();
+  }, []);
 
   // CRUD Functions
   const handleNewReport = () => {
@@ -306,7 +233,42 @@ const TestReports: React.FC = () => {
   const processingReports = reports.filter(
     (r) => r.status === "processing"
   ).length;
-  const totalDownloads = reports.reduce((sum, r) => sum + r.downloadCount, 0);
+  const totalDownloads = reports.reduce((sum, r) => sum + (r.downloadCount || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading test reports...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading test reports
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

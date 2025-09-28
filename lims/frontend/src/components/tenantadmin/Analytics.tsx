@@ -1,5 +1,5 @@
-import { BarChart3, TrendingUp, Users, DollarSign, X } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { BarChart3, DollarSign, TrendingUp, Users, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { analyticsAPI } from "../../services/api";
 
 const Analytics: React.FC = () => {
@@ -11,7 +11,10 @@ const Analytics: React.FC = () => {
     topTests: [],
     monthlyRevenue: [],
     testCategories: [],
-    patientDemographics: [],
+    patientDemographics: {
+      ageGroups: [],
+      genderDistribution: [],
+    },
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +27,7 @@ const Analytics: React.FC = () => {
         setError(null);
 
         const [labAnalyticsResponse, testCategoryResponse] = await Promise.all([
-          analyticsAPI.getLabAnalytics(),
+          analyticsAPI.getAnalyticsSummary(),
           analyticsAPI.getTestCategoryAnalytics(),
         ]);
 
@@ -33,53 +36,34 @@ const Analytics: React.FC = () => {
         const testCategoryData = testCategoryResponse.data;
 
         setAnalyticsData({
-          totalRevenue: labData.total_revenue || 0,
-          monthlyGrowth: labData.monthly_growth || 0,
-          totalPatients: labData.total_patients || 0,
+          totalRevenue: 0, // Not available in current backend
+          monthlyGrowth: 0, // Not available in current backend
+          totalPatients: 0, // Not available in current backend
           totalTests: labData.total_tests || 0,
-          topTests: labData.top_tests || [],
-          monthlyRevenue: labData.monthly_revenue || [],
-          testCategories: testCategoryData || [],
-          patientDemographics: labData.patient_demographics || [],
+          topTests: [], // Not available in current backend
+          monthlyRevenue: [], // Not available in current backend
+          testCategories: labData.test_categories || [],
+          patientDemographics: {
+            ageGroups: [],
+            genderDistribution: [],
+          }, // Not available in current backend
         });
       } catch (error: any) {
         console.error("Error fetching analytics:", error);
         setError(error.message || "Failed to load analytics data");
-        // Fallback to mock data if API fails
+        // Set empty data structure when API fails
         setAnalyticsData({
-          totalRevenue: 125000,
-          monthlyGrowth: 12.5,
-          totalPatients: 1247,
-          totalTests: 3456,
-          topTests: [
-            { name: "Complete Blood Count", count: 456, revenue: 20520 },
-            { name: "COVID-19 PCR Test", count: 234, revenue: 28080 },
-            { name: "Lipid Panel", count: 189, revenue: 12285 },
-            { name: "Thyroid Function Test", count: 156, revenue: 13260 },
-            { name: "Urinalysis Complete", count: 298, revenue: 7450 },
-          ],
-          monthlyRevenue: [
-            { month: "Jan", revenue: 8500 },
-            { month: "Feb", revenue: 9200 },
-            { month: "Mar", revenue: 8800 },
-            { month: "Apr", revenue: 10200 },
-            { month: "May", revenue: 11500 },
-            { month: "Jun", revenue: 12800 },
-          ],
-          testCategories: [
-            { name: "Hematology", count: 456, percentage: 35.2 },
-            { name: "Chemistry", count: 298, percentage: 23.0 },
-            { name: "Microbiology", count: 234, percentage: 18.1 },
-            { name: "Immunology", count: 189, percentage: 14.6 },
-            { name: "Pathology", count: 123, percentage: 9.5 },
-          ],
-          patientDemographics: [
-            { ageGroup: "0-18", count: 156, percentage: 12.5 },
-            { ageGroup: "19-35", count: 298, percentage: 23.9 },
-            { ageGroup: "36-50", count: 345, percentage: 27.7 },
-            { ageGroup: "51-65", count: 298, percentage: 23.9 },
-            { ageGroup: "65+", count: 150, percentage: 12.0 },
-          ],
+          totalRevenue: 0,
+          monthlyGrowth: 0,
+          totalPatients: 0,
+          totalTests: 0,
+          topTests: [],
+          monthlyRevenue: [],
+          testCategories: [],
+          patientDemographics: {
+            ageGroups: [],
+            genderDistribution: [],
+          },
         });
       } finally {
         setLoading(false);
@@ -89,41 +73,6 @@ const Analytics: React.FC = () => {
     fetchAnalytics();
   }, []);
 
-  // Mock data for fallback
-  const mockAnalyticsData = {
-    totalRevenue: 125000,
-    monthlyGrowth: 12.5,
-    totalPatients: 1247,
-    totalTests: 3456,
-    topTests: [
-      { name: "Complete Blood Count", count: 456, revenue: 20520 },
-      { name: "COVID-19 PCR Test", count: 234, revenue: 28080 },
-      { name: "Lipid Panel", count: 189, revenue: 12285 },
-      { name: "Thyroid Function Test", count: 156, revenue: 13260 },
-      { name: "Urinalysis Complete", count: 298, revenue: 7450 },
-    ],
-    monthlyRevenue: [
-      { month: "Jan", revenue: 8500 },
-      { month: "Feb", revenue: 9200 },
-      { month: "Mar", revenue: 8800 },
-      { month: "Apr", revenue: 10500 },
-      { month: "May", revenue: 11200 },
-      { month: "Jun", revenue: 12000 },
-    ],
-    patientDemographics: {
-      ageGroups: [
-        { range: "0-18", count: 234, percentage: 18.8 },
-        { range: "19-35", count: 456, percentage: 36.6 },
-        { range: "36-50", count: 345, percentage: 27.7 },
-        { range: "51-65", count: 178, percentage: 14.3 },
-        { range: "65+", count: 34, percentage: 2.7 },
-      ],
-      genderDistribution: [
-        { gender: "Male", count: 623, percentage: 50.0 },
-        { gender: "Female", count: 624, percentage: 50.0 },
-      ],
-    },
-  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

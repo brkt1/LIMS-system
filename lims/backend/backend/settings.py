@@ -58,6 +58,13 @@ INSTALLED_APPS = [
     'lab.components.tenantadmin.HomeVisitRequests',
     'lab.components.tenantadmin.TenantAdminProfile',
     'lab.components.tenantadmin.ManageUsers',
+    'lab.components.tenantadmin.DoctorManagement',
+    'lab.components.tenantadmin.EquipmentManagement',
+    'lab.components.tenantadmin.TestPricing',
+    'lab.components.tenantadmin.CulturesAntibiotics',
+    
+    # Patient
+    'lab.components.Patient',
 
     # Superadmin
     'lab.components.superadmin',

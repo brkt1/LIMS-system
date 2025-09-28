@@ -1,17 +1,11 @@
 import {
-  Microscope,
+  FileText,
   Plus,
   Search,
-  TestTube,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Eye,
-  Edit,
-  X,
-  FileText,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { culturesAntibioticsAPI } from "../../services/api";
 
 const CulturesAntibiotics: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,117 +41,52 @@ const CulturesAntibiotics: React.FC = () => {
     notes: "",
   });
 
-  // Dynamic cultures state
-  const [cultures, setCultures] = useState([
-    {
-      id: "CUL001",
-      patientName: "John Smith",
-      patientId: "P001",
-      specimenType: "Blood",
-      cultureType: "Bacterial",
-      organism: "Staphylococcus aureus",
-      collectionDate: "2025-01-20",
-      incubationDate: "2025-01-21",
-      status: "completed",
-      sensitivity: "Resistant",
-      antibiotics: ["Penicillin", "Amoxicillin", "Ciprofloxacin"],
-      resistantTo: ["Penicillin", "Amoxicillin"],
-      sensitiveTo: ["Ciprofloxacin", "Vancomycin"],
-      reportDate: "2025-01-22",
-      technician: "Dr. Sarah Johnson",
-      notes: "MRSA strain detected",
-    },
-    {
-      id: "CUL002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      specimenType: "Urine",
-      cultureType: "Bacterial",
-      organism: "Escherichia coli",
-      collectionDate: "2025-01-19",
-      incubationDate: "2025-01-20",
-      status: "incubating",
-      sensitivity: "Pending",
-      antibiotics: ["Ciprofloxacin", "Nitrofurantoin", "Trimethoprim"],
-      resistantTo: [],
-      sensitiveTo: [],
-      reportDate: "",
-      technician: "Dr. Mike Davis",
-      notes: "Standard UTI culture",
-    },
-    {
-      id: "CUL003",
-      patientName: "Mike Davis",
-      patientId: "P003",
-      specimenType: "Sputum",
-      cultureType: "Bacterial",
-      organism: "Streptococcus pneumoniae",
-      collectionDate: "2025-01-18",
-      incubationDate: "2025-01-19",
-      status: "completed",
-      sensitivity: "Sensitive",
-      antibiotics: ["Penicillin", "Amoxicillin", "Ceftriaxone"],
-      resistantTo: [],
-      sensitiveTo: ["Penicillin", "Amoxicillin", "Ceftriaxone"],
-      reportDate: "2025-01-21",
-      technician: "Dr. Lisa Wilson",
-      notes: "Pneumonia culture",
-    },
-    {
-      id: "CUL004",
-      patientName: "Lisa Wilson",
-      patientId: "P004",
-      specimenType: "Wound Swab",
-      cultureType: "Bacterial",
-      organism: "Pseudomonas aeruginosa",
-      collectionDate: "2025-01-17",
-      incubationDate: "2025-01-18",
-      status: "completed",
-      sensitivity: "Resistant",
-      antibiotics: ["Ciprofloxacin", "Gentamicin", "Piperacillin"],
-      resistantTo: ["Ciprofloxacin", "Piperacillin"],
-      sensitiveTo: ["Gentamicin", "Tobramycin"],
-      reportDate: "2025-01-20",
-      technician: "Dr. Robert Brown",
-      notes: "Wound infection culture",
-    },
-    {
-      id: "CUL005",
-      patientName: "Robert Brown",
-      patientId: "P005",
-      specimenType: "Blood",
-      cultureType: "Fungal",
-      organism: "Candida albicans",
-      collectionDate: "2025-01-16",
-      incubationDate: "2025-01-17",
-      status: "incubating",
-      sensitivity: "Pending",
-      antibiotics: ["Fluconazole", "Amphotericin B", "Caspofungin"],
-      resistantTo: [],
-      sensitiveTo: [],
-      reportDate: "",
-      technician: "Dr. Jennifer Smith",
-      notes: "Fungal blood culture",
-    },
-  ]);
+  // Cultures state
+  const [cultures, setCultures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load cultures from localStorage on component mount
+  // Load cultures from backend API
   useEffect(() => {
-    const savedCultures = localStorage.getItem("cultures-antibiotics");
-    if (savedCultures) {
+    const fetchCultures = async () => {
       try {
-        const parsedCultures = JSON.parse(savedCultures);
-        setCultures(parsedCultures);
-      } catch (error) {
-        console.error("Error loading cultures:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
+        const response = await culturesAntibioticsAPI.getAllCultures();
 
-  // Save cultures to localStorage whenever cultures change
-  useEffect(() => {
-    localStorage.setItem("cultures-antibiotics", JSON.stringify(cultures));
-  }, [cultures]);
+        // Map backend data to frontend expected format
+        const mappedCultures = response.data.map((item: any) => ({
+          id: item.id,
+          patientName: item.patient_name,
+          patientId: item.patient_id,
+          specimenType: item.specimen_type,
+          cultureType: item.culture_type,
+          organism: item.organism || "",
+          collectionDate: item.collection_date,
+          incubationDate: item.collection_date, // Use collection date as fallback
+          status: item.status,
+          technician: item.technician || "",
+          notes: item.notes || "",
+          reportDate: item.report_date || "",
+          sensitivity: "pending",
+          antibiotics: "",
+          resistantTo: "",
+          sensitiveTo: "",
+        }));
+
+        setCultures(mappedCultures);
+      } catch (error: any) {
+        console.error("Error fetching cultures:", error);
+        setError(error.message || "Failed to load cultures");
+        // Set empty array when API fails
+        setCultures([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCultures();
+  }, []);
 
   const filteredCultures = cultures.filter((culture) => {
     const matchesSearch =
@@ -355,6 +284,27 @@ Generated on: ${new Date().toLocaleString()}`;
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading cultures...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
