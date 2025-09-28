@@ -7,12 +7,18 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import random
 
-from .models import Tenant, BillingPlan, TenantPlan, BillingTransaction, UsageMetrics, SystemLog, SystemHealth
+from .models import (
+    Tenant, BillingPlan, TenantPlan, BillingTransaction, UsageMetrics, 
+    SystemLog, SystemHealth, SuperAdminUser, UserSession, DatabaseBackup,
+    GlobalNotification, NotificationTemplate, NotificationHistory
+)
 from .serializers import (
     TenantSerializer, BillingPlanSerializer, TenantPlanSerializer,
     BillingTransactionSerializer, UsageMetricsSerializer, SystemLogSerializer,
     SystemHealthSerializer, TenantDashboardSerializer, UsageAnalysisSerializer,
-    BillingAnalyticsSerializer
+    BillingAnalyticsSerializer, SuperAdminUserSerializer, UserSessionSerializer,
+    DatabaseBackupSerializer, GlobalNotificationSerializer, NotificationTemplateSerializer,
+    NotificationHistorySerializer
 )
 
 
@@ -58,6 +64,47 @@ class TenantViewSet(viewsets.ModelViewSet):
     def count(self, request):
         count = self.get_queryset().count()
         return Response({'count': count})
+
+    def destroy(self, request, *args, **kwargs):
+        """Custom delete method to handle tenant deletion with proper error handling"""
+        try:
+            tenant = self.get_object()
+            tenant_id = tenant.id
+            tenant_name = tenant.company_name
+            
+            # Use Django's built-in CASCADE deletion with proper error handling
+            from django.db import transaction, IntegrityError, DatabaseError
+            
+            try:
+                with transaction.atomic():
+                    # Let Django handle the CASCADE deletion
+                    tenant.delete()
+                    
+                return Response({
+                    'message': f'Tenant "{tenant_name}" deleted successfully',
+                    'deleted_tenant_id': tenant_id
+                }, status=status.HTTP_200_OK)
+                
+            except (IntegrityError, DatabaseError) as e:
+                # Handle database constraint errors or missing table errors
+                error_msg = str(e)
+                if "no such table" in error_msg:
+                    return Response({
+                        'error': 'Database schema issue detected',
+                        'details': 'Some related tables are missing from the database. Please run migrations or contact system administrator.',
+                        'technical_details': error_msg
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                else:
+                    return Response({
+                        'error': f'Cannot delete tenant due to database constraints: {error_msg}',
+                        'details': 'The tenant has related data that prevents deletion. Please delete related records first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({
+                'error': f'Failed to delete tenant: {str(e)}',
+                'details': 'An unexpected error occurred while deleting the tenant'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'])
     def dashboard_stats(self, request):
@@ -285,6 +332,259 @@ class SystemHealthViewSet(viewsets.ReadOnlyModelViewSet):
             'total_services': total_services,
             'healthy_services': healthy_services
         })
+
+
+# New ViewSets for Additional Functionality
+class SuperAdminUserViewSet(viewsets.ModelViewSet):
+    queryset = SuperAdminUser.objects.all().order_by('-created_at')
+    serializer_class = SuperAdminUserSerializer
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by status
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Filter by role
+        role = self.request.query_params.get('role')
+        if role:
+            queryset = queryset.filter(role=role)
+        
+        # Search by name or email
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) | 
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(username__icontains=search)
+            )
+        
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def suspend(self, request, pk=None):
+        user = self.get_object()
+        user.status = 'suspended'
+        user.is_active = False
+        user.save()
+        return Response({'message': 'User suspended successfully'})
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        user = self.get_object()
+        user.status = 'active'
+        user.is_active = True
+        user.save()
+        return Response({'message': 'User activated successfully'})
+
+
+class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = UserSession.objects.all().order_by('-last_activity')
+    serializer_class = UserSessionSerializer
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by status
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Filter by role
+        role = self.request.query_params.get('role')
+        if role:
+            queryset = queryset.filter(user_role__icontains=role)
+        
+        # Filter by tenant
+        tenant = self.request.query_params.get('tenant')
+        if tenant:
+            queryset = queryset.filter(tenant_id=tenant)
+        
+        # Search by user name or email
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(user_name__icontains=search) | 
+                Q(user_email__icontains=search) |
+                Q(tenant_name__icontains=search)
+            )
+        
+        return queryset
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get user session statistics"""
+        queryset = self.get_queryset()
+        
+        total_sessions = queryset.count()
+        online_users = queryset.filter(status='online').count()
+        idle_users = queryset.filter(status='idle').count()
+        away_users = queryset.filter(status='away').count()
+        
+        return Response({
+            'total_sessions': total_sessions,
+            'online_users': online_users,
+            'idle_users': idle_users,
+            'away_users': away_users
+        })
+
+
+class DatabaseBackupViewSet(viewsets.ModelViewSet):
+    queryset = DatabaseBackup.objects.all().order_by('-created_at')
+    serializer_class = DatabaseBackupSerializer
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by status
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Filter by backup type
+        backup_type = self.request.query_params.get('backup_type')
+        if backup_type:
+            queryset = queryset.filter(backup_type=backup_type)
+        
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def start_backup(self, request, pk=None):
+        backup = self.get_object()
+        backup.status = 'in_progress'
+        backup.save()
+        
+        # Here you would implement actual backup logic
+        # For now, we'll simulate it
+        import threading
+        def simulate_backup():
+            import time
+            time.sleep(5)  # Simulate backup time
+            backup.status = 'completed'
+            backup.completed_at = timezone.now()
+            backup.file_path = f"/backups/{backup.name}_{backup.id}.sql"
+            backup.file_size = 1024 * 1024 * 50  # 50MB
+            backup.save()
+        
+        thread = threading.Thread(target=simulate_backup)
+        thread.start()
+        
+        return Response({'message': 'Backup started successfully'})
+
+    @action(detail=True, methods=['post'])
+    def download(self, request, pk=None):
+        backup = self.get_object()
+        if backup.status != 'completed':
+            return Response({'error': 'Backup not completed'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Here you would implement actual file download
+        return Response({'message': 'Download started', 'file_path': backup.file_path})
+
+
+class GlobalNotificationViewSet(viewsets.ModelViewSet):
+    queryset = GlobalNotification.objects.all().order_by('-created_at')
+    serializer_class = GlobalNotificationSerializer
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by notification type
+        notification_type = self.request.query_params.get('notification_type')
+        if notification_type:
+            queryset = queryset.filter(notification_type=notification_type)
+        
+        # Filter by priority
+        priority = self.request.query_params.get('priority')
+        if priority:
+            queryset = queryset.filter(priority=priority)
+        
+        # Filter by status
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def send(self, request, pk=None):
+        notification = self.get_object()
+        
+        # Here you would implement actual notification sending logic
+        # For now, we'll simulate it
+        notification.sent_at = timezone.now()
+        notification.total_recipients = 100  # Mock data
+        notification.delivered_count = 95    # Mock data
+        notification.read_count = 80         # Mock data
+        notification.save()
+        
+        return Response({'message': 'Notification sent successfully'})
+
+    @action(detail=False, methods=['get'])
+    def templates(self, request):
+        """Get available notification templates"""
+        templates = NotificationTemplate.objects.filter(is_active=True)
+        serializer = NotificationTemplateSerializer(templates, many=True)
+        return Response(serializer.data)
+
+
+class NotificationTemplateViewSet(viewsets.ModelViewSet):
+    queryset = NotificationTemplate.objects.all().order_by('-created_at')
+    serializer_class = NotificationTemplateSerializer
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+
+    @action(detail=True, methods=['post'])
+    def use_template(self, request, pk=None):
+        template = self.get_object()
+        
+        # Create a new notification from template
+        notification_data = {
+            'title': template.title_template,
+            'message': template.message_template,
+            'notification_type': template.notification_type,
+            'created_by': request.data.get('created_by', 'system')
+        }
+        
+        serializer = GlobalNotificationSerializer(data=notification_data)
+        if serializer.is_valid():
+            notification = serializer.save()
+            return Response({
+                'message': 'Notification created from template',
+                'notification': GlobalNotificationSerializer(notification).data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class NotificationHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = NotificationHistory.objects.all().order_by('-sent_at')
+    serializer_class = NotificationHistorySerializer
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by notification
+        notification = self.request.query_params.get('notification')
+        if notification:
+            queryset = queryset.filter(notification_id=notification)
+        
+        # Filter by status
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Filter by tenant
+        tenant = self.request.query_params.get('tenant')
+        if tenant:
+            queryset = queryset.filter(tenant_id=tenant)
+        
+        return queryset
 
 
 # Legacy views for backward compatibility

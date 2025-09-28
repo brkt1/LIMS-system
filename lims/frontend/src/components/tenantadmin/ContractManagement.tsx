@@ -1,17 +1,13 @@
 import {
-  FileText,
-  Plus,
-  Search,
-  Calendar,
-  DollarSign,
-  User,
-  AlertCircle,
-  Eye,
   Edit,
-  X,
+  Eye,
+  Plus,
   RotateCcw,
+  Search,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { contractAPI } from "../../services/api";
 
 const ContractManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,117 +59,52 @@ const ContractManagement: React.FC = () => {
     notes: "",
   });
 
-  // Convert static data to state
-  const [contracts, setContracts] = useState([
-    {
-      id: "CT001",
-      title: "Medical Equipment Supply Agreement",
-      type: "Supply",
-      vendor: "MedTech Solutions Inc.",
-      vendorContact: "John Smith",
-      vendorEmail: "john@medtech.com",
-      vendorPhone: "+1 (555) 123-4567",
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-      status: "active",
-      value: 50000,
-      currency: "USD",
-      renewalDate: "2024-11-01",
-      terms: "Annual contract with quarterly payments",
-      description: "Supply of laboratory equipment and maintenance services",
-      lastModified: "2024-01-15",
-      modifiedBy: "Dr. Sarah Johnson",
-    },
-    {
-      id: "CT002",
-      title: "IT Services Contract",
-      type: "Service",
-      vendor: "TechSupport Pro",
-      vendorContact: "Mike Davis",
-      vendorEmail: "mike@techsupport.com",
-      vendorPhone: "+1 (555) 234-5678",
-      startDate: "2024-03-01",
-      endDate: "2025-02-28",
-      status: "active",
-      value: 25000,
-      currency: "USD",
-      renewalDate: "2025-01-01",
-      terms: "Monthly service agreement",
-      description: "IT support and system maintenance services",
-      lastModified: "2024-03-10",
-      modifiedBy: "Dr. Mike Davis",
-    },
-    {
-      id: "CT003",
-      title: "Cleaning Services Agreement",
-      type: "Service",
-      vendor: "CleanCare Services",
-      vendorContact: "Lisa Wilson",
-      vendorEmail: "lisa@cleancare.com",
-      vendorPhone: "+1 (555) 345-6789",
-      startDate: "2023-06-01",
-      endDate: "2024-05-31",
-      status: "expired",
-      value: 12000,
-      currency: "USD",
-      renewalDate: "2024-04-01",
-      terms: "Monthly cleaning services",
-      description: "Daily cleaning and maintenance of clinic facilities",
-      lastModified: "2023-06-05",
-      modifiedBy: "Dr. Lisa Wilson",
-    },
-    {
-      id: "CT004",
-      title: "Insurance Provider Contract",
-      type: "Insurance",
-      vendor: "HealthGuard Insurance",
-      vendorContact: "Robert Brown",
-      vendorEmail: "robert@healthguard.com",
-      vendorPhone: "+1 (555) 456-7890",
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-      status: "active",
-      value: 0,
-      currency: "USD",
-      renewalDate: "2024-10-01",
-      terms: "Annual insurance coverage",
-      description: "Professional liability and malpractice insurance",
-      lastModified: "2024-01-20",
-      modifiedBy: "Dr. Robert Brown",
-    },
-    {
-      id: "CT005",
-      title: "Pharmaceutical Supply Agreement",
-      type: "Supply",
-      vendor: "PharmaCorp Ltd.",
-      vendorContact: "Jennifer Smith",
-      vendorEmail: "jennifer@pharmacorp.com",
-      vendorPhone: "+1 (555) 567-8901",
-      startDate: "2025-02-01",
-      endDate: "2026-01-31",
-      status: "pending",
-      value: 75000,
-      currency: "USD",
-      renewalDate: "2025-12-01",
-      terms: "Quarterly supply agreement",
-      description: "Supply of pharmaceuticals and medical supplies",
-      lastModified: "2025-01-20",
-      modifiedBy: "Dr. Jennifer Smith",
-    },
-  ]);
+  // Contract state
+  const [contracts, setContracts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load contracts from localStorage on component mount
+
+  // Load contracts from backend API
   useEffect(() => {
-    const savedContracts = localStorage.getItem("contracts");
-    if (savedContracts) {
-      setContracts(JSON.parse(savedContracts));
-    }
+    const fetchContracts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await contractAPI.getAll();
+
+        // Map backend data to frontend expected format
+        const mappedContracts = response.data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          type: item.type,
+          vendor: item.vendor,
+          vendorContact: item.vendor_contact,
+          vendorEmail: item.vendor_email,
+          vendorPhone: item.vendor_phone,
+          startDate: item.start_date,
+          endDate: item.end_date,
+          value: parseFloat(item.value),
+          currency: item.currency,
+          status: item.status,
+          renewalDate: item.renewal_date,
+          autoRenewal: item.auto_renewal,
+          terms: item.terms || "",
+          notes: item.notes || "",
+        }));
+
+        setContracts(mappedContracts);
+      } catch (error: any) {
+        console.error("Error fetching contracts:", error);
+        setError(error.message || "Failed to load contracts");
+        setContracts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContracts();
   }, []);
-
-  // Save contracts to localStorage whenever contracts change
-  useEffect(() => {
-    localStorage.setItem("contracts", JSON.stringify(contracts));
-  }, [contracts]);
 
   const filteredContracts = contracts.filter((contract) => {
     const matchesSearch =
@@ -323,6 +254,27 @@ const ContractManagement: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading contracts...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

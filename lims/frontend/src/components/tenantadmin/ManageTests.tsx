@@ -1,15 +1,10 @@
 import {
-  Calculator,
-  Plus,
-  Search,
-  TestTube,
-  TrendingUp,
-  Eye,
-  Edit,
-  X,
-  Power,
+    Plus,
+    Power,
+    Search,
+    X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { testRequestAPI } from "../../services/api";
 
 const ManageTests: React.FC = () => {
@@ -47,10 +42,11 @@ const ManageTests: React.FC = () => {
     normalRange: "",
   });
 
-  // Dynamic tests state
+  // Tests state
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
 
   // Load tests from backend API
   useEffect(() => {
@@ -81,15 +77,8 @@ const ManageTests: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching tests:", error);
         setError(error.message || "Failed to load tests");
-        // Fallback to localStorage if API fails
-        const savedTests = localStorage.getItem("manage-tests");
-        if (savedTests) {
-          try {
-            setTests(JSON.parse(savedTests));
-          } catch (parseError) {
-            console.error("Error parsing saved tests:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setTests([]);
       } finally {
         setLoading(false);
       }

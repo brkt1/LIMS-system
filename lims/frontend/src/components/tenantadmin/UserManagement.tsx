@@ -2,15 +2,14 @@ import {
   Plus,
   Search,
   User,
-  Users,
   UserCheck,
+  Users,
   UserX,
-  Eye,
-  Edit,
-  X,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { userManagementAPI } from "../../services/api";
+import { generateSecurePassword, getCurrentTenantId, getCurrentUserEmail } from "../../utils/helpers";
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,15 +69,8 @@ const UserManagement: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching users:", error);
         setError(error.message || "Failed to load users");
-        // Fallback to localStorage if API fails
-        const savedUsers = localStorage.getItem("tenantadmin-user-management");
-        if (savedUsers) {
-          try {
-            setUsers(JSON.parse(savedUsers));
-          } catch (parseError) {
-            console.error("Error parsing saved users:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -101,9 +93,9 @@ const UserManagement: React.FC = () => {
           role: newUser.role,
           department: newUser.department,
           phone: newUser.phone,
-          tenant: 1, // Default tenant ID - should be dynamic
-          created_by: "tenantadmin@lims.com", // Should be current user
-          password: "default123", // Should be generated or required
+          tenant: getCurrentTenantId(), // Dynamic tenant ID
+          created_by: getCurrentUserEmail(), // Current user email
+          password: generateSecurePassword(), // Generate secure password
         };
 
         console.log("Creating user with data:", userData);
@@ -143,7 +135,7 @@ const UserManagement: React.FC = () => {
             if (Array.isArray(firstError)) {
               errorMessage = `${firstError[0]}`;
             } else {
-              errorMessage = firstError;
+              errorMessage = String(firstError);
             }
           }
           // Handle general error message

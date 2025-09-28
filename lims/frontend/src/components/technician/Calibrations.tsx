@@ -1,16 +1,17 @@
 import {
-  Plus,
-  Settings,
-  Eye,
-  Edit,
-  X,
-  Search,
-  Clock,
   AlertTriangle,
-  CheckCircle,
   Calendar,
+  CheckCircle,
+  Clock,
+  Edit,
+  Eye,
+  Plus,
+  Search,
+  Settings,
+  X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { qualityControlAPI } from "../../services/api";
 
 const Calibrations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,88 +38,30 @@ const Calibrations: React.FC = () => {
     tolerance: "",
   });
 
-  const [calibrations, setCalibrations] = useState([
-    {
-      id: "CAL001",
-      equipmentName: "Centrifuge Model CF-2000",
-      equipmentId: "EQP001",
-      calibrationType: "Routine",
-      status: "completed",
-      technician: "Mike Davis",
-      scheduledDate: "2025-01-15",
-      completedDate: "2025-01-15",
-      nextCalibration: "2025-04-15",
-      standardUsed: "ISO 15189",
-      tolerance: "±0.1%",
-      notes: "All parameters within acceptable range",
-      results: "Passed",
-    },
-    {
-      id: "CAL002",
-      equipmentName: "Microscope Olympus BX51",
-      equipmentId: "EQP002",
-      calibrationType: "Annual",
-      status: "scheduled",
-      technician: "Lisa Wilson",
-      scheduledDate: "2025-01-25",
-      completedDate: "",
-      nextCalibration: "2026-01-25",
-      standardUsed: "ISO 15189",
-      tolerance: "±0.05%",
-      notes: "Annual calibration due",
-      results: "",
-    },
-    {
-      id: "CAL003",
-      equipmentName: "Blood Analyzer Sysmex XN-1000",
-      equipmentId: "EQP003",
-      calibrationType: "Routine",
-      status: "in_progress",
-      technician: "Robert Brown",
-      scheduledDate: "2025-01-20",
-      completedDate: "",
-      nextCalibration: "2025-04-20",
-      standardUsed: "ISO 15189",
-      tolerance: "±0.2%",
-      notes: "Calibration in progress",
-      results: "",
-    },
-    {
-      id: "CAL004",
-      equipmentName: "PCR Machine Applied Biosystems",
-      equipmentId: "EQP005",
-      calibrationType: "Quarterly",
-      status: "overdue",
-      technician: "Mike Davis",
-      scheduledDate: "2025-01-10",
-      completedDate: "",
-      nextCalibration: "2025-04-10",
-      standardUsed: "ISO 15189",
-      tolerance: "±0.1°C",
-      notes: "Overdue calibration - urgent",
-      results: "",
-    },
-  ]);
+  const [calibrations, setCalibrations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load calibrations from localStorage on component mount
+  // Load calibrations from API
   useEffect(() => {
-    const savedCalibrations = localStorage.getItem("technician-calibrations");
-    if (savedCalibrations) {
+    const fetchCalibrations = async () => {
       try {
-        setCalibrations(JSON.parse(savedCalibrations));
-      } catch (error) {
-        console.error("Error loading saved calibrations:", error);
+        setLoading(true);
+        setError(null);
+        const response = await qualityControlAPI.getByStatus('pending');
+        setCalibrations(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching calibrations:", error);
+        setError(error.message || "Failed to load calibrations");
+        // Fallback to empty array if API fails
+        setCalibrations([]);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save calibrations to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(
-      "technician-calibrations",
-      JSON.stringify(calibrations)
-    );
-  }, [calibrations]);
+    fetchCalibrations();
+  }, []);
 
   // CRUD Functions
   const handleNewCalibration = () => {
@@ -229,6 +172,41 @@ const Calibrations: React.FC = () => {
         return <Settings className="w-4 h-4 text-gray-600" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading calibrations...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading calibrations
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

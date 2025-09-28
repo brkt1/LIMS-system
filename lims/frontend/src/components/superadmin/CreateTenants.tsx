@@ -1,5 +1,7 @@
 import { Check, Plus } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { superadminAPI } from "../../services/api";
+import { generateSecurePassword } from "../../utils/helpers";
 
 const CreateTenants: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,7 +17,7 @@ const CreateTenants: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const availableFeatures = [
+  const [availableFeatures] = useState([
     "Analytics Dashboard",
     "Advanced Reporting",
     "API Access",
@@ -24,31 +26,47 @@ const CreateTenants: React.FC = () => {
     "Data Export",
     "Multi-location Support",
     "Integration Tools",
-  ];
+  ]);
 
-  const plans = [
-    {
-      id: "Basic",
-      name: "Basic",
-      price: "$29/month",
-      maxUsers: 10,
-      features: ["Basic Dashboard", "Standard Support"],
-    },
-    {
-      id: "Professional",
-      name: "Professional",
-      price: "$79/month",
-      maxUsers: 50,
-      features: ["Advanced Analytics", "Priority Support", "API Access"],
-    },
-    {
-      id: "Enterprise",
-      name: "Enterprise",
-      price: "$199/month",
-      maxUsers: 200,
-      features: ["All Features", "Custom Branding", "Dedicated Support"],
-    },
-  ];
+  const [plans, setPlans] = useState<any[]>([]);
+
+  // Load plans from API
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await superadminAPI.plans.getAll();
+        setPlans(response.data);
+      } catch (error) {
+        console.error("Failed to load plans:", error);
+        // Fallback to default plans
+        setPlans([
+          {
+            id: "Basic",
+            name: "Basic",
+            price: process.env.REACT_APP_BASIC_PLAN_PRICE || "$29/month",
+            max_users: parseInt(process.env.REACT_APP_BASIC_PLAN_MAX_USERS || "10"),
+            features: (process.env.REACT_APP_BASIC_PLAN_FEATURES || "Basic Dashboard,Standard Support").split(","),
+          },
+          {
+            id: "Professional",
+            name: "Professional",
+            price: process.env.REACT_APP_PRO_PLAN_PRICE || "$79/month",
+            max_users: parseInt(process.env.REACT_APP_PRO_PLAN_MAX_USERS || "50"),
+            features: (process.env.REACT_APP_PRO_PLAN_FEATURES || "Advanced Analytics,Priority Support,API Access").split(","),
+          },
+          {
+            id: "Enterprise",
+            name: "Enterprise",
+            price: process.env.REACT_APP_ENTERPRISE_PLAN_PRICE || "$199/month",
+            max_users: parseInt(process.env.REACT_APP_ENTERPRISE_PLAN_MAX_USERS || "200"),
+            features: (process.env.REACT_APP_ENTERPRISE_PLAN_FEATURES || "All Features,Custom Branding,Dedicated Support").split(","),
+          },
+        ]);
+      }
+    };
+
+    fetchPlans();
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -73,25 +91,42 @@ const CreateTenants: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Create tenant using the backend API
+      const tenantData = {
+        company_name: formData.tenantName,
+        domain: formData.domain,
+        email: formData.adminEmail,
+        password: generateSecurePassword(), // Generate secure password
+        status: 'active',
+        billing_period: 'monthly',
+        max_users: formData.maxUsers,
+        created_by: 'superadmin', // This should come from the logged-in user
+      };
 
-    setIsSubmitting(false);
-    setShowSuccess(true);
+      await superadminAPI.tenants.create(tenantData);
+      
+      setIsSubmitting(false);
+      setShowSuccess(true);
 
-    // Reset form after success
-    setTimeout(() => {
-      setFormData({
-        tenantName: "",
-        domain: "",
-        adminEmail: "",
-        adminName: "",
-        plan: "Basic",
-        maxUsers: 10,
-        features: [],
-      });
-      setShowSuccess(false);
-    }, 3000);
+      // Reset form after success
+      setTimeout(() => {
+        setFormData({
+          tenantName: "",
+          domain: "",
+          adminEmail: "",
+          adminName: "",
+          plan: "Basic",
+          maxUsers: 10,
+          features: [],
+        });
+        setShowSuccess(false);
+      }, 3000);
+    } catch (error: any) {
+      console.error("Error creating tenant:", error);
+      setIsSubmitting(false);
+      // Handle error (you might want to show an error message)
+    }
   };
 
   const selectedPlan = plans.find((plan) => plan.id === formData.plan);

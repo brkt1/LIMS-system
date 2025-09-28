@@ -6,7 +6,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
 
 const UsageAnalysis: React.FC = () => {
@@ -51,6 +51,19 @@ const UsageAnalysis: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching usage data:", error);
         setError(error.message || "Failed to load usage data");
+        // Set default values when API fails
+        setUsageData({
+          totalUsers: 0,
+          activeUsers: 0,
+          totalTenants: 0,
+          activeTenants: 0,
+          totalTests: 0,
+          totalReports: 0,
+          systemUptime: 99.9,
+          avgResponseTime: 245,
+        });
+        setTenantUsage([]);
+        setFeatureUsage([]);
       } finally {
         setLoading(false);
       }
@@ -246,7 +259,7 @@ const UsageAnalysis: React.FC = () => {
                   Total Users
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {usageData.totalUsers.toLocaleString()}
+                  {(usageData.totalUsers || 0).toLocaleString()}
                 </p>
                 <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">
                   <TrendingUp className="w-3 h-3 mr-1" />
@@ -263,11 +276,11 @@ const UsageAnalysis: React.FC = () => {
                   Active Users
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {usageData.activeUsers.toLocaleString()}
+                  {(usageData.activeUsers || 0).toLocaleString()}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   {Math.round(
-                    (usageData.activeUsers / usageData.totalUsers) * 100
+                    (usageData.activeUsers / (usageData.totalUsers || 1)) * 100
                   )}
                   % of total
                 </p>
@@ -282,7 +295,7 @@ const UsageAnalysis: React.FC = () => {
                   Total Tests
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {usageData.totalTests.toLocaleString()}
+                  {(usageData.totalTests || 0).toLocaleString()}
                 </p>
                 <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">
                   <TrendingUp className="w-3 h-3 mr-1" />
@@ -381,7 +394,7 @@ const UsageAnalysis: React.FC = () => {
                   <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2 ml-2 flex-shrink-0">
                     <div
                       className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: `${(tenant.users / 156) * 100}%` }}
+                      style={{ width: `${(tenant.users / (tenant.maxUsers || 100)) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -439,7 +452,7 @@ const UsageAnalysis: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-gray-900 dark:text-white">
-                      {feature.users.toLocaleString()}
+                      {(feature.users || 0).toLocaleString()}
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
                       <span className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">

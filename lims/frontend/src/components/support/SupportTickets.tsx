@@ -1,16 +1,19 @@
 import {
   AlertCircle,
+  CheckCircle,
   Clock,
+  Edit,
+  Eye,
   Plus,
   Search,
   Ticket,
   TrendingUp,
-  X,
-  Eye,
   UserPlus,
-  Edit,
+  X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { supportTicketAPI } from "../../services/api";
+import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
 
 const SupportTickets: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,97 +50,30 @@ const SupportTickets: React.FC = () => {
   });
 
   // Tickets data state
-  const [tickets, setTickets] = useState([
-    {
-      id: "TKT001",
-      title: "Login Issues - User Cannot Access Dashboard",
-      description:
-        "User reports being unable to log into their dashboard after password reset",
-      status: "open",
-      priority: "high",
-      category: "Authentication",
-      reporter: "Dr. Sarah Johnson",
-      reporterEmail: "sarah.johnson@clinic.com",
-      assignedTo: "Support Team",
-      createdDate: "2025-01-22",
-      createdTime: "09:30 AM",
-      lastUpdated: "2025-01-22 10:15 AM",
-      tags: ["login", "dashboard", "authentication"],
-    },
-    {
-      id: "TKT002",
-      title: "Test Report Generation Error",
-      description: "System fails to generate PDF reports for completed tests",
-      status: "in_progress",
-      priority: "urgent",
-      category: "Reports",
-      reporter: "Mike Davis",
-      reporterEmail: "mike.davis@clinic.com",
-      assignedTo: "Technical Support",
-      createdDate: "2025-01-21",
-      createdTime: "2:45 PM",
-      lastUpdated: "2025-01-22 08:30 AM",
-      tags: ["reports", "pdf", "generation"],
-    },
-    {
-      id: "TKT003",
-      title: "Equipment Status Not Updating",
-      description: "Equipment maintenance status not reflecting in the system",
-      status: "resolved",
-      priority: "medium",
-      category: "Equipment",
-      reporter: "Lisa Wilson",
-      reporterEmail: "lisa.wilson@clinic.com",
-      assignedTo: "Support Team",
-      createdDate: "2025-01-20",
-      createdTime: "11:20 AM",
-      lastUpdated: "2025-01-21 3:15 PM",
-      tags: ["equipment", "maintenance", "status"],
-    },
-    {
-      id: "TKT004",
-      title: "Patient Data Export Issue",
-      description: "Cannot export patient data in CSV format",
-      status: "open",
-      priority: "low",
-      category: "Data Export",
-      reporter: "Robert Brown",
-      reporterEmail: "robert.brown@clinic.com",
-      assignedTo: "Unassigned",
-      createdDate: "2025-01-22",
-      createdTime: "1:15 PM",
-      lastUpdated: "2025-01-22 1:15 PM",
-      tags: ["export", "csv", "patient-data"],
-    },
-    {
-      id: "TKT005",
-      title: "Notification System Down",
-      description: "Email notifications not being sent to users",
-      status: "in_progress",
-      priority: "high",
-      category: "Notifications",
-      reporter: "Jennifer Smith",
-      reporterEmail: "jennifer.smith@clinic.com",
-      assignedTo: "Technical Support",
-      createdDate: "2025-01-21",
-      createdTime: "4:30 PM",
-      lastUpdated: "2025-01-22 09:45 AM",
-      tags: ["notifications", "email", "system"],
-    },
-  ]);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load tickets from localStorage on component mount
+  // Load tickets from API
   useEffect(() => {
-    const savedTickets = localStorage.getItem("supportTickets");
-    if (savedTickets) {
-      setTickets(JSON.parse(savedTickets));
-    }
+    const fetchTickets = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await supportTicketAPI.getTickets();
+        setTickets(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching support tickets:", error);
+        setError(error.message || "Failed to load support tickets");
+        // Fallback to empty array if API fails
+        setTickets([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTickets();
   }, []);
-
-  // Save tickets to localStorage whenever tickets change
-  useEffect(() => {
-    localStorage.setItem("supportTickets", JSON.stringify(tickets));
-  }, [tickets]);
 
   // Handler functions
   const handleNewTicket = () => {
@@ -177,64 +113,157 @@ const SupportTickets: React.FC = () => {
     setShowUpdateTicketModal(true);
   };
 
-  const handleCreateTicket = () => {
-    const newTicketData = {
-      id: `TKT${String(tickets.length + 1).padStart(3, "0")}`,
-      title: newTicket.title,
-      description: newTicket.description,
-      status: "open",
-      priority: newTicket.priority,
-      category: newTicket.category,
-      reporter: newTicket.reporter,
-      reporterEmail: newTicket.reporterEmail,
-      assignedTo: "Unassigned",
-      createdDate: new Date().toLocaleDateString(),
-      createdTime: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      lastUpdated: new Date().toLocaleString(),
-      tags: newTicket.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag),
-    };
-    setTickets([newTicketData, ...tickets]);
-    setShowNewTicketModal(false);
-  };
+  const handleCreateTicket = async () => {
+    try {
+      // Get current user info from localStorage or API
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const currentTenant = JSON.parse(localStorage.getItem('currentTenant') || '{}');
+      
+      const ticketData = {
+        title: newTicket.title,
+        description: newTicket.description,
+        priority: newTicket.priority,
+        category: newTicket.category,
+        reporter_name: newTicket.reporter,
+        reporter_email: newTicket.reporterEmail,
+        tags: newTicket.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        created_by: getCurrentUserId(), // Dynamic user ID
+        tenant: getCurrentTenantId(), // Dynamic tenant ID
+      };
 
-  const handleAssignSubmit = () => {
-    if (selectedTicket) {
-      const updatedTickets = tickets.map((ticket) =>
-        ticket.id === selectedTicket.id
-          ? {
-              ...ticket,
-              assignedTo: assignData.assignedTo,
-              lastUpdated: new Date().toLocaleString(),
-            }
-          : ticket
-      );
-      setTickets(updatedTickets);
-      setShowAssignTicketModal(false);
-      setSelectedTicket(null);
+      const response = await supportTicketAPI.createTicket(ticketData);
+      const createdTicket = response.data;
+      
+      // Refresh the tickets list
+      const updatedResponse = await supportTicketAPI.getTickets();
+      setTickets(updatedResponse.data || []);
+      
+      setShowNewTicketModal(false);
+      setNewTicket({
+        title: "",
+        description: "",
+        category: "",
+        priority: "medium",
+        reporter: "",
+        reporterEmail: "",
+        tags: "",
+      });
+    } catch (error: any) {
+      console.error("Error creating ticket:", error);
+      setError(error.message || "Failed to create ticket");
     }
   };
 
-  const handleUpdateSubmit = () => {
+  const handleAssignSubmit = async () => {
     if (selectedTicket) {
-      const updatedTickets = tickets.map((ticket) =>
-        ticket.id === selectedTicket.id
-          ? {
-              ...ticket,
-              status: updateData.status,
-              priority: updateData.priority,
-              lastUpdated: new Date().toLocaleString(),
-            }
-          : ticket
-      );
-      setTickets(updatedTickets);
-      setShowUpdateTicketModal(false);
-      setSelectedTicket(null);
+      try {
+        const assignmentData = {
+          assigned_to: assignData.assignedTo,
+        };
+
+        await supportTicketAPI.assignTicket(selectedTicket.id, assignmentData);
+        
+        // Refresh the tickets list
+        const updatedResponse = await supportTicketAPI.getTickets();
+        setTickets(updatedResponse.data || []);
+        
+        setShowAssignTicketModal(false);
+        setSelectedTicket(null);
+      } catch (error: any) {
+        console.error("Error assigning ticket:", error);
+        setError(error.message || "Failed to assign ticket");
+      }
+    }
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (selectedTicket) {
+      try {
+        const updateDataPayload = {
+          title: selectedTicket.title,
+          description: selectedTicket.description,
+          status: updateData.status,
+          priority: updateData.priority,
+          category: selectedTicket.category,
+          created_by: selectedTicket.created_by,
+          internal_notes: updateData.notes,
+        };
+
+        await supportTicketAPI.updateTicket(selectedTicket.id, updateDataPayload);
+        
+        // Refresh the tickets list
+        const updatedResponse = await supportTicketAPI.getTickets();
+        setTickets(updatedResponse.data || []);
+        
+        setShowUpdateTicketModal(false);
+        setSelectedTicket(null);
+      } catch (error: any) {
+        console.error("Error updating ticket:", error);
+        setError(error.message || "Failed to update ticket");
+      }
+    }
+  };
+
+  const handleResolveTicket = async (ticket: any) => {
+    try {
+      await supportTicketAPI.resolveTicket(ticket.id);
+      
+      // Refresh the tickets list
+      const updatedResponse = await supportTicketAPI.getTickets();
+      setTickets(updatedResponse.data || []);
+    } catch (error: any) {
+      console.error("Error resolving ticket:", error);
+      setError(error.message || "Failed to resolve ticket");
+    }
+  };
+
+  const handleCloseTicket = async (ticket: any) => {
+    try {
+      await supportTicketAPI.closeTicket(ticket.id);
+      
+      // Refresh the tickets list
+      const updatedResponse = await supportTicketAPI.getTickets();
+      setTickets(updatedResponse.data || []);
+    } catch (error: any) {
+      console.error("Error closing ticket:", error);
+      setError(error.message || "Failed to close ticket");
+    }
+  };
+
+  const handleDeleteTicket = async (ticket: any) => {
+    if (window.confirm(`Are you sure you want to delete ticket "${ticket.title}"?`)) {
+      try {
+        await supportTicketAPI.deleteTicket(ticket.id);
+        
+        // Refresh the tickets list
+        const updatedResponse = await supportTicketAPI.getTickets();
+        setTickets(updatedResponse.data || []);
+      } catch (error: any) {
+        console.error("Error deleting ticket:", error);
+        setError(error.message || "Failed to delete ticket");
+      }
+    }
+  };
+
+  const handleEscalateTicket = async (ticket: any) => {
+    const escalationReason = prompt("Please provide the escalation reason:");
+    if (escalationReason) {
+      try {
+        await supportTicketAPI.escalateTicket(ticket.id, {
+          escalation_reason: escalationReason,
+          escalation_level: (ticket.escalation_level || 0) + 1,
+        });
+        
+        // Refresh the tickets list
+        const updatedResponse = await supportTicketAPI.getTickets();
+        setTickets(updatedResponse.data || []);
+      } catch (error: any) {
+        console.error("Error escalating ticket:", error);
+        setError(error.message || "Failed to escalate ticket");
+      }
     }
   };
 
@@ -299,6 +328,41 @@ const SupportTickets: React.FC = () => {
         return <Ticket className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading support tickets...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading support tickets
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -466,27 +530,59 @@ const SupportTickets: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-1">
                       <button
                         onClick={() => handleViewTicket(ticket)}
-                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                        className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs"
                       >
                         <Eye className="w-3 h-3" />
                         <span>View</span>
                       </button>
                       <button
                         onClick={() => handleAssignTicket(ticket)}
-                        className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                        className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs"
                       >
                         <UserPlus className="w-3 h-3" />
                         <span>Assign</span>
                       </button>
                       <button
                         onClick={() => handleUpdateTicket(ticket)}
-                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-xs"
                       >
                         <Edit className="w-3 h-3" />
                         <span>Update</span>
+                      </button>
+                      {ticket.status !== 'resolved' && (
+                        <button
+                          onClick={() => handleResolveTicket(ticket)}
+                          className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 text-xs"
+                        >
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Resolve</span>
+                        </button>
+                      )}
+                      {ticket.status !== 'closed' && (
+                        <button
+                          onClick={() => handleCloseTicket(ticket)}
+                          className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 text-xs"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Close</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleEscalateTicket(ticket)}
+                        className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                      >
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Escalate</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTicket(ticket)}
+                        className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Delete</span>
                       </button>
                     </div>
                   </td>

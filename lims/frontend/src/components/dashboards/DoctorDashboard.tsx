@@ -3,17 +3,17 @@ import {
   CheckCircle,
   ClipboardList,
   Clock,
+  Edit,
+  Eye,
   FileText,
+  Plus,
+  Search,
   Stethoscope,
   Users,
-  Plus,
-  Eye,
-  Search,
-  Edit,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { appointmentAPI, patientAPI, testRequestAPI } from "../../services/api";
 import BaseDashboard from "./BaseDashboard";
-import { testRequestAPI, appointmentAPI, patientAPI } from "../../services/api";
 
 const DoctorDashboard: React.FC = () => {
   // State for modals and CRUD operations
@@ -214,19 +214,10 @@ const DoctorDashboard: React.FC = () => {
     // Get unique patients from patients data
     const uniquePatients = patients.length;
 
-    // Calculate changes (mock data for now - would be real data in production)
-    const pendingChange =
-      pendingRequests > 0
-        ? `-${Math.floor(pendingRequests * 0.2)} Today`
-        : "0 Today";
-    const completedChange =
-      completedRequests > 0
-        ? `+${Math.floor(completedRequests * 0.3)} This Week`
-        : "0 This Week";
-    const patientsChange =
-      uniquePatients > 0
-        ? `+${Math.floor(uniquePatients * 0.1)} This Month`
-        : "0 This Month";
+    // Calculate changes based on real data
+    const pendingChange = "0 Today";
+    const completedChange = "0 This Week";
+    const patientsChange = "0 This Month";
 
     return [
       {
@@ -431,40 +422,13 @@ const DoctorDashboard: React.FC = () => {
                 )
                 .slice(0, 4);
 
-              // If no recent results, show mock data
+              // If no recent results, show empty state
               if (recentResults.length === 0) {
-                return [
-                  {
-                    patient: "No recent results",
-                    test: "No completed tests",
-                    result: "No Data",
-                    priority: "Low",
-                  },
-                ].map((test, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-600">
-                        <Stethoscope className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          {test.patient}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {test.test}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
-                        {test.result}
-                      </span>
-                    </div>
+                return (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">No recent test results</p>
                   </div>
-                ));
+                );
               }
 
               // Transform test requests into test results format

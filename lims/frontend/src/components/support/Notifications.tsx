@@ -1,5 +1,6 @@
-import { Plus, Bell, X, Send, Users, AlertCircle } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { Bell, Plus, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { superadminAPI } from "../../services/api";
 
 const Notifications: React.FC = () => {
   // State management for modals
@@ -18,54 +19,30 @@ const Notifications: React.FC = () => {
   });
 
   // Notification history state
-  const [notifications, setNotifications] = useState([
-    {
-      id: "NOTIF001",
-      title: "System Maintenance Scheduled",
-      message:
-        "Scheduled maintenance will occur tonight from 2 AM to 4 AM. Please save your work.",
-      type: "warning",
-      recipients: "all",
-      priority: "high",
-      sentDate: "2025-01-22 10:00 AM",
-      status: "sent",
-    },
-    {
-      id: "NOTIF002",
-      title: "New Feature Available",
-      message:
-        "The new reporting dashboard is now available. Check it out in your dashboard.",
-      type: "info",
-      recipients: "doctors",
-      priority: "normal",
-      sentDate: "2025-01-21 3:30 PM",
-      status: "sent",
-    },
-    {
-      id: "NOTIF003",
-      title: "Security Update Required",
-      message:
-        "Please update your password to meet the new security requirements.",
-      type: "alert",
-      recipients: "all",
-      priority: "high",
-      sentDate: "2025-01-20 9:15 AM",
-      status: "sent",
-    },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load notifications from localStorage on component mount
+  // Load notifications from API
   useEffect(() => {
-    const savedNotifications = localStorage.getItem("supportNotifications");
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    }
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await superadminAPI.globalNotifications.getAll();
+        setNotifications(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching notifications:", error);
+        setError(error.message || "Failed to load notifications");
+        // Fallback to empty array if API fails
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
   }, []);
-
-  // Save notifications to localStorage whenever notifications change
-  useEffect(() => {
-    localStorage.setItem("supportNotifications", JSON.stringify(notifications));
-  }, [notifications]);
 
   // Handler functions
   const handleSendNotification = () => {

@@ -1,15 +1,12 @@
 import {
-  CheckCircle,
-  Plus,
   Eye,
-  Edit,
-  X,
+  Plus,
   Search,
-  Clock,
-  AlertTriangle,
   TestTube,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { technicianSampleAPI } from "../../services/api";
 
 const AcceptSamples: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,73 +31,30 @@ const AcceptSamples: React.FC = () => {
     receivedBy: "",
   });
 
-  const [acceptedSamples, setAcceptedSamples] = useState([
-    {
-      id: "AS001",
-      patientName: "John Smith",
-      patientId: "P001",
-      testType: "Blood Test",
-      sampleType: "Blood",
-      priority: "high",
-      status: "accepted",
-      receivedDate: "2025-01-20",
-      receivedBy: "Mike Davis",
-      notes: "Urgent blood work required",
-      acceptedDate: "2025-01-20",
-      acceptedBy: "Current Technician",
-    },
-    {
-      id: "AS002",
-      patientName: "Sarah Johnson",
-      patientId: "P002",
-      testType: "Urine Analysis",
-      sampleType: "Urine",
-      priority: "normal",
-      status: "pending",
-      receivedDate: "2025-01-20",
-      receivedBy: "Lisa Wilson",
-      notes: "Routine checkup",
-      acceptedDate: "",
-      acceptedBy: "",
-    },
-    {
-      id: "AS003",
-      patientName: "Robert Brown",
-      patientId: "P003",
-      testType: "Tissue Biopsy",
-      sampleType: "Tissue",
-      priority: "high",
-      status: "rejected",
-      receivedDate: "2025-01-19",
-      receivedBy: "Mike Davis",
-      notes: "Insufficient sample quality",
-      acceptedDate: "",
-      acceptedBy: "",
-      rejectedDate: "2025-01-19",
-      rejectedBy: "Current Technician",
-      rejectionReason: "Sample contamination detected",
-    },
-  ]);
+  const [acceptedSamples, setAcceptedSamples] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load accepted samples from localStorage on component mount
+  // Load accepted samples from API
   useEffect(() => {
-    const savedSamples = localStorage.getItem("technician-accepted-samples");
-    if (savedSamples) {
+    const fetchAcceptedSamples = async () => {
       try {
-        setAcceptedSamples(JSON.parse(savedSamples));
-      } catch (error) {
-        console.error("Error loading saved accepted samples:", error);
+        setLoading(true);
+        setError(null);
+        const response = await technicianSampleAPI.getByStatus('received');
+        setAcceptedSamples(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching accepted samples:", error);
+        setError(error.message || "Failed to load accepted samples");
+        // Fallback to empty array if API fails
+        setAcceptedSamples([]);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save accepted samples to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(
-      "technician-accepted-samples",
-      JSON.stringify(acceptedSamples)
-    );
-  }, [acceptedSamples]);
+    fetchAcceptedSamples();
+  }, []);
 
   // CRUD Functions
   const handleAcceptSample = () => {
@@ -198,6 +152,41 @@ const AcceptSamples: React.FC = () => {
         return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading samples...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading samples
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

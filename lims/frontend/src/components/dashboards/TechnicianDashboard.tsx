@@ -1,20 +1,18 @@
 import {
   CheckCircle,
   ClipboardCheck,
+  Clock,
+  Edit,
+  Eye,
   FileText,
+  Plus,
   TestTube,
   Wrench,
-  Plus,
-  Eye,
-  Edit,
-  X,
-  Download,
-  Share,
-  Clock,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { equipmentAPI, technicianSampleAPI, testReportAPI } from "../../services/api";
 import BaseDashboard from "./BaseDashboard";
-import { sampleAPI, testReportAPI, equipmentAPI } from "../../services/api";
 
 const TechnicianDashboard: React.FC = () => {
   // Modal states
@@ -73,7 +71,7 @@ const TechnicianDashboard: React.FC = () => {
     try {
       setSamplesLoading(true);
       setSamplesError(null);
-      const response = await sampleAPI.getAll();
+      const response = await technicianSampleAPI.getAll();
       console.log("🧪 Samples fetched:", response.data);
       setSamples(response.data);
     } catch (err: any) {

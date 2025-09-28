@@ -6,8 +6,10 @@ import {
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { testRequestAPI } from "../services/api";
 
 interface TableData {
   id: number;
@@ -24,39 +26,42 @@ const RecentDataTable: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterValue, setFilterValue] = useState("All");
   const [sortBy, setSortBy] = useState("Date");
+  const [tableData, setTableData] = useState<TableData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const tableData: TableData[] = [
-    {
-      id: 1,
-      name: "Susan Williams",
-      testType: "Blood Test",
-      email: "susan@example.com",
-      quantity: 1,
-      totalPrice: "$152.00",
-      date: "Apr 22, 2025 12:00 AM",
-      avatar: "SW",
-    },
-    {
-      id: 2,
-      name: "Bentley Howard",
-      testType: "Urine Test",
-      email: "bentley@example.com",
-      quantity: 2,
-      totalPrice: "$89.50",
-      date: "Apr 21, 2025 10:30 AM",
-      avatar: "BH",
-    },
-    {
-      id: 3,
-      name: "Alice Johnson",
-      testType: "X-Ray",
-      email: "alice@example.com",
-      quantity: 1,
-      totalPrice: "$245.00",
-      date: "Apr 20, 2025 3:15 PM",
-      avatar: "AJ",
-    },
-  ];
+  // Load recent test data from backend API
+  useEffect(() => {
+    const fetchRecentData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await testRequestAPI.getAll();
+        
+        // Map backend data to frontend expected format
+        const mappedData = response.data.map((test: any) => ({
+          id: test.id,
+          name: test.patient_name || "Unknown Patient",
+          testType: test.test_type || "Unknown Test",
+          email: test.patient_email || "No email",
+          quantity: 1, // Default quantity
+          totalPrice: "$0.00", // Default price since backend doesn't have pricing
+          date: test.date_requested ? new Date(test.date_requested).toLocaleString() : "Unknown date",
+          avatar: test.patient_name ? test.patient_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : "UN",
+        }));
+        
+        setTableData(mappedData);
+      } catch (error: any) {
+        console.error("Error fetching recent test data:", error);
+        setError(error.message || "Failed to load recent data");
+        setTableData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentData();
+  }, []);
 
   const filteredData = tableData.filter(
     (item) =>
@@ -72,6 +77,35 @@ const RecentDataTable: React.FC = () => {
           Recent Test Requests
         </h3>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-300">
+            Loading recent data...
+          </span>
+        </div>
+      )}
 
       {/* Search and Filter Controls */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -118,7 +152,8 @@ const RecentDataTable: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      {!loading && (
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200">
@@ -213,6 +248,7 @@ const RecentDataTable: React.FC = () => {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 };

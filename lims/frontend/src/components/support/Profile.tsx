@@ -1,5 +1,5 @@
-import { ArrowLeft, Edit, Save, X, Eye, EyeOff } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { ArrowLeft, Edit, Eye, EyeOff, Save, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { profileAPI } from "../../services/api";
@@ -25,18 +25,23 @@ const Profile: React.FC = () => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
 
+  // Profile options state
+  const [timezones, setTimezones] = useState<any[]>([]);
+  const [languages, setLanguages] = useState<any[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+
   // Support profile data state
   const [profileData, setProfileData] = useState({
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.johnson@support.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Support Street, City, State 12345",
-    employeeId: "SUP001",
-    department: "Technical Support",
-    position: "Senior Support Specialist",
-    hireDate: "2022-03-15",
-    bio: "Experienced support specialist with expertise in system troubleshooting and user assistance.",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    employeeId: "",
+    department: "",
+    position: "",
+    hireDate: "",
+    bio: "",
     timezone: "America/New_York",
     language: "en",
     notifications: {
@@ -46,21 +51,46 @@ const Profile: React.FC = () => {
     },
   });
 
-  // Load profile data from API on component mount
+  // Load profile data and options from API on component mount
   useEffect(() => {
     loadProfile();
+    loadProfileOptions();
   }, []);
 
-  // Save profile data to localStorage only when using mock authentication
-  useEffect(() => {
-    // Only save to localStorage if we're not in editing mode and using mock auth
-    const token = localStorage.getItem("access_token");
-    const isMockAuth = token && token.startsWith("mock_");
+  const loadProfileOptions = async () => {
+    try {
+      setOptionsLoading(true);
+      const [timezonesResponse, languagesResponse] = await Promise.all([
+        profileAPI.getTimezones(),
+        profileAPI.getLanguages(),
+      ]);
 
-    if (!isEditing && isMockAuth) {
-      localStorage.setItem("supportProfile", JSON.stringify(profileData));
+      if (timezonesResponse.data.success) {
+        setTimezones(timezonesResponse.data.data);
+      }
+      if (languagesResponse.data.success) {
+        setLanguages(languagesResponse.data.data);
+      }
+    } catch (error: any) {
+      console.error("Error loading profile options:", error);
+      // Set fallback options if API fails
+      setTimezones([
+        { value: "UTC", label: "UTC" },
+        { value: "America/New_York", label: "Eastern Time" },
+        { value: "America/Chicago", label: "Central Time" },
+        { value: "America/Denver", label: "Mountain Time" },
+        { value: "America/Los_Angeles", label: "Pacific Time" },
+      ]);
+      setLanguages([
+        { value: "en", label: "English" },
+        { value: "am", label: "Amharic" },
+        { value: "om", label: "Oromo" },
+      ]);
+    } finally {
+      setOptionsLoading(false);
     }
-  }, [profileData, isEditing]);
+  };
+
 
   const loadProfile = async () => {
     try {
@@ -68,18 +98,16 @@ const Profile: React.FC = () => {
       const data = response.data;
 
       setProfileData({
-        firstName: data.first_name || user?.first_name || "Sarah",
-        lastName: data.last_name || user?.last_name || "Johnson",
-        email: data.email || user?.email || "sarah.johnson@support.com",
-        phone: data.phone || "+1 (555) 123-4567",
-        address: data.address || "123 Support Street, City, State 12345",
-        employeeId: data.employee_id || "SUP001",
-        department: data.department || "Technical Support",
-        position: data.position || "Senior Support Specialist",
-        hireDate: data.hire_date || "2022-03-15",
-        bio:
-          data.bio ||
-          "Experienced support specialist with expertise in system troubleshooting and user assistance.",
+        firstName: data.first_name || "",
+        lastName: data.last_name || "",
+        email: data.email || user?.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        employeeId: data.employee_id || "",
+        department: data.department || "",
+        position: data.position || "",
+        hireDate: data.hire_date || "",
+        bio: data.bio || "",
         timezone: data.timezone || "America/New_York",
         language: data.language || "en",
         notifications: {
@@ -94,49 +122,19 @@ const Profile: React.FC = () => {
         // Construct full URL for the profile picture
         const fullUrl = data.profile_picture.startsWith("http")
           ? data.profile_picture
-          : `http://127.0.0.1:8000${data.profile_picture}`;
+          : `${window.location.origin}${data.profile_picture}`;
         setProfilePicture(fullUrl);
       }
 
       console.log("Support profile loaded successfully from backend:", data);
     } catch (error: any) {
       console.error("Failed to load support profile:", error);
-
-      // If it's a 403 error, the user is using mock authentication
-      if (error.response?.status === 403) {
-        console.log(
-          "Using mock authentication - profile data will be stored locally"
-        );
-        // Load from localStorage if available
-        const savedProfile = localStorage.getItem("supportProfile");
-        if (savedProfile) {
-          try {
-            const parsedProfile = JSON.parse(savedProfile);
-            setProfileData(parsedProfile);
-            // Also load profile picture from localStorage
-            if (parsedProfile.profilePicture) {
-              setProfilePicture(parsedProfile.profilePicture);
-            }
-          } catch (parseError) {
-            console.error("Error parsing saved profile:", parseError);
-          }
-        }
-      } else if (error.response?.status === 401) {
+      
+      if (error.response?.status === 401) {
         console.log("Authentication required - user needs to log in");
         setLocalError("Please log in to access your profile.");
-        // Try to load from localStorage as fallback
-        const savedProfile = localStorage.getItem("supportProfile");
-        if (savedProfile) {
-          try {
-            const parsedProfile = JSON.parse(savedProfile);
-            setProfileData(parsedProfile);
-            if (parsedProfile.profilePicture) {
-              setProfilePicture(parsedProfile.profilePicture);
-            }
-          } catch (parseError) {
-            console.error("Error parsing saved profile:", parseError);
-          }
-        }
+      } else {
+        setLocalError("Failed to load profile. Please try again.");
       }
     }
   };
@@ -222,16 +220,7 @@ const Profile: React.FC = () => {
     } catch (err: any) {
       console.error("Profile update error:", err);
 
-      // If it's a 403 error, fall back to localStorage
-      if (err.response?.status === 403) {
-        console.log("Using mock authentication - saving to localStorage");
-        localStorage.setItem("supportProfile", JSON.stringify(profileData));
-        setIsEditing(false);
-        setSuccessMessage("Profile updated successfully! (Saved locally)");
-        setLocalError(null);
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccessMessage(null), 3000);
-      } else if (err.response?.status === 400) {
+      if (err.response?.status === 400) {
         // Handle validation errors from backend
         const errorData = err.response.data;
         if (typeof errorData === "object") {
@@ -287,14 +276,7 @@ const Profile: React.FC = () => {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      // If it's a 403 error, show a message about mock authentication
-      if (err.response?.status === 403) {
-        setLocalError(
-          "Password change not available with mock authentication. Please log in with real credentials."
-        );
-      } else {
-        setLocalError("Failed to change password");
-      }
+      setLocalError("Failed to change password");
     }
   };
 
@@ -313,52 +295,15 @@ const Profile: React.FC = () => {
         // Construct full URL for the profile picture
         const fullUrl = response.data.profile_picture.startsWith("http")
           ? response.data.profile_picture
-          : `http://127.0.0.1:8000${response.data.profile_picture}`;
+          : `${window.location.origin}${response.data.profile_picture}`;
         setProfilePicture(fullUrl);
-
-        // Also save to localStorage for persistence
-        const updatedProfileData = { ...profileData, profilePicture: fullUrl };
-        localStorage.setItem(
-          "supportProfile",
-          JSON.stringify(updatedProfileData)
-        );
       }
 
       setSuccessMessage("Profile picture uploaded successfully!");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error("Profile picture upload error:", err);
-      console.error("Error status:", err.response?.status);
-      console.error("Error response:", err.response);
-
-      // If it's a 403 error, show a message about mock authentication
-      if (err.response?.status === 403) {
-        setLocalError(
-          "Profile picture upload not available with mock authentication. Please log in with real credentials."
-        );
-      } else if (err.response?.status === 500 || err.message?.includes("500")) {
-        // For 500 errors, try to save to localStorage as fallback
-        try {
-          const mockUrl = URL.createObjectURL(file);
-          setProfilePicture(mockUrl);
-          const updatedProfileData = {
-            ...profileData,
-            profilePicture: mockUrl,
-          };
-          localStorage.setItem(
-            "supportProfile",
-            JSON.stringify(updatedProfileData)
-          );
-          setLocalError(
-            "Server error occurred, but image saved locally. Please try again later."
-          );
-        } catch (fallbackError) {
-          console.error("Fallback save failed:", fallbackError);
-          setLocalError("Failed to upload profile picture. Please try again.");
-        }
-      } else {
-        setLocalError("Failed to upload profile picture. Please try again.");
-      }
+      setLocalError("Failed to upload profile picture. Please try again.");
     } finally {
       setUploadLoading(false);
     }
@@ -372,25 +317,11 @@ const Profile: React.FC = () => {
       await profileAPI.deleteProfilePicture();
       setProfilePicture(null);
 
-      // Also save to localStorage for persistence
-      const updatedProfileData = { ...profileData, profilePicture: null };
-      localStorage.setItem(
-        "supportProfile",
-        JSON.stringify(updatedProfileData)
-      );
-
       setSuccessMessage("Profile picture deleted successfully!");
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error("Profile picture delete error:", err);
-      // If it's a 403 error, show a message about mock authentication
-      if (err.response?.status === 403) {
-        setLocalError(
-          "Profile picture deletion not available with mock authentication. Please log in with real credentials."
-        );
-      } else {
-        setLocalError("Failed to delete profile picture. Please try again.");
-      }
+      setLocalError("Failed to delete profile picture. Please try again.");
     } finally {
       setUploadLoading(false);
     }
@@ -659,17 +590,15 @@ const Profile: React.FC = () => {
                 name="timezone"
                 value={profileData.timezone}
                 onChange={handleInputChange}
-                disabled={!isEditing}
+                disabled={!isEditing || optionsLoading}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
               >
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">Eastern Time</option>
-                <option value="America/Chicago">Central Time</option>
-                <option value="America/Denver">Mountain Time</option>
-                <option value="America/Los_Angeles">Pacific Time</option>
-                <option value="Europe/London">London</option>
-                <option value="Europe/Paris">Paris</option>
-                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="">Select timezone</option>
+                {timezones.map((timezone) => (
+                  <option key={timezone.value} value={timezone.value}>
+                    {timezone.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -680,12 +609,15 @@ const Profile: React.FC = () => {
                 name="language"
                 value={profileData.language}
                 onChange={handleInputChange}
-                disabled={!isEditing}
+                disabled={!isEditing || optionsLoading}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
               >
-                <option value="en">English</option>
-                <option value="om">Oromo</option>
-                <option value="am">Amharic</option>
+                <option value="">Select language</option>
+                {languages.map((language) => (
+                  <option key={language.value} value={language.value}>
+                    {language.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

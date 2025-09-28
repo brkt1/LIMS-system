@@ -7,8 +7,9 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
+import { getClientIP } from "../../utils/helpers";
 
 const SystemLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,22 +17,22 @@ const SystemLogs: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const logLevels = [
-    { id: "all", name: "All Levels", count: 1247 },
-    { id: "error", name: "Error", count: 23 },
-    { id: "warning", name: "Warning", count: 45 },
-    { id: "info", name: "Info", count: 1156 },
-    { id: "debug", name: "Debug", count: 23 },
-  ];
+  const [logLevels, setLogLevels] = useState([
+    { id: "all", name: "All Levels", count: 0 },
+    { id: "error", name: "Error", count: 0 },
+    { id: "warning", name: "Warning", count: 0 },
+    { id: "info", name: "Info", count: 0 },
+    { id: "debug", name: "Debug", count: 0 },
+  ]);
 
-  const logCategories = [
+  const [logCategories] = useState([
     { id: "all", name: "All Categories" },
     { id: "authentication", name: "Authentication" },
     { id: "database", name: "Database" },
     { id: "api", name: "API" },
     { id: "system", name: "System" },
     { id: "security", name: "Security" },
-  ];
+  ]);
 
   const [systemLogs, setSystemLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,18 +46,11 @@ const SystemLogs: React.FC = () => {
         setError(null);
         const response = await superadminAPI.logs.getAll();
         setSystemLogs(response.data);
+        updateLogLevelCounts(response.data);
       } catch (error: any) {
         console.error("Error fetching system logs:", error);
         setError(error.message || "Failed to load system logs");
-        // Fallback to localStorage if API fails
-        const savedLogs = localStorage.getItem("superadmin-system-logs");
-        if (savedLogs) {
-          try {
-            setSystemLogs(JSON.parse(savedLogs));
-          } catch (parseError) {
-            console.error("Error parsing saved logs:", parseError);
-          }
-        }
+        setSystemLogs([]);
       } finally {
         setLoading(false);
       }
@@ -64,6 +58,24 @@ const SystemLogs: React.FC = () => {
 
     fetchLogs();
   }, []);
+
+  const updateLogLevelCounts = (logs: any[]) => {
+    const counts = {
+      all: logs.length,
+      error: logs.filter(log => log.level === 'error').length,
+      warning: logs.filter(log => log.level === 'warning').length,
+      info: logs.filter(log => log.level === 'info').length,
+      debug: logs.filter(log => log.level === 'debug').length,
+    };
+
+    setLogLevels([
+      { id: "all", name: "All Levels", count: counts.all },
+      { id: "error", name: "Error", count: counts.error },
+      { id: "warning", name: "Warning", count: counts.warning },
+      { id: "info", name: "Info", count: counts.info },
+      { id: "debug", name: "Debug", count: counts.debug },
+    ]);
+  };
 
   // Export functionality
   const handleExportLogs = () => {
@@ -128,7 +140,7 @@ const SystemLogs: React.FC = () => {
       category: "system",
       message: "System logs refreshed successfully",
       user: "system",
-      ip: "127.0.0.1",
+      ip: getClientIP(),
       tenant: "System",
       details: {
         refreshTime: new Date().toISOString(),

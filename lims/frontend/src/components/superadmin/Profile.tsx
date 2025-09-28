@@ -1,8 +1,9 @@
-import { ArrowLeft, Edit, Save, X, Eye, EyeOff } from "lucide-react";
-import React, { useState } from "react";
+import { ArrowLeft, Edit, Eye, EyeOff, Save, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useProfile } from "../../hooks/useProfile";
+import { profileAPI } from "../../services/api";
 import ProfilePictureUpload from "../ProfilePictureUpload";
 
 const Profile: React.FC = () => {
@@ -36,6 +37,50 @@ const Profile: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Profile options state
+  const [timezones, setTimezones] = useState<any[]>([]);
+  const [languages, setLanguages] = useState<any[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+
+  // Load profile options on component mount
+  useEffect(() => {
+    loadProfileOptions();
+  }, []);
+
+  const loadProfileOptions = async () => {
+    try {
+      setOptionsLoading(true);
+      const [timezonesResponse, languagesResponse] = await Promise.all([
+        profileAPI.getTimezones(),
+        profileAPI.getLanguages(),
+      ]);
+
+      if (timezonesResponse.data.success) {
+        setTimezones(timezonesResponse.data.data);
+      }
+      if (languagesResponse.data.success) {
+        setLanguages(languagesResponse.data.data);
+      }
+    } catch (error: any) {
+      console.error("Error loading profile options:", error);
+      // Set fallback options if API fails
+      setTimezones([
+        { value: "UTC", label: "UTC" },
+        { value: "America/New_York", label: "Eastern Time" },
+        { value: "America/Chicago", label: "Central Time" },
+        { value: "America/Denver", label: "Mountain Time" },
+        { value: "America/Los_Angeles", label: "Pacific Time" },
+      ]);
+      setLanguages([
+        { value: "en", label: "English" },
+        { value: "am", label: "Amharic" },
+        { value: "om", label: "Oromo" },
+      ]);
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -363,17 +408,15 @@ const Profile: React.FC = () => {
                 name="timezone"
                 value={profileData.timezone}
                 onChange={handleInputChange}
-                disabled={!isEditing}
+                disabled={!isEditing || optionsLoading}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
               >
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">Eastern Time</option>
-                <option value="America/Chicago">Central Time</option>
-                <option value="America/Denver">Mountain Time</option>
-                <option value="America/Los_Angeles">Pacific Time</option>
-                <option value="Europe/London">London</option>
-                <option value="Europe/Paris">Paris</option>
-                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="">Select timezone</option>
+                {timezones.map((timezone) => (
+                  <option key={timezone.value} value={timezone.value}>
+                    {timezone.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -384,12 +427,15 @@ const Profile: React.FC = () => {
                 name="language"
                 value={profileData.language}
                 onChange={handleInputChange}
-                disabled={!isEditing}
+                disabled={!isEditing || optionsLoading}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600"
               >
-                <option value="en">English</option>
-                <option value="om">Oromo</option>
-                <option value="am">Amharic</option>
+                <option value="">Select language</option>
+                {languages.map((language) => (
+                  <option key={language.value} value={language.value}>
+                    {language.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

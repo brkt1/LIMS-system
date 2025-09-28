@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import Tenant, BillingPlan, TenantPlan, BillingTransaction, UsageMetrics, SystemLog, SystemHealth
+from .models import (
+    Tenant, BillingPlan, TenantPlan, BillingTransaction, UsageMetrics, 
+    SystemLog, SystemHealth, SuperAdminUser, UserSession, DatabaseBackup,
+    GlobalNotification, NotificationTemplate, NotificationHistory
+)
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -147,3 +151,120 @@ class BillingAnalyticsSerializer(serializers.Serializer):
     churn_rate = serializers.FloatField()
     average_revenue_per_user = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_customers = serializers.IntegerField()
+
+
+# New Serializers for Additional Models
+class SuperAdminUserSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.first_name', read_only=True)
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SuperAdminUser
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
+            'role', 'status', 'is_active', 'last_login', 'created_at', 'updated_at',
+            'created_by', 'created_by_name'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'last_login']
+
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+
+
+class UserSessionSerializer(serializers.ModelSerializer):
+    session_duration = serializers.SerializerMethodField()
+    last_activity_ago = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserSession
+        fields = [
+            'id', 'user_id', 'user_name', 'user_email', 'user_role',
+            'tenant_id', 'tenant_name', 'status', 'ip_address', 'user_agent',
+            'location', 'device_info', 'session_start', 'last_activity',
+            'actions_count', 'is_active', 'session_duration', 'last_activity_ago'
+        ]
+        read_only_fields = ['id', 'session_start', 'last_activity']
+
+    def get_session_duration(self, obj):
+        from django.utils import timezone
+        duration = timezone.now() - obj.session_start
+        hours = duration.total_seconds() // 3600
+        minutes = (duration.total_seconds() % 3600) // 60
+        return f"{int(hours)}h {int(minutes)}m"
+
+    def get_last_activity_ago(self, obj):
+        from django.utils import timezone
+        from django.utils.timesince import timesince
+        return timesince(obj.last_activity, timezone.now())
+
+
+class DatabaseBackupSerializer(serializers.ModelSerializer):
+    file_size_mb = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(source='created_by', read_only=True)
+
+    class Meta:
+        model = DatabaseBackup
+        fields = [
+            'id', 'name', 'backup_type', 'status', 'file_path', 'file_size',
+            'file_size_mb', 'created_by', 'created_by_name', 'created_at',
+            'completed_at', 'scheduled_at', 'is_scheduled', 'schedule_frequency',
+            'notes', 'error_message'
+        ]
+        read_only_fields = ['id', 'created_at', 'completed_at']
+
+    def get_file_size_mb(self, obj):
+        if obj.file_size:
+            return round(obj.file_size / (1024 * 1024), 2)
+        return None
+
+
+class GlobalNotificationSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by', read_only=True)
+    delivery_rate = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GlobalNotification
+        fields = [
+            'id', 'title', 'message', 'notification_type', 'priority',
+            'target_audience', 'target_tenants', 'target_roles', 'is_scheduled',
+            'scheduled_at', 'expires_at', 'is_active', 'created_by', 'created_by_name',
+            'created_at', 'sent_at', 'total_recipients', 'delivered_count',
+            'read_count', 'delivery_rate'
+        ]
+        read_only_fields = ['id', 'created_at', 'sent_at', 'total_recipients', 'delivered_count', 'read_count']
+
+    def get_delivery_rate(self, obj):
+        if obj.total_recipients > 0:
+            return round((obj.delivered_count / obj.total_recipients) * 100, 2)
+        return 0
+
+
+class NotificationTemplateSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by', read_only=True)
+
+    class Meta:
+        model = NotificationTemplate
+        fields = [
+            'id', 'name', 'title_template', 'message_template', 'notification_type',
+            'is_active', 'created_by', 'created_by_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class NotificationHistorySerializer(serializers.ModelSerializer):
+    notification_title = serializers.CharField(source='notification.title', read_only=True)
+    time_since_sent = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NotificationHistory
+        fields = [
+            'id', 'notification', 'notification_title', 'recipient_id', 'recipient_email',
+            'recipient_name', 'tenant_id', 'tenant_name', 'sent_at', 'delivered_at',
+            'read_at', 'status', 'time_since_sent'
+        ]
+        read_only_fields = ['id', 'sent_at']
+
+    def get_time_since_sent(self, obj):
+        from django.utils import timezone
+        from django.utils.timesince import timesince
+        return timesince(obj.sent_at, timezone.now())

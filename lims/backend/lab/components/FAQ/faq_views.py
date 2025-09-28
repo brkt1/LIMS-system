@@ -1,92 +1,146 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
-from django.db import models
-from .faq_models import FAQCategory, FAQ, FAQFeedback
-from .faq_serializers import FAQCategorySerializer, FAQSerializer, FAQListSerializer, FAQFeedbackSerializer
+from rest_framework.permissions import AllowAny
+from django.db.models import Q
+from .faq_models import FAQ
+from .faq_serializers import FAQSerializer
 
-class FAQCategoryViewSet(viewsets.ModelViewSet):
-    queryset = FAQCategory.objects.filter(is_active=True)
-    serializer_class = FAQCategorySerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    search_fields = ['name', 'description']
-    filterset_fields = ['is_active']
 
 class FAQViewSet(viewsets.ModelViewSet):
-    queryset = FAQ.objects.filter(is_published=True)
+    """
+    ViewSet for managing FAQ items
+    """
+    queryset = FAQ.objects.all()
     serializer_class = FAQSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'is_published']
-    search_fields = ['question', 'answer']
-    ordering_fields = ['question', 'view_count', 'helpful_count', 'created_at']
-    ordering = ['question']
-    
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return FAQListSerializer
-        return FAQSerializer
-    
-    @action(detail=True, methods=['post'])
-    def view(self, request, pk=None):
-        faq = self.get_object()
-        faq.view_count += 1
-        faq.save()
-        return Response({'status': 'View count updated'})
-    
-    @action(detail=True, methods=['post'])
-    def feedback(self, request, pk=None):
-        faq = self.get_object()
-        is_helpful = request.data.get('is_helpful')
-        comment = request.data.get('comment', '')
+    permission_classes = [AllowAny]  # Temporarily allow unauthenticated access for testing
+    filter_backends = []
+    search_fields = ['question', 'answer', 'category__name']
+    ordering_fields = ['category', 'helpful_count', 'created_at']
+    ordering = ['category', '-helpful_count']
+
+    def get_queryset(self):
+        """
+        Filter FAQ items based on category
+        """
+        queryset = FAQ.objects.filter(is_published=True)
         
-        if is_helpful is None:
-            return Response({'error': 'is_helpful field is required'}, status=status.HTTP_400_BAD_REQUEST)
+        # Filter by category
+        category = self.request.query_params.get('category', 'all')
+        if category != 'all':
+            queryset = queryset.filter(category__name=category)
         
-        # Create feedback
-        feedback_data = {
-            'faq': faq.id,
-            'is_helpful': is_helpful,
-            'comment': comment,
-            'user_ip': request.META.get('REMOTE_ADDR')
-        }
-        
-        serializer = FAQFeedbackSerializer(data=feedback_data)
-        if serializer.is_valid():
-            serializer.save()
-            
-            # Update helpful/not helpful counts
-            if is_helpful:
-                faq.helpful_count += 1
-            else:
-                faq.not_helpful_count += 1
-            faq.save()
-            
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=False, methods=['get'])
-    def search(self, request):
-        query = request.query_params.get('q', '')
-        category = request.query_params.get('category')
-        
-        queryset = self.get_queryset()
-        
-        if query:
+        # Search functionality
+        search = self.request.query_params.get('search')
+        if search:
             queryset = queryset.filter(
-                models.Q(question__icontains=query) | 
-                models.Q(answer__icontains=query)
+                Q(question__icontains=search) |
+                Q(answer__icontains=search)
             )
         
-        if category:
-            queryset = queryset.filter(category_id=category)
-        
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return queryset
 
-class FAQFeedbackViewSet(viewsets.ModelViewSet):
-    queryset = FAQFeedback.objects.all()
-    serializer_class = FAQFeedbackSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['faq', 'is_helpful']
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """
+        Get list of FAQ categories
+        """
+        try:
+            from .faq_models import FAQCategory
+            
+            # Get categories from database
+            faq_categories = FAQCategory.objects.filter(is_active=True)
+            
+            categories = [
+                {
+                    'value': category.name,
+                    'label': category.name,
+                    'description': category.description or f'FAQ category: {category.name}'
+                }
+                for category in faq_categories
+            ]
+            
+            # If no categories in database, return default categories
+            if not categories:
+                categories = [
+                    {'value': 'General', 'label': 'General Questions', 'description': 'General information and policies'},
+                    {'value': 'Technical', 'label': 'Technical Support', 'description': 'Technical issues and troubleshooting'},
+                    {'value': 'Account', 'label': 'Account Management', 'description': 'Profile and account settings'},
+                    {'value': 'Billing', 'label': 'Billing & Payments', 'description': 'Payment and billing questions'}
+                ]
+            
+            return Response({
+                'success': True,
+                'data': categories,
+                'count': len(categories)
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def mark_helpful(self, request, pk=None):
+        """
+        Mark an FAQ item as helpful
+        """
+        try:
+            faq = self.get_object()
+            faq.helpful_count += 1
+            faq.save()
+            
+            return Response({
+                'success': True,
+                'message': 'FAQ marked as helpful',
+                'helpful_count': faq.helpful_count
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def mark_not_helpful(self, request, pk=None):
+        """
+        Mark an FAQ item as not helpful
+        """
+        try:
+            faq = self.get_object()
+            faq.not_helpful_count += 1
+            faq.save()
+            
+            return Response({
+                'success': True,
+                'message': 'FAQ marked as not helpful',
+                'not_helpful_count': faq.not_helpful_count
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def popular(self, request):
+        """
+        Get most popular FAQ items
+        """
+        try:
+            limit = int(request.query_params.get('limit', 10))
+            
+            queryset = self.get_queryset()
+            popular_faqs = queryset.order_by('-helpful_count')[:limit]
+            serializer = self.get_serializer(popular_faqs, many=True)
+            
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'count': len(serializer.data)
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,20 +1,21 @@
 import {
   Activity,
   Clock,
+  Edit,
+  Eye,
   Globe,
   MapPin,
   Monitor,
   RefreshCw,
   Search,
+  Trash2,
   User,
   Users,
-  Eye,
-  Edit,
-  Trash2,
   X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
+import { getClientIP } from "../../utils/helpers";
 
 const MonitorUsers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,44 +47,27 @@ const MonitorUsers: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        // For now, we'll use the users API to get all users and simulate online status
-        const response = await superadminAPI.users.getAll();
-        const users = response.data.map((user: any, index: number) => ({
-          ...user,
-          status:
-            index % 3 === 0 ? "online" : index % 3 === 1 ? "idle" : "away",
-          lastActivity: `${Math.floor(Math.random() * 60)} minutes ago`,
-          ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
-          location: [
-            "New York, US",
-            "Los Angeles, US",
-            "Chicago, US",
-            "Miami, US",
-          ][Math.floor(Math.random() * 4)],
-          device: [
-            "Chrome on Windows",
-            "Safari on Mac",
-            "Firefox on Linux",
-            "Edge on Windows",
-          ][Math.floor(Math.random() * 4)],
-          sessionDuration: `${Math.floor(Math.random() * 5)}h ${Math.floor(
-            Math.random() * 60
-          )}m`,
-          actions: Math.floor(Math.random() * 200),
+        // Use the new sessions API to get user sessions
+        const response = await superadminAPI.sessions.getAll();
+        const users = response.data.map((session: any) => ({
+          id: session.user_id,
+          name: session.user_name,
+          email: session.user_email,
+          role: session.user_role,
+          tenant: session.tenant_name || "System",
+          status: session.status,
+          lastActivity: session.last_activity_ago,
+          ipAddress: session.ip_address,
+          location: session.location || "Unknown",
+          device: session.device_info || "Unknown",
+          sessionDuration: session.session_duration,
+          actions: session.actions_count,
         }));
         setOnlineUsers(users);
       } catch (error: any) {
         console.error("Error fetching online users:", error);
         setError(error.message || "Failed to load online users");
-        // Fallback to localStorage if API fails
-        const savedUsers = localStorage.getItem("superadmin-online-users");
-        if (savedUsers) {
-          try {
-            setOnlineUsers(JSON.parse(savedUsers));
-          } catch (parseError) {
-            console.error("Error parsing saved users:", parseError);
-          }
-        }
+        setOnlineUsers([]);
       } finally {
         setLoading(false);
       }
@@ -108,7 +92,7 @@ const MonitorUsers: React.FC = () => {
       tenant: "System",
       status: "online",
       lastActivity: "Just now",
-      ipAddress: "127.0.0.1",
+      ipAddress: getClientIP(),
       location: "Unknown",
       device: "Unknown",
       sessionDuration: "0m",
@@ -418,7 +402,7 @@ const MonitorUsers: React.FC = () => {
                             <span className="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400">
                               {user.name
                                 .split(" ")
-                                .map((n) => n[0])
+                                .map((n: any[]) => n[0])
                                 .join("")}
                             </span>
                           </div>

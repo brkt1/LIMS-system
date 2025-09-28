@@ -1,17 +1,13 @@
 import {
-  Calendar,
-  Plus,
-  Search,
-  Clock,
-  MapPin,
-  User,
-  Phone,
-  Eye,
-  Play,
-  Edit,
-  X,
+    Edit,
+    Eye,
+    MapPin,
+    Play,
+    Plus,
+    Search,
+    X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { homeVisitScheduleAPI } from "../../services/api";
 
 const HomeVisitSchedule: React.FC = () => {
@@ -51,6 +47,7 @@ const HomeVisitSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
   // Load home visit schedules from backend API
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -80,15 +77,8 @@ const HomeVisitSchedule: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching home visit schedules:", error);
         setError(error.message || "Failed to load home visit schedules");
-        // Fallback to localStorage if API fails
-        const savedVisits = localStorage.getItem("scheduledVisits");
-        if (savedVisits) {
-          try {
-            setScheduledVisits(JSON.parse(savedVisits));
-          } catch (parseError) {
-            console.error("Error parsing saved visits:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setScheduledVisits([]);
       } finally {
         setLoading(false);
       }

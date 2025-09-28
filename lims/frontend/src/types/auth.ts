@@ -7,6 +7,13 @@ export type UserRole =
   | 'patient';
 
 export interface User {
+  [x: string]: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  first_name: string;
+  last_name: string;
+  username: string;
   id: number;
   email: string;
   role: UserRole;

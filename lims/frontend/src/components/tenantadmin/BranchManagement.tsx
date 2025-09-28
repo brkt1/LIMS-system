@@ -1,17 +1,17 @@
 import {
   Building2,
-  Plus,
-  Search,
+  Edit,
+  Eye,
   MapPin,
   Phone,
-  Users,
-  Calendar,
-  Eye,
-  Edit,
-  X,
+  Plus,
+  Search,
   Settings,
+  Users,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { branchAPI } from "../../services/api";
 
 const BranchManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,106 +68,30 @@ const BranchManagement: React.FC = () => {
   });
 
   // Convert static data to state
-  const [branches, setBranches] = useState([
-    {
-      id: "BR001",
-      name: "Main Clinic",
-      address: "123 Medical Center Dr, Health City, HC 12345",
-      phone: "+1 (555) 123-4567",
-      email: "main@medicareclinic.com",
-      status: "active",
-      city: "Health City",
-      state: "HC",
-      zipCode: "12345",
-      manager: "Dr. Sarah Johnson",
-      establishedDate: "2020-01-15",
-      totalStaff: 25,
-      totalPatients: 1247,
-      services: ["General Medicine", "Laboratory", "Radiology"],
-      operatingHours: "Mon-Fri 8AM-6PM, Sat 9AM-2PM",
-    },
-    {
-      id: "BR002",
-      name: "Downtown Branch",
-      address: "456 Business Ave, Downtown, DT 54321",
-      phone: "+1 (555) 234-5678",
-      email: "downtown@medicareclinic.com",
-      status: "active",
-      city: "Downtown",
-      state: "DT",
-      zipCode: "54321",
-      manager: "Dr. Mike Davis",
-      establishedDate: "2021-06-10",
-      totalStaff: 15,
-      totalPatients: 856,
-      services: ["Cardiology", "Neurology", "Laboratory"],
-      operatingHours: "Mon-Fri 7AM-5PM",
-    },
-    {
-      id: "BR003",
-      name: "Suburban Clinic",
-      address: "789 Suburb St, Suburbia, SB 98765",
-      phone: "+1 (555) 345-6789",
-      email: "suburban@medicareclinic.com",
-      status: "inactive",
-      city: "Suburbia",
-      state: "SB",
-      zipCode: "98765",
-      manager: "Dr. Lisa Wilson",
-      establishedDate: "2022-03-20",
-      totalStaff: 8,
-      totalPatients: 423,
-      services: ["Pediatrics", "Family Medicine"],
-      operatingHours: "Mon-Fri 9AM-4PM",
-    },
-    {
-      id: "BR004",
-      name: "Emergency Center",
-      address: "321 Emergency Blvd, Urgent City, UC 11111",
-      phone: "+1 (555) 456-7890",
-      email: "emergency@medicareclinic.com",
-      status: "active",
-      city: "Urgent City",
-      state: "UC",
-      zipCode: "11111",
-      manager: "Dr. Robert Brown",
-      establishedDate: "2023-01-05",
-      totalStaff: 30,
-      totalPatients: 2103,
-      services: ["Emergency Medicine", "Trauma", "ICU"],
-      operatingHours: "24/7",
-    },
-    {
-      id: "BR005",
-      name: "Specialty Center",
-      address: "654 Specialty Dr, Expert City, EC 22222",
-      phone: "+1 (555) 567-8901",
-      email: "specialty@medicareclinic.com",
-      status: "pending",
-      city: "Expert City",
-      state: "EC",
-      zipCode: "22222",
-      manager: "Dr. Jennifer Smith",
-      establishedDate: "2025-01-20",
-      totalStaff: 0,
-      totalPatients: 0,
-      services: ["Oncology", "Surgery", "Rehabilitation"],
-      operatingHours: "Mon-Fri 8AM-6PM",
-    },
-  ]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load branches from localStorage on component mount
+  // Load branches from API
   useEffect(() => {
-    const savedBranches = localStorage.getItem("tenantBranches");
-    if (savedBranches) {
-      setBranches(JSON.parse(savedBranches));
-    }
+    const fetchBranches = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await branchAPI.getAll();
+        setBranches(response.data || []);
+      } catch (error: any) {
+        console.error("Error fetching branches:", error);
+        setError(error.message || "Failed to load branches");
+        // Fallback to empty array if API fails
+        setBranches([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBranches();
   }, []);
-
-  // Save branches to localStorage whenever branches change
-  useEffect(() => {
-    localStorage.setItem("tenantBranches", JSON.stringify(branches));
-  }, [branches]);
 
   const filteredBranches = branches.filter((branch) => {
     const matchesSearch =
@@ -311,6 +235,41 @@ const BranchManagement: React.FC = () => {
     // For now, we'll just close the modal
     setShowManageBranchModal(false);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading branches...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error loading branches
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

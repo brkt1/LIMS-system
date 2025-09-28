@@ -1,15 +1,11 @@
 import {
-  Calculator,
   Plus,
   Search,
-  DollarSign,
-  TrendingUp,
-  Edit,
   Trash2,
-  Eye,
-  X,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { testPricingAPI } from "../../services/api";
 
 const TestPricing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,117 +44,65 @@ const TestPricing: React.FC = () => {
     code: "",
   });
 
-  // Dynamic pricing state
-  const [pricingItems, setPricingItems] = useState([
-    {
-      id: "PRC001",
-      testName: "Complete Blood Count (CBC)",
-      category: "Hematology",
-      basePrice: 45.0,
-      insurancePrice: 35.0,
-      cashPrice: 40.0,
-      status: "active",
-      lastUpdated: "2025-01-20",
-      updatedBy: "Dr. Sarah Johnson",
-      description: "Measures different components of blood",
-      turnaroundTime: "30 minutes",
-      requirements: "Blood sample (2ml)",
-      code: "CBC",
-    },
-    {
-      id: "PRC002",
-      testName: "Lipid Panel",
-      category: "Chemistry",
-      basePrice: 65.0,
-      insurancePrice: 50.0,
-      cashPrice: 55.0,
-      status: "active",
-      lastUpdated: "2025-01-18",
-      updatedBy: "Dr. Mike Davis",
-      description: "Measures cholesterol and triglyceride levels",
-      turnaroundTime: "45 minutes",
-      requirements: "Fasting blood sample (3ml)",
-      code: "LIPID",
-    },
-    {
-      id: "PRC003",
-      testName: "COVID-19 PCR Test",
-      category: "Microbiology",
-      basePrice: 120.0,
-      insurancePrice: 100.0,
-      cashPrice: 110.0,
-      status: "active",
-      lastUpdated: "2025-01-15",
-      updatedBy: "Dr. Lisa Wilson",
-      description: "Detects SARS-CoV-2 virus genetic material",
-      turnaroundTime: "2-4 hours",
-      requirements: "Nasal swab",
-      code: "COVID-PCR",
-    },
-    {
-      id: "PRC004",
-      testName: "Thyroid Function Test",
-      category: "Endocrinology",
-      basePrice: 85.0,
-      insurancePrice: 70.0,
-      cashPrice: 75.0,
-      status: "inactive",
-      lastUpdated: "2024-12-10",
-      updatedBy: "Dr. Robert Brown",
-      description: "Measures thyroid hormone levels",
-      turnaroundTime: "1 hour",
-      requirements: "Blood sample (2ml)",
-      code: "TFT",
-    },
-    {
-      id: "PRC005",
-      testName: "Urinalysis Complete",
-      category: "Urinalysis",
-      basePrice: 25.0,
-      insurancePrice: 20.0,
-      cashPrice: 22.0,
-      status: "active",
-      lastUpdated: "2025-01-22",
-      updatedBy: "Dr. Jennifer Smith",
-      description: "Comprehensive analysis of urine sample",
-      turnaroundTime: "20 minutes",
-      requirements: "Midstream urine sample (50ml)",
-      code: "UA",
-    },
-    {
-      id: "PRC006",
-      testName: "Blood Culture",
-      category: "Microbiology",
-      basePrice: 95.0,
-      insurancePrice: 80.0,
-      cashPrice: 85.0,
-      status: "active",
-      lastUpdated: "2025-01-19",
-      updatedBy: "Dr. Sarah Johnson",
-      description: "Detects bacterial or fungal infections in blood",
-      turnaroundTime: "24-48 hours",
-      requirements: "Blood sample (10ml)",
-      code: "BC",
-    },
-  ]);
+  // Test pricing state
+  const [pricingItems, setPricingItems] = useState<any[]>([]);
+  const [testCategories, setTestCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load pricing items from localStorage on component mount
+
+  // Load pricing items from backend API
   useEffect(() => {
-    const savedPricing = localStorage.getItem("test-pricing");
-    if (savedPricing) {
+    const fetchPricingItems = async () => {
       try {
-        const parsedPricing = JSON.parse(savedPricing);
-        setPricingItems(parsedPricing);
-      } catch (error) {
-        console.error("Error loading pricing:", error);
-      }
-    }
-  }, []);
+        setLoading(true);
+        setError(null);
+        const response = await testPricingAPI.getAll();
 
-  // Save pricing items to localStorage whenever pricing changes
-  useEffect(() => {
-    localStorage.setItem("test-pricing", JSON.stringify(pricingItems));
-  }, [pricingItems]);
+        // Map backend data to frontend expected format
+        const mappedPricingItems = response.data.map((item: any) => ({
+          id: item.id,
+          testName: item.test_name,
+          category: item.category,
+          basePrice: parseFloat(item.base_price),
+          insurancePrice: parseFloat(item.base_price) * 0.8, // 20% discount for insurance
+          cashPrice: parseFloat(item.base_price) * 0.9, // 10% discount for cash
+          status: item.is_active ? "active" : "inactive",
+          lastUpdated: item.updated_at ? item.updated_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          updatedBy: item.created_by || "System",
+          turnaroundTime: item.turnaround_time || "24-48 hours",
+          requirements: item.preparation_instructions || "",
+          code: item.test_code,
+        }));
+
+        setPricingItems(mappedPricingItems);
+      } catch (error: any) {
+        console.error("Error fetching test pricing:", error);
+        setError(error.message || "Failed to load test pricing");
+        setPricingItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchTestCategories = async () => {
+      try {
+        const categoriesResponse = await testPricingAPI.getCategories();
+        if (categoriesResponse.data.success) {
+          setTestCategories(categoriesResponse.data.data);
+        } else {
+          throw new Error('Failed to load test categories');
+        }
+      } catch (error: any) {
+        console.error("Error fetching test categories:", error);
+        // Fallback to empty array if API fails
+        setTestCategories([]);
+      }
+    };
+
+    fetchPricingItems();
+    fetchTestCategories();
+  }, []);
 
   const filteredPricing = pricingItems.filter((item) => {
     const matchesSearch =
@@ -297,6 +241,27 @@ const TestPricing: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading test pricing...</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -510,11 +475,11 @@ const TestPricing: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select category</option>
-                    <option value="Hematology">Hematology</option>
-                    <option value="Chemistry">Chemistry</option>
-                    <option value="Microbiology">Microbiology</option>
-                    <option value="Endocrinology">Endocrinology</option>
-                    <option value="Urinalysis">Urinalysis</option>
+                    {testCategories.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

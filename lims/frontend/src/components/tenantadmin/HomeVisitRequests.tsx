@@ -1,17 +1,15 @@
 import {
+  Calendar,
+  Check,
+  Eye,
+  MapPin,
   Plus,
   Search,
-  Stethoscope,
-  MapPin,
-  Clock,
-  Phone,
-  Calendar,
-  Eye,
-  Check,
-  X,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { homeVisitRequestAPI } from "../../services/api";
+import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
 
 const HomeVisitRequests: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +41,7 @@ const HomeVisitRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
 
   // Load home visit requests from backend API
   useEffect(() => {
@@ -76,15 +75,8 @@ const HomeVisitRequests: React.FC = () => {
       } catch (error: any) {
         console.error("Error fetching home visit requests:", error);
         setError(error.message || "Failed to load home visit requests");
-        // Fallback to localStorage if API fails
-        const savedRequests = localStorage.getItem("homeVisitRequests");
-        if (savedRequests) {
-          try {
-            setRequests(JSON.parse(savedRequests));
-          } catch (parseError) {
-            console.error("Error parsing saved requests:", parseError);
-          }
-        }
+        // Set empty array when API fails
+        setRequests([]);
       } finally {
         setLoading(false);
       }
@@ -154,8 +146,8 @@ const HomeVisitRequests: React.FC = () => {
           priority: newRequest.priority,
           estimated_duration: newRequest.estimatedDuration,
           status: "pending",
-          tenant: 1, // Default tenant ID
-          created_by: 1, // Default user ID
+          tenant: getCurrentTenantId(), // Dynamic tenant ID
+          created_by: getCurrentUserId(), // Dynamic user ID
         };
 
         const response = await homeVisitRequestAPI.create(requestData);

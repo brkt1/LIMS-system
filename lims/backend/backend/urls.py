@@ -36,16 +36,24 @@ urlpatterns = [
     # Patient Portal endpoints
     path('api/patient-appointments/', include('lab.components.PatientPortal.PatientAppointment.PatientAppointment_urls')),
     
+    # Patient Management endpoints
+    path('api/patient/', include('lab.components.Patient.patient_urls')),
+    
     # Technician endpoints
     path('api/samples/', include('lab.components.Technician.Sample.sample_urls')),
     path('api/accept/', include('lab.components.Technician.Sample.accept_urls')),
     path('api/test-reports/', include('lab.components.Technician.TestReport.test_reports_urls')),
     path('api/equipment/', include('lab.components.Technician.Equipment.equipment_urls')),
+    path('api/technician/', include('lab.components.Technician.technician_urls')),
     
     # Tenant Admin endpoints
     path('', include('lab.components.tenantadmin.CurrentTenant.current_tenant_urls')),
     path('api/tenantadmin/profiles/', include('lab.components.tenantadmin.TenantAdminProfile.tenantadmin_profile_urls')),
     path('', include('lab.components.tenantadmin.ManageUsers.manage_users_urls')),
+    path('', include('lab.components.tenantadmin.DoctorManagement.doctor_urls')),
+    path('', include('lab.components.tenantadmin.EquipmentManagement.equipment_urls')),
+    path('', include('lab.components.tenantadmin.TestPricing.test_pricing_urls')),
+    path('', include('lab.components.tenantadmin.CulturesAntibiotics.cultures_urls')),
     path('api/home-visit-patients/', include('lab.components.tenantadmin.HomeVisitRequests.approved_patient_urls')),
     path('api/home-visit-doctors/', include('lab.components.tenantadmin.HomeVisitRequests.approved_doctor_urls')),
     

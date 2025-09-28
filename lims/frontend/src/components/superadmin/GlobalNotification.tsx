@@ -1,18 +1,16 @@
 import {
   Bell,
   Calendar,
-  Check,
   Edit,
   Eye,
   Plus,
+  Save,
   Send,
   Trash2,
-  Users,
-  X,
-  Save,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import { notificationAPI } from "../../services/api";
+import React, { useEffect, useState } from "react";
+import { notificationAPI, superadminAPI } from "../../services/api";
 
 const GlobalNotification: React.FC = () => {
   const [activeTab, setActiveTab] = useState("compose");
@@ -61,101 +59,29 @@ const GlobalNotification: React.FC = () => {
   // Filter states
   const [filterType, setFilterType] = useState("all");
 
-  const notificationStats = {
-    totalSent: 1247,
-    pending: 23,
-    delivered: 1200,
-    failed: 24,
-    openRate: 78.5,
-    clickRate: 12.3,
-  };
+  const [notificationStats, setNotificationStats] = useState({
+    totalSent: 0,
+    pending: 0,
+    delivered: 0,
+    failed: 0,
+    openRate: 0,
+    clickRate: 0,
+  });
 
-  const [notificationTemplates, setNotificationTemplates] = useState([
-    {
-      id: "1",
-      name: "System Maintenance",
-      subject: "Scheduled System Maintenance",
-      type: "maintenance",
-      lastUsed: "2025-01-15",
-      usageCount: 5,
-    },
-    {
-      id: "2",
-      name: "Security Alert",
-      subject: "Security Notice: Password Reset Required",
-      type: "security",
-      lastUsed: "2025-01-18",
-      usageCount: 12,
-    },
-    {
-      id: "3",
-      name: "Feature Update",
-      subject: "New Features Available in Your Dashboard",
-      type: "feature",
-      lastUsed: "2025-01-10",
-      usageCount: 3,
-    },
-    {
-      id: "4",
-      name: "Billing Reminder",
-      subject: "Payment Due: Subscription Renewal",
-      type: "billing",
-      lastUsed: "2025-01-20",
-      usageCount: 8,
-    },
-  ]);
+  const [notificationTemplates, setNotificationTemplates] = useState<any[]>([]);
 
-  const [recentNotifications, setRecentNotifications] = useState([
-    {
-      id: "1",
-      subject: "Scheduled System Maintenance",
-      type: "maintenance",
-      status: "sent",
-      recipients: 1247,
-      sentAt: "2025-01-20 14:30",
-      openRate: 85.2,
-      clickRate: 15.7,
-    },
-    {
-      id: "2",
-      subject: "New Security Features Available",
-      type: "security",
-      status: "pending",
-      recipients: 1247,
-      sentAt: "2025-01-20 16:00",
-      openRate: 0,
-      clickRate: 0,
-    },
-    {
-      id: "3",
-      subject: "Payment Due: Subscription Renewal",
-      type: "billing",
-      status: "sent",
-      recipients: 24,
-      sentAt: "2025-01-19 09:00",
-      openRate: 92.1,
-      clickRate: 8.3,
-    },
-    {
-      id: "4",
-      subject: "API Rate Limit Warning",
-      type: "warning",
-      status: "failed",
-      recipients: 8,
-      sentAt: "2025-01-18 11:30",
-      openRate: 0,
-      clickRate: 0,
-    },
-  ]);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
 
   // Load data from API on component mount
   useEffect(() => {
     loadNotifications();
+    loadTemplates();
+    loadStats();
   }, []);
 
   const loadNotifications = async () => {
     try {
-      const response = await notificationAPI.getAll();
+      const response = await superadminAPI.globalNotifications.getAll();
       const notifications = response.data;
 
       // Convert API notifications to the format expected by the component
@@ -164,9 +90,9 @@ const GlobalNotification: React.FC = () => {
         subject: notification.title,
         message: notification.message,
         type: notification.notification_type,
-        recipients: notification.is_global ? "All Users" : "Specific Users",
+        recipients: notification.target_audience === 'all' ? "All Users" : "Specific Users",
         sentDate: notification.created_at,
-        status: notification.is_read ? "Read" : "Unread",
+        status: notification.sent_at ? "Sent" : "Draft",
         priority: notification.priority,
       }));
 
@@ -174,6 +100,37 @@ const GlobalNotification: React.FC = () => {
     } catch (error) {
       console.error("Failed to load notifications:", error);
       // Keep the default data if API fails
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const response = await superadminAPI.notificationTemplates.getAll();
+      setNotificationTemplates(response.data);
+    } catch (error) {
+      console.error("Failed to load templates:", error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      // Calculate stats from notifications
+      const notifications = recentNotifications;
+      const totalSent = notifications.filter(n => n.status === 'sent').length;
+      const pending = notifications.filter(n => n.status === 'pending').length;
+      const delivered = notifications.filter(n => n.status === 'sent').length;
+      const failed = notifications.filter(n => n.status === 'failed').length;
+      
+      setNotificationStats({
+        totalSent,
+        pending,
+        delivered,
+        failed,
+        openRate: 78.5, // This would come from actual analytics
+        clickRate: 12.3, // This would come from actual analytics
+      });
+    } catch (error) {
+      console.error("Failed to load stats:", error);
     }
   };
 

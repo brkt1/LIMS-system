@@ -3,19 +3,19 @@ import {
   ChevronDown,
   ChevronUp,
   Edit,
+  Eye,
   MoreVertical,
   Plus,
   Search,
   Trash2,
-  Users,
-  X,
-  Eye,
-  Settings,
   UserCheck,
+  Users,
   UserX,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
+import { generateSecurePassword } from "../../utils/helpers";
 
 const ManageTenants: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,19 +54,20 @@ const ManageTenants: React.FC = () => {
         setLoading(true);
         setError(null);
         const response = await superadminAPI.tenants.getAll();
-        setTenants(response.data);
+        
+        // Validate and sanitize the response data
+        const tenantsData = Array.isArray(response.data) ? response.data : [];
+        const validTenants = tenantsData.filter(tenant => 
+          tenant && 
+          typeof tenant === 'object' && 
+          (tenant.company_name || tenant.domain)
+        );
+        
+        setTenants(validTenants);
       } catch (error: any) {
         console.error("Error fetching tenants:", error);
         setError(error.message || "Failed to load tenants");
-        // Fallback to localStorage if API fails
-        const savedTenants = localStorage.getItem("superadmin-tenants");
-        if (savedTenants) {
-          try {
-            setTenants(JSON.parse(savedTenants));
-          } catch (parseError) {
-            console.error("Error parsing saved tenants:", parseError);
-          }
-        }
+        setTenants([]);
       } finally {
         setLoading(false);
       }
@@ -105,8 +106,8 @@ const ManageTenants: React.FC = () => {
       const tenantData = {
         company_name: newTenant.name,
         domain: newTenant.domain,
-        email: `${newTenant.domain}@example.com`, // You might want to add email field to form
-        password: "defaultpassword123", // You might want to add password field to form
+        email: `${newTenant.domain}@${process.env.REACT_APP_DEFAULT_DOMAIN || 'lims.com'}`, // Generate email from domain
+        password: generateSecurePassword(), // Generate secure password
         status: newTenant.status.toLowerCase(),
         max_users: newTenant.users,
         created_by: "SuperAdmin", // You might want to get this from auth context
@@ -199,11 +200,13 @@ const ManageTenants: React.FC = () => {
   };
 
   const filteredTenants = tenants.filter((tenant) => {
+    if (!tenant) return false;
+    
     const matchesSearch =
-      tenant.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.domain?.toLowerCase().includes(searchTerm.toLowerCase());
+      (tenant.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (tenant.domain || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "" || tenant.status === filterStatus;
-    const matchesPlan = filterPlan === "" || tenant.plan_name === filterPlan;
+    const matchesPlan = filterPlan === "" || (tenant.plan_name || tenant.billing_period) === filterPlan;
     return matchesSearch && matchesStatus && matchesPlan;
   });
 
@@ -474,10 +477,10 @@ const ManageTenants: React.FC = () => {
                       <td className="py-4 px-4">
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {tenant.company_name}
+                            {tenant.company_name || 'N/A'}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {tenant.domain}
+                            {tenant.domain || 'N/A'}
                           </p>
                         </div>
                       </td>
@@ -491,22 +494,22 @@ const ManageTenants: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.current_users}
+                        {tenant.current_users || 0}
                       </td>
                       <td className="py-4 px-4">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
-                            tenant.plan_name
+                            tenant.plan_name || tenant.billing_period
                           )}`}
                         >
-                          {tenant.plan_name}
+                          {tenant.plan_name || tenant.billing_period || 'N/A'}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {new Date(tenant.created_at).toLocaleDateString()}
+                        {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {new Date(tenant.last_active).toLocaleDateString()}
+                        {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
@@ -550,10 +553,10 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
-                      {tenant.company_name}
+                      {tenant.company_name || 'N/A'}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {tenant.domain}
+                      {tenant.domain || 'N/A'}
                     </p>
                   </div>
                   <span
@@ -571,7 +574,7 @@ const ManageTenants: React.FC = () => {
                       Users
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                      {tenant.current_users}
+                      {tenant.current_users || 0}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -580,10 +583,10 @@ const ManageTenants: React.FC = () => {
                     </span>
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
-                        tenant.plan_name
+                        tenant.plan_name || tenant.billing_period
                       )}`}
                     >
-                      {tenant.plan_name}
+                      {tenant.plan_name || tenant.billing_period || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -591,7 +594,7 @@ const ManageTenants: React.FC = () => {
                       Created
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                      {new Date(tenant.created_at).toLocaleDateString()}
+                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -623,7 +626,7 @@ const ManageTenants: React.FC = () => {
                     </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       Last active:{" "}
-                      {new Date(tenant.last_active).toLocaleDateString()}
+                      {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
