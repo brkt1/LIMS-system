@@ -1,9 +1,9 @@
 import {
-  Eye,
-  Plus,
-  Search,
-  TestTube,
-  X
+    Eye,
+    Plus,
+    Search,
+    TestTube,
+    X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { technicianSampleAPI } from "../../services/api";
@@ -116,10 +116,10 @@ const AcceptSamples: React.FC = () => {
 
   const filteredSamples = acceptedSamples.filter((sample) => {
     const matchesSearch =
-      sample.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sample.patientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sample.testType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sample.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (sample.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (sample.patientId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (sample.testType?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (sample.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || sample.status === filterStatus;
     const matchesPriority =
@@ -128,7 +128,7 @@ const AcceptSamples: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "accepted":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "pending":
@@ -141,7 +141,7 @@ const AcceptSamples: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase() || '') {
       case "high":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "normal":

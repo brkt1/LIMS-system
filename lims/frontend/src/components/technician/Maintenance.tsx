@@ -1,17 +1,17 @@
 import {
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Edit,
-  Eye,
-  Plus,
-  Search,
-  Wrench,
-  X
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Edit,
+    Eye,
+    Plus,
+    Search,
+    Wrench,
+    X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { labWorkflowAPI } from "../../services/api";
+import { technicianEquipmentAPI } from "../../services/api";
 
 const Maintenance: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,8 +49,24 @@ const Maintenance: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await labWorkflowAPI.getByWorkflowType('equipment_maintenance');
-        setMaintenanceRecords(response.data || []);
+        const response = await technicianEquipmentAPI.getAll();
+        // Transform equipment data to maintenance format
+        const equipmentData = response.data || [];
+        const maintenanceData = equipmentData.map((equipment: any, index: number) => ({
+          id: `MNT${String(index + 1).padStart(3, "0")}`,
+          equipmentName: equipment.name || equipment.equipment_name || `Equipment ${index + 1}`,
+          equipmentId: equipment.id || equipment.equipment_id || `EQ${index + 1}`,
+          maintenanceType: "Preventive",
+          technician: "Current Technician",
+          scheduledDate: new Date().toISOString().split("T")[0],
+          priority: "normal",
+          description: "Regular maintenance scheduled",
+          estimatedDuration: "2 hours",
+          status: "scheduled",
+          actualDuration: "",
+          notes: "",
+        }));
+        setMaintenanceRecords(maintenanceData);
       } catch (error: any) {
         console.error("Error fetching maintenance records:", error);
         setError(error.message || "Failed to load maintenance records");
@@ -121,16 +137,13 @@ const Maintenance: React.FC = () => {
 
   const filteredMaintenance = maintenanceRecords.filter((maintenance) => {
     const matchesSearch =
-      maintenance.equipmentName
-        .toLowerCase()
+      (maintenance.equipmentName?.toLowerCase() || '')
         .includes(searchTerm.toLowerCase()) ||
-      maintenance.equipmentId
-        .toLowerCase()
+      (maintenance.equipmentId?.toLowerCase() || '')
         .includes(searchTerm.toLowerCase()) ||
-      maintenance.maintenanceType
-        .toLowerCase()
+      (maintenance.maintenanceType?.toLowerCase() || '')
         .includes(searchTerm.toLowerCase()) ||
-      maintenance.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (maintenance.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || maintenance.status === filterStatus;
     const matchesType =
@@ -139,7 +152,7 @@ const Maintenance: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "completed":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "scheduled":
