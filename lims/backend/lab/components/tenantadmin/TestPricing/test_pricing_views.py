@@ -104,7 +104,9 @@ class TestPricingRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
                 return Response({"error": f"Tenant '{data['tenant']}' does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(instance, data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response({"error": "Validation failed", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         self.perform_update(serializer)
         return Response({"test_pricing": serializer.data}, status=status.HTTP_200_OK)
 

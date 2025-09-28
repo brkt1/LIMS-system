@@ -1,11 +1,7 @@
-import {
-  Plus,
-  Search,
-  Trash2,
-  X
-} from "lucide-react";
+import { Plus, Search, Trash2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { testPricingAPI } from "../../services/api";
+import { getCurrentTenantId } from "../../utils/helpers";
 
 const TestPricing: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,7 +45,7 @@ const TestPricing: React.FC = () => {
   const [testCategories, setTestCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Load pricing items from backend API
   useEffect(() => {
@@ -68,7 +64,9 @@ const TestPricing: React.FC = () => {
           insurancePrice: parseFloat(item.base_price) * 0.8, // 20% discount for insurance
           cashPrice: parseFloat(item.base_price) * 0.9, // 10% discount for cash
           status: item.is_active ? "active" : "inactive",
-          lastUpdated: item.updated_at ? item.updated_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          lastUpdated: item.updated_at
+            ? item.updated_at.split("T")[0]
+            : new Date().toISOString().split("T")[0],
           updatedBy: item.created_by || "System",
           turnaroundTime: item.turnaround_time || "24-48 hours",
           requirements: item.preparation_instructions || "",
@@ -88,15 +86,30 @@ const TestPricing: React.FC = () => {
     const fetchTestCategories = async () => {
       try {
         const categoriesResponse = await testPricingAPI.getCategories();
+        console.log("🔍 Categories response:", categoriesResponse.data);
         if (categoriesResponse.data.success) {
           setTestCategories(categoriesResponse.data.data);
+          console.log("🔍 Loaded categories:", categoriesResponse.data.data);
         } else {
-          throw new Error('Failed to load test categories');
+          throw new Error("Failed to load test categories");
         }
       } catch (error: any) {
         console.error("Error fetching test categories:", error);
-        // Fallback to empty array if API fails
-        setTestCategories([]);
+        // Fallback to hardcoded categories if API fails
+        const fallbackCategories = [
+          { value: "blood_tests", label: "Blood Tests" },
+          { value: "urine_tests", label: "Urine Tests" },
+          { value: "imaging", label: "Imaging" },
+          { value: "microbiology", label: "Microbiology" },
+          { value: "pathology", label: "Pathology" },
+          { value: "cardiology", label: "Cardiology" },
+          { value: "neurology", label: "Neurology" },
+          { value: "pulmonology", label: "Pulmonology" },
+          { value: "endocrinology", label: "Endocrinology" },
+          { value: "immunology", label: "Immunology" },
+        ];
+        setTestCategories(fallbackCategories);
+        console.log("🔍 Using fallback categories:", fallbackCategories);
       }
     };
 
@@ -151,6 +164,7 @@ const TestPricing: React.FC = () => {
   };
 
   const handleEditPricing = (pricing: any) => {
+    console.log("🔍 Editing pricing:", pricing);
     setSelectedPricing(pricing);
     setEditPricing({
       testName: pricing.testName,
@@ -171,62 +185,226 @@ const TestPricing: React.FC = () => {
     setShowDeletePricingModal(true);
   };
 
-  const handleCreatePricing = () => {
-    if (newPricing.testName && newPricing.category && newPricing.code) {
-      const pricing = {
-        id: `PRC${String(pricingItems.length + 1).padStart(3, "0")}`,
-        ...newPricing,
-        status: "active",
-        lastUpdated: new Date().toISOString().split("T")[0],
-        updatedBy: "Current User",
-      };
-      setPricingItems((prev: any) => [pricing, ...prev]);
-      setShowAddPricingModal(false);
-      setNewPricing({
-        testName: "",
-        category: "",
-        basePrice: 0,
-        insurancePrice: 0,
-        cashPrice: 0,
-        description: "",
-        turnaroundTime: "",
-        requirements: "",
-        code: "",
-      });
+  const handleCreatePricing = async () => {
+    if (
+      newPricing.testName &&
+      newPricing.category &&
+      newPricing.code &&
+      newPricing.basePrice >= 0
+    ) {
+      try {
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        const tenantId = getCurrentTenantId();
+
+        const pricingData = {
+          test_name: newPricing.testName,
+          category: newPricing.category,
+          test_code: newPricing.code,
+          description: newPricing.description,
+          base_price: parseFloat(newPricing.basePrice.toString()) || 0,
+          turnaround_time: newPricing.turnaroundTime,
+          sample_type: newPricing.requirements,
+          preparation_instructions: newPricing.requirements,
+          tenant: parseInt(tenantId),
+          effective_date: new Date().toISOString().split("T")[0],
+          is_active: true,
+          currency: "USD",
+          pricing_type: "standard",
+        };
+
+        const response = await testPricingAPI.create(pricingData);
+
+        // Add the new pricing to the list
+        const newPricingItem = {
+          id: response.data.test_pricing.id,
+          testName: response.data.test_pricing.test_name,
+          category: response.data.test_pricing.category,
+          basePrice: parseFloat(response.data.test_pricing.base_price) || 0,
+          insurancePrice:
+            parseFloat(response.data.test_pricing.base_price) * 0.8,
+          cashPrice: parseFloat(response.data.test_pricing.base_price) * 0.9,
+          status: response.data.test_pricing.is_active ? "active" : "inactive",
+          lastUpdated: response.data.test_pricing.updated_at
+            ? response.data.test_pricing.updated_at.split("T")[0]
+            : new Date().toISOString().split("T")[0],
+          updatedBy: response.data.test_pricing.created_by || "System",
+          turnaroundTime:
+            response.data.test_pricing.turnaround_time || "24-48 hours",
+          requirements:
+            response.data.test_pricing.preparation_instructions || "",
+          code: response.data.test_pricing.test_code,
+        };
+
+        setPricingItems((prev: any) => [newPricingItem, ...prev]);
+        setShowAddPricingModal(false);
+        setSuccessMessage("Pricing created successfully!");
+        setNewPricing({
+          testName: "",
+          category: "",
+          basePrice: 0,
+          insurancePrice: 0,
+          cashPrice: 0,
+          description: "",
+          turnaroundTime: "",
+          requirements: "",
+          code: "",
+        });
+      } catch (error: any) {
+        console.error("Error creating pricing:", error);
+        let errorMessage = "Failed to create pricing";
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response?.data) {
+          errorMessage = JSON.stringify(error.response.data);
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleUpdatePricing = () => {
+  const handleUpdatePricing = async () => {
+    console.log("🔍 Update validation check:");
+    console.log("🔍 selectedPricing:", selectedPricing);
+    console.log("🔍 editPricing:", editPricing);
+    console.log("🔍 basePrice >= 0:", editPricing.basePrice >= 0);
+
     if (
       selectedPricing &&
       editPricing.testName &&
       editPricing.category &&
-      editPricing.code
+      editPricing.code &&
+      editPricing.basePrice >= 0
     ) {
-      setPricingItems((prev: any) =>
-        prev.map((item: any) =>
-          item.id === selectedPricing.id
-            ? {
-                ...item,
-                ...editPricing,
-                lastUpdated: new Date().toISOString().split("T")[0],
-                updatedBy: "Current User",
-              }
-            : item
-        )
+      try {
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        const updateData = {
+          test_name: editPricing.testName,
+          category: editPricing.category,
+          test_code: editPricing.code,
+          description: editPricing.description,
+          base_price: parseFloat(editPricing.basePrice.toString()) || 0,
+          turnaround_time: editPricing.turnaroundTime,
+          sample_type: editPricing.requirements,
+          preparation_instructions: editPricing.requirements,
+          tenant: parseInt(getCurrentTenantId()),
+        };
+
+        console.log("🔍 Category being sent:", editPricing.category);
+        console.log("🔍 Available categories:", testCategories);
+
+        console.log("🔍 Updating pricing with ID:", selectedPricing.id);
+        console.log("🔍 Update data:", updateData);
+
+        const response = await testPricingAPI.update(
+          selectedPricing.id,
+          updateData
+        );
+
+        console.log("🔍 Update response:", response.data);
+
+        // Handle the response data - it might be directly in response.data or wrapped in test_pricing
+        const responseData = response.data.test_pricing || response.data;
+
+        // Update the pricing in the list
+        const updatedPricingItem = {
+          id: responseData.id,
+          testName: responseData.test_name,
+          category: responseData.category,
+          basePrice: parseFloat(responseData.base_price) || 0,
+          insurancePrice: parseFloat(responseData.base_price) * 0.8,
+          cashPrice: parseFloat(responseData.base_price) * 0.9,
+          status: responseData.is_active ? "active" : "inactive",
+          lastUpdated: responseData.updated_at
+            ? responseData.updated_at.split("T")[0]
+            : new Date().toISOString().split("T")[0],
+          updatedBy: responseData.created_by || "System",
+          turnaroundTime: responseData.turnaround_time || "24-48 hours",
+          requirements: responseData.preparation_instructions || "",
+          code: responseData.test_code,
+        };
+
+        setPricingItems((prev: any) =>
+          prev.map((item: any) =>
+            item.id === selectedPricing.id ? updatedPricingItem : item
+          )
+        );
+        setShowEditPricingModal(false);
+        setSelectedPricing(null);
+        setSuccessMessage("Pricing updated successfully!");
+      } catch (error: any) {
+        console.error("Error updating pricing:", error);
+        let errorMessage = "Failed to update pricing";
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response?.data) {
+          errorMessage = JSON.stringify(error.response.data);
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      console.log("🔍 Update validation failed:");
+      console.log("🔍 selectedPricing:", !!selectedPricing);
+      console.log("🔍 testName:", !!editPricing.testName);
+      console.log("🔍 category:", !!editPricing.category);
+      console.log("🔍 code:", !!editPricing.code);
+      console.log("🔍 basePrice >= 0:", editPricing.basePrice >= 0);
+      setError(
+        "Please fill in all required fields and ensure base price is valid."
       );
-      setShowEditPricingModal(false);
-      setSelectedPricing(null);
     }
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (selectedPricing) {
-      setPricingItems((prev: any) =>
-        prev.filter((item: any) => item.id !== selectedPricing.id)
-      );
-      setShowDeletePricingModal(false);
-      setSelectedPricing(null);
+      try {
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        // Call the backend API to delete the pricing
+        await testPricingAPI.delete(selectedPricing.id);
+
+        // Remove the pricing from the local state
+        setPricingItems((prev: any) =>
+          prev.filter((item: any) => item.id !== selectedPricing.id)
+        );
+        setShowDeletePricingModal(false);
+        setSelectedPricing(null);
+        setSuccessMessage("Pricing deleted successfully!");
+      } catch (error: any) {
+        console.error("Error deleting pricing:", error);
+        let errorMessage = "Failed to delete pricing";
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response?.data) {
+          errorMessage = JSON.stringify(error.response.data);
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -254,11 +432,28 @@ const TestPricing: React.FC = () => {
         </div>
       )}
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <p className="text-green-800 dark:text-green-200 text-sm">
+            {successMessage}
+          </p>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="mt-2 text-green-600 dark:text-green-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading test pricing...</span>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">
+            Loading test pricing...
+          </span>
         </div>
       )}
 
@@ -515,12 +710,12 @@ const TestPricing: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Base Price ($)
+                    Base Price ($) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={newPricing.basePrice}
+                    value={newPricing.basePrice || ""}
                     onChange={(e) =>
                       setNewPricing({
                         ...newPricing,
@@ -529,6 +724,8 @@ const TestPricing: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     min="0"
+                    placeholder="0.00"
+                    required
                   />
                 </div>
                 <div>
@@ -846,12 +1043,12 @@ const TestPricing: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Base Price ($)
+                    Base Price ($) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={editPricing.basePrice}
+                    value={editPricing.basePrice || ""}
                     onChange={(e) =>
                       setEditPricing({
                         ...editPricing,
@@ -860,6 +1057,8 @@ const TestPricing: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     min="0"
+                    placeholder="0.00"
+                    required
                   />
                 </div>
                 <div>
