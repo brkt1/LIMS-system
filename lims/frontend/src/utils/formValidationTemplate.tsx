@@ -4,10 +4,11 @@
  */
 
 import {
-    handleApiError,
-    sanitizeFormData,
-    showValidationErrors,
-    validateRequiredFields
+  handleApiError,
+  sanitizeFormData,
+  showValidationErrors,
+  validateRequiredFields,
+  type ValidationError
 } from './validation';
 
 // Example implementation for any form component
