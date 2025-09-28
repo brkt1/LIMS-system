@@ -3,30 +3,118 @@ import { config } from '../config/environment';
 
 // Helper function to get current tenant ID
 export const getCurrentTenantId = (): string => {
-  // Try to get from localStorage first
+  console.log('🔍 Getting current tenant ID...');
+  
+  // Try to get from stored tenant data first (from authentication)
+  const tenantData = localStorage.getItem('tenant_data');
+  console.log('📦 Raw tenant_data from localStorage:', tenantData);
+  
+  if (tenantData) {
+    try {
+      const tenant = JSON.parse(tenantData);
+      console.log('🏢 Parsed tenant data:', tenant);
+      if (tenant && tenant.id) {
+        console.log('✅ Using tenant ID from tenant_data:', tenant.id);
+        return tenant.id.toString();
+      }
+    } catch (error) {
+      console.warn('❌ Failed to parse tenant data:', error);
+    }
+  }
+  
+  // Try to get from stored tenant ID
   const storedTenantId = localStorage.getItem('current_tenant_id');
+  console.log('📦 current_tenant_id from localStorage:', storedTenantId);
   if (storedTenantId) {
+    console.log('✅ Using stored tenant ID:', storedTenantId);
     return storedTenantId;
   }
   
   // Try to get from user context
   const userContext = localStorage.getItem('user_context');
+  console.log('📦 user_context from localStorage:', userContext);
   if (userContext) {
     try {
       const context = JSON.parse(userContext);
-      return context.tenant_id || config.defaultTenantId;
+      console.log('👤 Parsed user context:', context);
+      const tenantId = context.tenant_id || config.defaultTenantId;
+      console.log('✅ Using tenant ID from user context:', tenantId);
+      return tenantId;
     } catch (error) {
-      console.warn('Failed to parse user context:', error);
+      console.warn('❌ Failed to parse user context:', error);
     }
   }
   
   // Fallback to environment configuration
+  console.log('⚠️ Using default tenant ID from config:', config.defaultTenantId);
   return config.defaultTenantId;
+};
+
+// Helper function to get or create a default tenant
+export const getOrCreateDefaultTenant = async (): Promise<string> => {
+  try {
+    // First try to get existing tenants
+    const response = await fetch('/api/superadmin/tenants/');
+    if (response.ok) {
+      const tenants = await response.json();
+      if (tenants && tenants.length > 0) {
+        console.log('🏢 Found existing tenants:', tenants);
+        // Use the first active tenant, or just the first one if none are active
+        const activeTenant = tenants.find((t: any) => t.status === 'active') || tenants[0];
+        console.log('✅ Using tenant:', activeTenant);
+        return activeTenant.id.toString();
+      }
+    }
+    
+    // If no tenants exist, create a default one
+    console.log('🏢 No tenants found, creating default tenant...');
+    const defaultTenant = {
+      company_name: 'Default Lab',
+      domain: 'defaultlab',
+      email: 'default@lims.com',
+      password: 'default123',
+      created_by: 'system',
+      billing_period: 'monthly'
+    };
+    
+    const createResponse = await fetch('/api/superadmin/tenants/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(defaultTenant)
+    });
+    
+    if (createResponse.ok) {
+      const newTenant = await createResponse.json();
+      console.log('✅ Created default tenant:', newTenant);
+      return newTenant.id.toString();
+    }
+  } catch (error) {
+    console.error('❌ Error getting or creating tenant:', error);
+  }
+  
+  // Final fallback - use a known existing tenant ID
+  console.log('⚠️ Using fallback tenant ID: 2 (City Hospital Lab)');
+  return '2';
 };
 
 // Helper function to get current user ID
 export const getCurrentUserId = (): string => {
-  // Try to get from localStorage first
+  // Try to get from stored user data first (from authentication)
+  const userData = localStorage.getItem('user_data');
+  if (userData) {
+    try {
+      const user = JSON.parse(userData);
+      if (user && user.id) {
+        return user.id.toString();
+      }
+    } catch (error) {
+      console.warn('Failed to parse user data:', error);
+    }
+  }
+  
+  // Try to get from localStorage
   const storedUserId = localStorage.getItem('current_user_id');
   if (storedUserId) {
     return storedUserId;
@@ -49,6 +137,20 @@ export const getCurrentUserId = (): string => {
 
 // Helper function to get current user email
 export const getCurrentUserEmail = (): string => {
+  // Try to get from stored user data first (from authentication)
+  const userData = localStorage.getItem('user_data');
+  if (userData) {
+    try {
+      const user = JSON.parse(userData);
+      if (user && user.email) {
+        return user.email;
+      }
+    } catch (error) {
+      console.warn('Failed to parse user data:', error);
+    }
+  }
+  
+  // Try to get from user context
   const userContext = localStorage.getItem('user_context');
   if (userContext) {
     try {

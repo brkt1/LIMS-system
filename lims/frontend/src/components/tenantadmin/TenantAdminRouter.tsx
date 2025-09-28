@@ -14,7 +14,6 @@ import InventoryManagement from "./InventoryManagement";
 import ManageTests from "./ManageTests";
 import PatientManagement from "./PatientManagement";
 import ReceiptsPrinting from "./ReceiptsPrinting";
-import TenantSettings from "./TenantSettings";
 import TestPricing from "./TestPricing";
 import TestReports from "./TestReports";
 import UserManagement from "./UserManagement";
@@ -26,7 +25,6 @@ const TenantAdminRouter: React.FC = () => {
       <Route path="/" element={<TenantAdminDashboard />} />
       <Route path="/dashboard" element={<TenantAdminDashboard />} />
       <Route path="/users" element={<UserManagement />} />
-      <Route path="/settings" element={<TenantSettings />} />
       <Route path="/inventory" element={<InventoryManagement />} />
       <Route path="/manage-tests" element={<ManageTests />} />
       <Route path="/cultures-antibiotics" element={<CulturesAntibiotics />} />

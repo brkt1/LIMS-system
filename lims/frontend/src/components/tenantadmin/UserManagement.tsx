@@ -1,15 +1,11 @@
-import {
-  Plus,
-  Search,
-  User,
-  UserCheck,
-  Users,
-  UserX,
-  X
-} from "lucide-react";
+import { Plus, Search, User, UserCheck, Users, UserX, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { userManagementAPI } from "../../services/api";
-import { generateSecurePassword, getCurrentTenantId, getCurrentUserEmail } from "../../utils/helpers";
+import {
+  generateSecurePassword,
+  getCurrentTenantId,
+  getCurrentUserEmail,
+} from "../../utils/helpers";
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,6 +40,7 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Load users from backend API
   useEffect(() => {
@@ -81,12 +78,16 @@ const UserManagement: React.FC = () => {
 
   // Handler functions
   const handleAddUser = () => {
+    setError(null); // Clear any previous errors
+    setSuccess(null); // Clear any previous success messages
     setShowAddUserModal(true);
   };
 
   const handleCreateUser = async () => {
     if (newUser.name && newUser.email && newUser.role) {
       try {
+        setError(null); // Clear any previous errors
+
         const userData = {
           name: newUser.name,
           email: newUser.email,
@@ -100,6 +101,8 @@ const UserManagement: React.FC = () => {
 
         console.log("Creating user with data:", userData);
         const response = await userManagementAPI.create(userData);
+        console.log("User creation response:", response);
+
         // Handle the response structure - backend returns {tenant_user: {...}}
         const createdUser = response.data.tenant_user || response.data;
         setUsers((prev: any) => [createdUser, ...prev]);
@@ -111,6 +114,10 @@ const UserManagement: React.FC = () => {
           phone: "",
         });
         setShowAddUserModal(false);
+
+        // Show success message
+        setSuccess(`User ${createdUser.name} has been created successfully!`);
+        setTimeout(() => setSuccess(null), 5000); // Clear success message after 5 seconds
       } catch (error: any) {
         console.error("Error creating user:", error);
         console.error("Error response:", error.response?.data);
@@ -243,12 +250,12 @@ const UserManagement: React.FC = () => {
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.id || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
     const matchesStatus =
-      filterStatus === "all" || user.status === filterStatus;
+      filterStatus === "all" || (user.status || "active") === filterStatus;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -312,6 +319,21 @@ const UserManagement: React.FC = () => {
           <button
             onClick={() => setError(null)}
             className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <p className="text-green-800 dark:text-green-200 text-sm">
+            {success}
+          </p>
+          <button
+            onClick={() => setSuccess(null)}
+            className="mt-2 text-green-600 dark:text-green-400 text-xs underline"
           >
             Dismiss
           </button>
@@ -505,7 +527,8 @@ const UserManagement: React.FC = () => {
                       )}`}
                     >
                       {user.role
-                        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                        ? (user.role || "").charAt(0).toUpperCase() +
+                          (user.role || "").slice(1)
                         : "Unknown"}
                     </span>
                   </td>
@@ -515,11 +538,11 @@ const UserManagement: React.FC = () => {
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        user.status
+                        user.status || "active"
                       )}`}
                     >
-                      {user.status.charAt(0).toUpperCase() +
-                        user.status.slice(1)}
+                      {(user.status || "active").charAt(0).toUpperCase() +
+                        (user.status || "active").slice(1)}
                     </span>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden md:table-cell">
@@ -543,7 +566,9 @@ const UserManagement: React.FC = () => {
                         onClick={() => handleSuspendUser(user)}
                         className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left"
                       >
-                        {user.status === "active" ? "Suspend" : "Activate"}
+                        {(user.status || "active") === "active"
+                          ? "Suspend"
+                          : "Activate"}
                       </button>
                     </div>
                   </td>
@@ -715,11 +740,13 @@ const UserManagement: React.FC = () => {
                     </label>
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        selectedUser.status
+                        selectedUser.status || "active"
                       )}`}
                     >
-                      {selectedUser.status.charAt(0).toUpperCase() +
-                        selectedUser.status.slice(1)}
+                      {(selectedUser.status || "active")
+                        .charAt(0)
+                        .toUpperCase() +
+                        (selectedUser.status || "active").slice(1)}
                     </span>
                   </div>
                   <div>

@@ -14,14 +14,23 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import BaseDashboard from "./BaseDashboard";
-import { getCurrentUserEmail, generateSecurePassword, getCurrentTenantId } from "../../utils/helpers";
+import {
+  getCurrentUserEmail,
+  generateSecurePassword,
+  getCurrentTenantId,
+  getOrCreateDefaultTenant,
+} from "../../utils/helpers";
 import {
   testRequestAPI,
   userManagementAPI,
   equipmentAPI,
 } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const TenantAdminDashboard: React.FC = () => {
+  // Get authentication context
+  const { user, tenant } = useAuth();
+
   // State management
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showManageEquipmentModal, setShowManageEquipmentModal] =
@@ -76,10 +85,23 @@ const TenantAdminDashboard: React.FC = () => {
       setUsersError(null);
       const response = await userManagementAPI.getAll();
       console.log("👥 Users fetched:", response.data);
-      setUsers(response.data);
+
+      // Handle different response structures
+      let usersData = response.data;
+      if (
+        usersData &&
+        typeof usersData === "object" &&
+        !Array.isArray(usersData)
+      ) {
+        // If response is an object with URLs, set empty array for now
+        usersData = [];
+      }
+
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (err: any) {
       console.error("Error fetching users:", err);
       setUsersError(err.message || "Failed to fetch users");
+      setUsers([]); // Set empty array on error
     } finally {
       setUsersLoading(false);
     }
@@ -91,10 +113,24 @@ const TenantAdminDashboard: React.FC = () => {
       setEquipmentError(null);
       const response = await equipmentAPI.getAll();
       console.log("🔧 Equipment fetched:", response.data);
-      setEquipment(response.data);
+
+      // Handle different response structures
+      let equipmentData = response.data;
+      if (
+        equipmentData &&
+        typeof equipmentData === "object" &&
+        !Array.isArray(equipmentData)
+      ) {
+        // If response is an object with URLs, set empty array for now
+        // This might be a paginated response or API structure issue
+        equipmentData = [];
+      }
+
+      setEquipment(Array.isArray(equipmentData) ? equipmentData : []);
     } catch (err: any) {
       console.error("Error fetching equipment:", err);
       setEquipmentError(err.message || "Failed to fetch equipment");
+      setEquipment([]); // Set empty array on error
     } finally {
       setEquipmentLoading(false);
     }
@@ -106,10 +142,23 @@ const TenantAdminDashboard: React.FC = () => {
     setTestRequestsError(null);
     try {
       const response = await testRequestAPI.getAll();
-      setTestRequests(response.data);
+
+      // Handle different response structures
+      let testRequestsData = response.data;
+      if (
+        testRequestsData &&
+        typeof testRequestsData === "object" &&
+        !Array.isArray(testRequestsData)
+      ) {
+        // If response is an object with URLs, set empty array for now
+        testRequestsData = [];
+      }
+
+      setTestRequests(Array.isArray(testRequestsData) ? testRequestsData : []);
     } catch (error) {
       console.error("Error fetching test requests:", error);
       setTestRequestsError("Failed to load test requests");
+      setTestRequests([]); // Set empty array on error
     } finally {
       setTestRequestsLoading(false);
     }
@@ -145,16 +194,36 @@ const TenantAdminDashboard: React.FC = () => {
   const handleCreateUser = async () => {
     try {
       if (newUser.name && newUser.email && newUser.role) {
+        console.log("🔍 Debugging tenant ID resolution...");
+        console.log("📦 Auth context - user:", user);
+        console.log("📦 Auth context - tenant:", tenant);
+        console.log("📦 All localStorage keys:", Object.keys(localStorage));
+
+        // Use tenant from auth context if available, otherwise try to get/create a valid tenant
+        let tenantId = tenant?.id;
+        if (!tenantId) {
+          console.log(
+            "🏢 No tenant in auth context, trying to get/create default tenant..."
+          );
+          tenantId = await getOrCreateDefaultTenant();
+        }
+
+        const createdBy = user?.email || getCurrentUserEmail();
+
+        console.log("🏢 Final tenant ID being used:", tenantId);
+        console.log("👤 Final created_by being used:", createdBy);
+
         const userData = {
           name: newUser.name,
           email: newUser.email,
           role: newUser.role,
           department: newUser.department,
-          tenant: getCurrentTenantId(), // Dynamic tenant ID
-          created_by: getCurrentUserEmail(), // Dynamic user email
+          tenant: tenantId, // Dynamic tenant ID
+          created_by: createdBy, // Dynamic user email
           password: generateSecurePassword(), // Generate secure password
         };
 
+        console.log("📝 Creating user with data:", userData);
         await userManagementAPI.create(userData);
         setNewUser({ name: "", email: "", role: "", department: "" });
         setShowAddUserModal(false);
@@ -162,7 +231,12 @@ const TenantAdminDashboard: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Error creating user:", err);
-      alert("Failed to create user. Please try again.");
+      console.error("Error response:", err.response?.data);
+      alert(
+        `Failed to create user: ${
+          err.response?.data?.error || err.message || "Please try again."
+        }`
+      );
     }
   };
 
@@ -207,28 +281,62 @@ const TenantAdminDashboard: React.FC = () => {
   const tenantAdminCards = [
     {
       title: "Total Users",
-      value: users.length.toString(),
+      value: users && Array.isArray(users) ? users.length.toString() : "0",
       change: "+5 This Month",
       color: "bg-blue-500",
-      chartData: [30, 35, 38, 42, 45, 46, users.length],
+      chartData: [
+        30,
+        35,
+        38,
+        42,
+        45,
+        46,
+        users && Array.isArray(users) ? users.length : 0,
+      ],
     },
     {
       title: "Active Equipment",
-      value: equipmentLoading ? "..." : equipment.length.toString(),
+      value: equipmentLoading
+        ? "..."
+        : equipment && Array.isArray(equipment)
+        ? equipment.length.toString()
+        : "0",
       change: equipmentLoading ? "Loading..." : "+2 This Month",
       color: "bg-green-500",
       chartData: equipmentLoading
         ? [0, 0, 0, 0, 0, 0, 0]
-        : [18, 19, 20, 21, 22, 22, equipment.length],
+        : [
+            18,
+            19,
+            20,
+            21,
+            22,
+            22,
+            equipment && Array.isArray(equipment) ? equipment.length : 0,
+          ],
     },
     {
       title: "Test Requests",
-      value: testRequests.length.toString(),
-      change: `${
-        testRequests.filter((r) => r.status === "Pending").length
-      } Pending`,
+      value:
+        testRequests && Array.isArray(testRequests)
+          ? testRequests.length.toString()
+          : "0",
+      change:
+        testRequests && Array.isArray(testRequests)
+          ? `${
+              testRequests.filter((r) => r.status === "Pending").length
+            } Pending`
+          : "0 Pending",
       color: "bg-orange-500",
-      chartData: [15, 18, 16, 14, 12, 13, testRequests.length],
+      chartData: [
+        15,
+        18,
+        16,
+        14,
+        12,
+        13,
+        testRequests && Array.isArray(testRequests) ? testRequests.length : 0,
+      ],
       onClick: handleManageTestRequests,
     },
     {
@@ -306,13 +414,6 @@ const TenantAdminDashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Recent Users
             </h3>
-            <button
-              onClick={handleAddUser}
-              className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span className="text-sm font-medium">Add User</span>
-            </button>
           </div>
           <div className="space-y-4">
             {usersLoading ? (

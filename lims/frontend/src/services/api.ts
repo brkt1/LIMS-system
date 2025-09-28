@@ -498,6 +498,7 @@ export const inventoryAPI = {
   createItem: (data: any) => api.post('/inventory/items/', data),
   updateItem: (id: number, data: any) => api.put(`/inventory/items/${id}/`, data),
   deleteItem: (id: number) => api.delete(`/inventory/items/${id}/`),
+  adjustQuantity: (id: number, data: any) => api.post(`/inventory/items/${id}/adjust_quantity/`, data),
   
   // Categories
   getCategories: () => api.get('/inventory/categories/'),
