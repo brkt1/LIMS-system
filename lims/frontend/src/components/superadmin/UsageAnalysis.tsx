@@ -7,9 +7,11 @@ import {
     Users,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 
 const UsageAnalysis: React.FC = () => {
+  const { t } = useLanguage();
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("users");
 
@@ -99,15 +101,15 @@ const UsageAnalysis: React.FC = () => {
   const getTimeRangeLabel = (range: string) => {
     switch (range) {
       case "7d":
-        return "Last 7 days";
+        return t('usageAnalysis.last7Days');
       case "30d":
-        return "Last 30 days";
+        return t('usageAnalysis.last30Days');
       case "90d":
-        return "Last 90 days";
+        return t('usageAnalysis.last90Days');
       case "1y":
-        return "Last year";
+        return t('usageAnalysis.lastYear');
       default:
-        return "Last 30 days";
+        return t('usageAnalysis.last30Days');
     }
   };
 
@@ -118,69 +120,74 @@ const UsageAnalysis: React.FC = () => {
   };
 
   const generateUsageReportCSV = () => {
-    const headers = ["Metric", "Value", "Time Range", "Generated Date"];
+    const headers = [
+      t('usageAnalysis.exportHeaders.metric'),
+      t('usageAnalysis.exportHeaders.value'),
+      t('usageAnalysis.exportHeaders.timeRange'),
+      t('usageAnalysis.exportHeaders.generatedDate')
+    ];
 
     const currentDate = new Date().toISOString().split("T")[0];
     const timeRangeLabel = getTimeRangeLabel(timeRange);
 
     const rows = [
       [
-        "Total Users",
+        t('usageAnalysis.exportHeaders.totalUsers'),
         usageData.totalUsers.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "Active Users",
+        t('usageAnalysis.exportHeaders.activeUsers'),
         usageData.activeUsers.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "Total Tenants",
+        t('usageAnalysis.exportHeaders.totalTenants'),
         usageData.totalTenants.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "Active Tenants",
+        t('usageAnalysis.exportHeaders.activeTenants'),
         usageData.activeTenants.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "Total Tests",
+        t('usageAnalysis.exportHeaders.totalTests'),
         usageData.totalTests.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "Total Reports",
+        t('usageAnalysis.exportHeaders.totalReports'),
         usageData.totalReports.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "System Uptime (%)",
+        t('usageAnalysis.exportHeaders.systemUptime'),
         usageData.systemUptime.toString(),
         timeRangeLabel,
         currentDate,
       ],
       [
-        "Avg Response Time (ms)",
+        t('usageAnalysis.exportHeaders.avgResponseTime'),
         usageData.avgResponseTime.toString(),
         timeRangeLabel,
         currentDate,
       ],
       ["", "", "", ""], // Empty row
       [
-        "Tenant Name",
-        "Users",
-        "Tests",
-        "Reports",
-        "Growth (%)",
-        "Time Range",
-        "Generated Date",
+        t('usageAnalysis.exportHeaders.tenantName'),
+        t('usageAnalysis.exportHeaders.users'),
+        t('usageAnalysis.exportHeaders.tests'),
+        t('usageAnalysis.exportHeaders.reports'),
+        t('usageAnalysis.exportHeaders.growth'),
+        t('usageAnalysis.exportHeaders.timeRange'),
+        t('usageAnalysis.exportHeaders.generatedDate'),
       ],
     ];
 
@@ -223,10 +230,10 @@ const UsageAnalysis: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Usage Analysis
+              {t('usageAnalysis.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Comprehensive analytics and usage metrics across all tenants
+              {t('usageAnalysis.description')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
@@ -235,17 +242,17 @@ const UsageAnalysis: React.FC = () => {
               className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               <Download className="w-4 h-4" />
-              <span>Export Report</span>
+              <span>{t('usageAnalysis.exportReport')}</span>
             </button>
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="1y">Last year</option>
+              <option value="7d">{t('usageAnalysis.last7Days')}</option>
+              <option value="30d">{t('usageAnalysis.last30Days')}</option>
+              <option value="90d">{t('usageAnalysis.last90Days')}</option>
+              <option value="1y">{t('usageAnalysis.lastYear')}</option>
             </select>
           </div>
         </div>
@@ -260,7 +267,7 @@ const UsageAnalysis: React.FC = () => {
               onClick={() => setError(null)}
               className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
             >
-              Dismiss
+              {t('usageAnalysis.dismiss')}
             </button>
           </div>
         )}
@@ -270,7 +277,7 @@ const UsageAnalysis: React.FC = () => {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-gray-600 dark:text-gray-300">
-              Loading usage data...
+              {t('usageAnalysis.loadingUsageData')}
             </span>
           </div>
         )}
@@ -280,14 +287,14 @@ const UsageAnalysis: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                  Total Users
+                  {t('usageAnalysis.totalUsers')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {(usageData.totalUsers || 0).toLocaleString()}
                 </p>
                 <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">
                   <TrendingUp className="w-3 h-3 mr-1" />
-                  +12% from last month
+                  +12% {t('usageAnalysis.fromLastMonth')}
                 </p>
               </div>
               <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
@@ -297,7 +304,7 @@ const UsageAnalysis: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                  Active Users
+                  {t('usageAnalysis.activeUsers')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {(usageData.activeUsers || 0).toLocaleString()}
@@ -306,7 +313,7 @@ const UsageAnalysis: React.FC = () => {
                   {Math.round(
                     (usageData.activeUsers / (usageData.totalUsers || 1)) * 100
                   )}
-                  % of total
+                  % {t('usageAnalysis.ofTotal')}
                 </p>
               </div>
               <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -316,14 +323,14 @@ const UsageAnalysis: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                  Total Tests
+                  {t('usageAnalysis.totalTests')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {(usageData.totalTests || 0).toLocaleString()}
                 </p>
                 <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center">
                   <TrendingUp className="w-3 h-3 mr-1" />
-                  +8% from last month
+                  +8% {t('usageAnalysis.fromLastMonth')}
                 </p>
               </div>
               <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
@@ -333,13 +340,13 @@ const UsageAnalysis: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                  System Uptime
+                  {t('usageAnalysis.systemUptime')}
                 </p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {usageData.systemUptime}%
                 </p>
                 <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
-                  Excellent
+                  {t('usageAnalysis.excellent')}
                 </p>
               </div>
               <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
@@ -353,7 +360,7 @@ const UsageAnalysis: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                Usage Trends
+                {t('usageAnalysis.usageTrends')}
               </h3>
               <div className="flex items-center space-x-2">
                 <select
@@ -361,10 +368,10 @@ const UsageAnalysis: React.FC = () => {
                   onChange={(e) => setSelectedMetric(e.target.value)}
                   className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
                 >
-                  <option value="users">Users</option>
-                  <option value="tests">Tests</option>
-                  <option value="reports">Reports</option>
-                  <option value="revenue">Revenue</option>
+                  <option value="users">{t('usageAnalysis.users')}</option>
+                  <option value="tests">{t('usageAnalysis.tests')}</option>
+                  <option value="reports">{t('usageAnalysis.reports')}</option>
+                  <option value="revenue">{t('usageAnalysis.revenue')}</option>
                 </select>
               </div>
             </div>
@@ -372,10 +379,10 @@ const UsageAnalysis: React.FC = () => {
               <div className="text-center">
                 <BarChart3 className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2" />
                 <p className="text-sm sm:text-base">
-                  Usage trends chart for {selectedMetric} would go here
+                  {t('usageAnalysis.usageTrendsChart').replace('{metric}', selectedMetric)}
                 </p>
                 <p className="text-xs sm:text-sm">
-                  Data: {getTimeRangeLabel(timeRange)}
+                  {t('usageAnalysis.data').replace('{timeRange}', getTimeRangeLabel(timeRange))}
                 </p>
               </div>
             </div>
@@ -385,7 +392,7 @@ const UsageAnalysis: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-                Tenant Usage Distribution
+                {t('usageAnalysis.tenantUsageDistribution')}
               </h3>
               <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
             </div>
@@ -398,10 +405,10 @@ const UsageAnalysis: React.FC = () => {
                     </p>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-1 space-y-1 sm:space-y-0">
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {tenant.users || 0} users
+                        {tenant.users || 0} {t('usageAnalysis.usersLabel')}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {tenant.tests || 0} tests
+                        {tenant.tests || 0} {t('usageAnalysis.testsLabel')}
                       </span>
                       <span
                         className={`text-xs ${
@@ -431,7 +438,7 @@ const UsageAnalysis: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-              Feature Usage Statistics
+              {t('usageAnalysis.featureUsageStatistics')}
             </h3>
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -440,16 +447,16 @@ const UsageAnalysis: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Feature
+                    {t('usageAnalysis.feature')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Usage Rate
+                    {t('usageAnalysis.usageRate')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Active Users
+                    {t('usageAnalysis.activeUsers')}
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Trend
+                    {t('usageAnalysis.trend')}
                   </th>
                 </tr>
               </thead>
@@ -495,14 +502,14 @@ const UsageAnalysis: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-              Response Time
+              {t('usageAnalysis.responseTime')}
             </h3>
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 {usageData.avgResponseTime}ms
               </p>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Average response time
+                {t('usageAnalysis.averageResponseTime')}
               </p>
               <div className="mt-3 sm:mt-4 w-full bg-gray-200 rounded-full h-2">
                 <div
@@ -511,21 +518,21 @@ const UsageAnalysis: React.FC = () => {
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Excellent performance
+                {t('usageAnalysis.excellentPerformance')}
               </p>
             </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-              System Health
+              {t('usageAnalysis.systemHealth')}
             </h3>
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 {usageData.systemUptime}%
               </p>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Uptime this month
+                {t('usageAnalysis.uptimeThisMonth')}
               </p>
               <div className="mt-3 sm:mt-4 w-full bg-gray-200 rounded-full h-2">
                 <div
@@ -534,21 +541,21 @@ const UsageAnalysis: React.FC = () => {
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Outstanding reliability
+                {t('usageAnalysis.outstandingReliability')}
               </p>
             </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 sm:col-span-2 lg:col-span-1">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-              User Satisfaction
+              {t('usageAnalysis.userSatisfaction')}
             </h3>
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 4.8/5
               </p>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Average rating
+                {t('usageAnalysis.averageRating')}
               </p>
               <div className="mt-3 sm:mt-4 w-full bg-gray-200 rounded-full h-2">
                 <div
@@ -557,7 +564,7 @@ const UsageAnalysis: React.FC = () => {
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Based on 1,247 responses
+                {t('usageAnalysis.basedOnResponses').replace('{count}', '1,247')}
               </p>
             </div>
           </div>

@@ -14,10 +14,12 @@ import {
   X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 import { generateSecurePassword } from "../../utils/helpers";
 
 const ManageTenants: React.FC = () => {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [showDashboard, setShowDashboard] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -245,10 +247,10 @@ const ManageTenants: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Manage Tenants
+              {t('manageTenants.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Oversee and manage all tenant organizations
+              {t('manageTenants.description')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -257,7 +259,7 @@ const ManageTenants: React.FC = () => {
               className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
-              <span className="text-sm sm:text-base">Add New Tenant</span>
+              <span className="text-sm sm:text-base">{t('manageTenants.addNewTenant')}</span>
             </button>
             <button
               onClick={() => setShowDashboard(!showDashboard)}
@@ -266,12 +268,12 @@ const ManageTenants: React.FC = () => {
               {showDashboard ? (
                 <>
                   <ChevronUp className="w-4 h-4" />
-                  <span className="text-sm sm:text-base">Hide Dashboard</span>
+                  <span className="text-sm sm:text-base">{t('manageTenants.hideDashboard')}</span>
                 </>
               ) : (
                 <>
                   <ChevronDown className="w-4 h-4" />
-                  <span className="text-sm sm:text-base">Show Dashboard</span>
+                  <span className="text-sm sm:text-base">{t('manageTenants.showDashboard')}</span>
                 </>
               )}
             </button>
@@ -288,7 +290,7 @@ const ManageTenants: React.FC = () => {
               onClick={() => setError(null)}
               className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
             >
-              Dismiss
+              {t('manageTenants.dismiss')}
             </button>
           </div>
         )}
@@ -298,7 +300,7 @@ const ManageTenants: React.FC = () => {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-gray-600 dark:text-gray-300">
-              Loading tenants...
+              {t('manageTenants.loadingTenants')}
             </span>
           </div>
         )}
@@ -307,11 +309,11 @@ const ManageTenants: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 sm:p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Dashboard Overview
+                {t('manageTenants.dashboardOverview')}
               </h3>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  View Mode:
+                  {t('manageTenants.viewMode')}
                 </span>
                 <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg">
                   <button
@@ -322,7 +324,7 @@ const ManageTenants: React.FC = () => {
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
                     }`}
                   >
-                    Grid
+                    {t('manageTenants.grid')}
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
@@ -332,7 +334,7 @@ const ManageTenants: React.FC = () => {
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
                     }`}
                   >
-                    List
+                    {t('manageTenants.list')}
                   </button>
                 </div>
               </div>
@@ -344,7 +346,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      Total Tenants
+                      {t('manageTenants.totalTenants')}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.length}
@@ -357,7 +359,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      Active Tenants
+                      {t('manageTenants.activeTenants')}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.filter((t) => t.status === "active").length}
@@ -370,7 +372,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      Total Users
+                      {t('manageTenants.totalUsers')}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.reduce(
@@ -386,7 +388,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      Suspended
+                      {t('manageTenants.suspended')}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.filter((t) => t.status === "suspended").length}
@@ -406,32 +408,32 @@ const ManageTenants: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search tenants..."
+                placeholder={t('manageTenants.searchTenants')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
               >
-                <option value="">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Suspended">Suspended</option>
-                <option value="Pending">Pending</option>
+                <option value="">{t('manageTenants.allStatus')}</option>
+                <option value="Active">{t('manageTenants.active')}</option>
+                <option value="Suspended">{t('manageTenants.suspended')}</option>
+                <option value="Pending">{t('manageTenants.pending')}</option>
               </select>
               <select
                 value={filterPlan}
                 onChange={(e) => setFilterPlan(e.target.value)}
-                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
               >
-                <option value="">All Plans</option>
-                <option value="Basic">Basic</option>
-                <option value="Professional">Professional</option>
-                <option value="Enterprise">Enterprise</option>
+                <option value="">{t('manageTenants.allPlans')}</option>
+                <option value="Basic">{t('manageTenants.basic')}</option>
+                <option value="Professional">{t('manageTenants.professional')}</option>
+                <option value="Enterprise">{t('manageTenants.enterprise')}</option>
               </select>
             </div>
           </div>
@@ -446,25 +448,25 @@ const ManageTenants: React.FC = () => {
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Tenant
+                      {t('manageTenants.tenant')}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Status
+                      {t('manageTenants.status')}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Users
+                      {t('manageTenants.users')}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Plan
+                      {t('manageTenants.plan')}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Created
+                      {t('manageTenants.created')}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Last Active
+                      {t('manageTenants.lastActive')}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Actions
+                      {t('manageTenants.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -477,10 +479,10 @@ const ManageTenants: React.FC = () => {
                       <td className="py-4 px-4">
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {tenant.company_name || 'N/A'}
+                            {tenant.company_name || t('manageTenants.notAvailable')}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {tenant.domain || 'N/A'}
+                            {tenant.domain || t('manageTenants.notAvailable')}
                           </p>
                         </div>
                       </td>
@@ -502,35 +504,35 @@ const ManageTenants: React.FC = () => {
                             tenant.plan_name || tenant.billing_period
                           )}`}
                         >
-                          {tenant.plan_name || tenant.billing_period || 'N/A'}
+                          {tenant.plan_name || tenant.billing_period || t('manageTenants.notAvailable')}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'}
+                        {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : t('manageTenants.notAvailable')}
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : 'N/A'}
+                        {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : t('manageTenants.notAvailable')}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditTenant(tenant)}
                             className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400 transition-colors"
-                            title="Edit Tenant"
+                            title={t('manageTenants.editTenant')}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteTenant(tenant)}
                             className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400 transition-colors"
-                            title="Delete Tenant"
+                            title={t('manageTenants.deleteTenant')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleMoreActions(tenant)}
                             className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
-                            title="More Actions"
+                            title={t('manageTenants.moreActions')}
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
@@ -553,10 +555,10 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
-                      {tenant.company_name || 'N/A'}
+                      {tenant.company_name || t('manageTenants.notAvailable')}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {tenant.domain || 'N/A'}
+                      {tenant.domain || t('manageTenants.notAvailable')}
                     </p>
                   </div>
                   <span
@@ -571,7 +573,7 @@ const ManageTenants: React.FC = () => {
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      Users
+                      {t('manageTenants.users')}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
                       {tenant.current_users || 0}
@@ -579,22 +581,22 @@ const ManageTenants: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      Plan
+                      {t('manageTenants.plan')}
                     </span>
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
                         tenant.plan_name || tenant.billing_period
                       )}`}
                     >
-                      {tenant.plan_name || tenant.billing_period || 'N/A'}
+                      {tenant.plan_name || tenant.billing_period || t('manageTenants.notAvailable')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      Created
+                      {t('manageTenants.created')}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'}
+                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : t('manageTenants.notAvailable')}
                     </span>
                   </div>
                 </div>

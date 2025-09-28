@@ -15,6 +15,14 @@ import { notificationAPI, superadminAPI } from "../../services/api";
 const GlobalNotification: React.FC = () => {
   const [activeTab, setActiveTab] = useState("compose");
   const [showComposeModal, setShowComposeModal] = useState(false);
+  const [userCounts, setUserCounts] = useState({
+    total: 0,
+    admins: 0,
+    tenants: 0,
+    doctors: 0,
+    technicians: 0,
+    patients: 0
+  });
 
   // Modal states
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
@@ -71,12 +79,46 @@ const GlobalNotification: React.FC = () => {
   const [notificationTemplates, setNotificationTemplates] = useState<any[]>([]);
 
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch user counts
+  const fetchUserCounts = async () => {
+    try {
+      // This would typically come from your API
+      // For now, we'll use mock data that matches the notification system
+      const response = await superadminAPI.users.getAll();
+      const users = response.data || [];
+      
+      const counts = {
+        total: users.length,
+        admins: users.filter((user: any) => user.role === 'superadmin' || user.role === 'tenantadmin').length,
+        tenants: users.filter((user: any) => user.role === 'tenantadmin').length,
+        doctors: users.filter((user: any) => user.role === 'doctor').length,
+        technicians: users.filter((user: any) => user.role === 'technician').length,
+        patients: users.filter((user: any) => user.role === 'patient').length
+      };
+      
+      setUserCounts(counts);
+    } catch (error) {
+      console.error('Failed to fetch user counts:', error);
+      // Fallback to reasonable defaults
+      setUserCounts({
+        total: 0,
+        admins: 0,
+        tenants: 0,
+        doctors: 0,
+        technicians: 0,
+        patients: 0
+      });
+    }
+  };
 
   // Load data from API on component mount
   useEffect(() => {
     loadNotifications();
     loadTemplates();
     loadStats();
+    fetchUserCounts();
   }, []);
 
   const loadNotifications = async () => {
@@ -114,23 +156,41 @@ const GlobalNotification: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      // Calculate stats from notifications
-      const notifications = recentNotifications;
-      const totalSent = notifications.filter(n => n.status === 'sent').length;
-      const pending = notifications.filter(n => n.status === 'pending').length;
-      const delivered = notifications.filter(n => n.status === 'sent').length;
-      const failed = notifications.filter(n => n.status === 'failed').length;
+      // Get real notification data from the API
+      const response = await notificationAPI.getAll();
+      const notifications = response.data || [];
+      
+      // Calculate real stats from notifications
+      const totalSent = notifications.length;
+      const pending = notifications.filter(n => !n.is_read).length;
+      const delivered = notifications.filter(n => n.is_read).length;
+      const failed = 0; // We don't track failed notifications currently
+      
+      // Calculate open rate (percentage of read notifications)
+      const openRate = totalSent > 0 ? (delivered / totalSent) * 100 : 0;
+      
+      // Mock click rate for now (would need to track clicks in the future)
+      const clickRate = 12.3;
       
       setNotificationStats({
         totalSent,
         pending,
         delivered,
         failed,
-        openRate: 78.5, // This would come from actual analytics
-        clickRate: 12.3, // This would come from actual analytics
+        openRate: Math.round(openRate * 10) / 10, // Round to 1 decimal
+        clickRate,
       });
     } catch (error) {
       console.error("Failed to load stats:", error);
+      // Set default stats on error
+      setNotificationStats({
+        totalSent: 0,
+        pending: 0,
+        delivered: 0,
+        failed: 0,
+        openRate: 0,
+        clickRate: 0,
+      });
     }
   };
 
@@ -139,6 +199,67 @@ const GlobalNotification: React.FC = () => {
   // Handler functions
   const handleComposeNotification = () => {
     setShowComposeModal(true);
+  };
+
+  const handleSendNotification = async () => {
+    try {
+      
+      // Determine target audience based on selection
+      let targetAudience = 'all';
+      let targetRoles: string[] = [];
+      
+      if (composeNotification.recipients === 'admins') {
+        targetAudience = 'roles';
+        targetRoles = ['superadmin', 'tenantadmin'];
+      } else if (composeNotification.recipients === 'tenants') {
+        targetAudience = 'roles';
+        targetRoles = ['tenantadmin'];
+      } else if (composeNotification.recipients === 'doctors') {
+        targetAudience = 'roles';
+        targetRoles = ['doctor'];
+      } else if (composeNotification.recipients === 'technicians') {
+        targetAudience = 'roles';
+        targetRoles = ['technician'];
+      } else if (composeNotification.recipients === 'patients') {
+        targetAudience = 'roles';
+        targetRoles = ['patient'];
+      }
+      
+      // Send the notification using our global notification system
+      const response = await notificationAPI.sendGlobal({
+        title: composeNotification.subject,
+        message: composeNotification.message,
+        notification_type: composeNotification.type,
+        priority: 'medium',
+        target_audience: targetAudience,
+        target_roles: targetRoles.length > 0 ? targetRoles : undefined,
+        expires_in_hours: 24
+      });
+      
+      if (response.status === 201) {
+        // Reset form
+        setComposeNotification({
+          subject: "",
+          message: "",
+          type: "general",
+          recipients: "all",
+          scheduledDate: "",
+          scheduledTime: "",
+        });
+        
+        // Reload stats and notifications
+        await loadStats();
+        await loadNotifications();
+        
+        setShowComposeModal(false);
+        alert('Notification sent successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+      alert('Failed to send notification. Please try again.');
+    } finally {
+      // Request completed
+    }
   };
 
   const handleSaveNotification = () => {
@@ -155,36 +276,6 @@ const GlobalNotification: React.FC = () => {
     });
   };
 
-  const handleSendNotification = async () => {
-    try {
-      const notificationData = {
-        title: composeNotification.subject,
-        message: composeNotification.message,
-        notification_type: composeNotification.type,
-        priority: "medium",
-        is_global: composeNotification.recipients === "all",
-        tenant: null, // For global notifications
-      };
-
-      await notificationAPI.sendGlobal(notificationData);
-
-      // Reload notifications to get the updated list
-      await loadNotifications();
-
-      setShowComposeModal(false);
-      setComposeNotification({
-        subject: "",
-        message: "",
-        type: "general",
-        recipients: "all",
-        scheduledDate: "",
-        scheduledTime: "",
-      });
-    } catch (error) {
-      console.error("Failed to send notification:", error);
-      // Handle error - could show a toast or error message
-    }
-  };
 
   const handleCreateTemplate = () => {
     setShowCreateTemplateModal(true);
@@ -345,6 +436,29 @@ const GlobalNotification: React.FC = () => {
       </div>
 
       <div className="space-y-4 sm:space-y-6">
+        {/* Debug Info */}
+        <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Debug Information</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Total Users:</span>
+              <span className="ml-1 font-medium text-gray-900 dark:text-white">{userCounts.total}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Admins:</span>
+              <span className="ml-1 font-medium text-gray-900 dark:text-white">{userCounts.admins}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Doctors:</span>
+              <span className="ml-1 font-medium text-gray-900 dark:text-white">{userCounts.doctors}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Patients:</span>
+              <span className="ml-1 font-medium text-gray-900 dark:text-white">{userCounts.patients}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border">
@@ -439,20 +553,27 @@ const GlobalNotification: React.FC = () => {
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Notification Type
                     </label>
-                    <select className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                      <option value="">Select type</option>
+                    <select 
+                      value={composeNotification.type}
+                      onChange={(e) => setComposeNotification({...composeNotification, type: e.target.value})}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    >
+                      <option value="general">General</option>
                       <option value="maintenance">System Maintenance</option>
                       <option value="security">Security Alert</option>
                       <option value="feature">Feature Update</option>
                       <option value="billing">Billing</option>
-                      <option value="general">General</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Priority
                     </label>
-                    <select className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
+                    <select 
+                      value={composeNotification.priority || 'medium'}
+                      onChange={(e) => setComposeNotification({...composeNotification, priority: e.target.value})}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
@@ -467,7 +588,9 @@ const GlobalNotification: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    value={composeNotification.subject}
+                    onChange={(e) => setComposeNotification({...composeNotification, subject: e.target.value})}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     placeholder="Enter notification subject"
                   />
                 </div>
@@ -478,7 +601,9 @@ const GlobalNotification: React.FC = () => {
                   </label>
                   <textarea
                     rows={4}
-                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    value={composeNotification.message}
+                    onChange={(e) => setComposeNotification({...composeNotification, message: e.target.value})}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     placeholder="Enter your notification message"
                   />
                 </div>
@@ -488,10 +613,17 @@ const GlobalNotification: React.FC = () => {
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Recipients
                     </label>
-                    <select className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                      <option value="all">All Users (1,247)</option>
-                      <option value="admins">Admins Only (24)</option>
-                      <option value="tenants">Tenant Admins (24)</option>
+                    <select 
+                      value={composeNotification.recipients}
+                      onChange={(e) => setComposeNotification({...composeNotification, recipients: e.target.value})}
+                      className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    >
+                      <option value="all">All Users ({userCounts.total.toLocaleString()})</option>
+                      <option value="admins">Admins Only ({userCounts.admins})</option>
+                      <option value="tenants">Tenant Admins ({userCounts.tenants})</option>
+                      <option value="doctors">Doctors ({userCounts.doctors})</option>
+                      <option value="technicians">Technicians ({userCounts.technicians})</option>
+                      <option value="patients">Patients ({userCounts.patients})</option>
                       <option value="custom">Custom Selection</option>
                     </select>
                   </div>
@@ -499,7 +631,7 @@ const GlobalNotification: React.FC = () => {
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Send Schedule
                     </label>
-                    <select className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
+                    <select className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent">
                       <option value="now">Send Now</option>
                       <option value="scheduled">Schedule for Later</option>
                     </select>
@@ -507,10 +639,29 @@ const GlobalNotification: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                  <button 
+                    onClick={() => {
+                      setComposeNotification({
+                        subject: "Test Notification",
+                        message: "This is a test notification to verify the system is working correctly.",
+                        type: "general",
+                        recipients: "all",
+                        scheduledDate: "",
+                        scheduledTime: "",
+                      });
+                    }}
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors"
+                  >
+                    Fill Test Data
+                  </button>
                   <button className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors">
                     Save as Draft
                   </button>
-                  <button className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                  <button 
+                    onClick={handleSendNotification}
+                    disabled={!composeNotification.subject || !composeNotification.message}
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                  >
                     <Send className="w-4 h-4" />
                     <span>Send Notification</span>
                   </button>
@@ -601,10 +752,26 @@ const GlobalNotification: React.FC = () => {
                   Notification History
                 </h3>
                 <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => {
+                      // Clear all notifications
+                      if (window.confirm('Are you sure you want to delete all notifications?')) {
+                        recentNotifications.forEach(notification => {
+                          // Here you would call the delete API
+                          console.log('Deleting notification:', notification.id);
+                        });
+                        setRecentNotifications([]);
+                        loadStats(); // Refresh stats
+                      }
+                    }}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Clear All
+                  </button>
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent w-full sm:w-auto"
+                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent w-full sm:w-auto"
                   >
                     <option value="all">All Types</option>
                     <option value="maintenance">Maintenance</option>
@@ -682,18 +849,26 @@ const GlobalNotification: React.FC = () => {
                             <button
                               onClick={() => handleViewHistory(notification)}
                               className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400"
+                              title="View Details"
                             >
                               <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                             <button
                               onClick={() => handleEditHistory(notification)}
                               className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                              title="Edit"
                             >
                               <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteHistory(notification)}
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete "${notification.subject}"?`)) {
+                                  setRecentNotifications(prev => prev.filter(n => n.id !== notification.id));
+                                  loadStats(); // Refresh stats
+                                }
+                              }}
                               className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400"
+                              title="Delete"
                             >
                               <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
@@ -738,7 +913,7 @@ const GlobalNotification: React.FC = () => {
                           subject: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                       placeholder="Enter notification subject"
                     />
                   </div>
@@ -754,7 +929,7 @@ const GlobalNotification: React.FC = () => {
                           type: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     >
                       <option value="general">General</option>
                       <option value="maintenance">Maintenance</option>
@@ -775,7 +950,7 @@ const GlobalNotification: React.FC = () => {
                           recipients: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     >
                       <option value="all">All Users</option>
                       <option value="admins">Admins Only</option>
@@ -795,7 +970,7 @@ const GlobalNotification: React.FC = () => {
                           scheduledDate: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -812,7 +987,7 @@ const GlobalNotification: React.FC = () => {
                       })
                     }
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     placeholder="Enter notification message"
                   />
                 </div>
@@ -870,7 +1045,7 @@ const GlobalNotification: React.FC = () => {
                       onChange={(e) =>
                         setNewTemplate({ ...newTemplate, name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                       placeholder="Enter template name"
                     />
                   </div>
@@ -883,7 +1058,7 @@ const GlobalNotification: React.FC = () => {
                       onChange={(e) =>
                         setNewTemplate({ ...newTemplate, type: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     >
                       <option value="general">General</option>
                       <option value="maintenance">Maintenance</option>
@@ -906,7 +1081,7 @@ const GlobalNotification: React.FC = () => {
                         subject: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     placeholder="Enter template subject"
                   />
                 </div>
@@ -923,7 +1098,7 @@ const GlobalNotification: React.FC = () => {
                       })
                     }
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     placeholder="Enter template message"
                   />
                 </div>
@@ -976,7 +1151,7 @@ const GlobalNotification: React.FC = () => {
                           name: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -991,7 +1166,7 @@ const GlobalNotification: React.FC = () => {
                           type: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     >
                       <option value="general">General</option>
                       <option value="maintenance">Maintenance</option>
@@ -1014,7 +1189,7 @@ const GlobalNotification: React.FC = () => {
                         subject: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -1030,7 +1205,7 @@ const GlobalNotification: React.FC = () => {
                       })
                     }
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -1259,7 +1434,7 @@ const GlobalNotification: React.FC = () => {
                         subject: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -1271,7 +1446,7 @@ const GlobalNotification: React.FC = () => {
                     onChange={(e) =>
                       setEditHistory({ ...editHistory, status: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   >
                     <option value="sent">Sent</option>
                     <option value="pending">Pending</option>
@@ -1291,7 +1466,7 @@ const GlobalNotification: React.FC = () => {
                       })
                     }
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
               </div>

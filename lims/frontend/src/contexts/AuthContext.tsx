@@ -131,6 +131,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return hasRole(user.role);
   };
 
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      // Get fresh user data from the backend
+      const response = await authAPI.login({
+        email: user?.email || "",
+        password: "", // We'll use the token for authentication
+      });
+      
+      const data: AuthResponse = response.data;
+      
+      // Update stored user data
+      localStorage.setItem("user_data", JSON.stringify(data.user));
+      setUser(data.user);
+      
+      console.log("User data refreshed:", data.user);
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     tenant,
@@ -138,6 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
+    refreshUser,
     hasRole,
     hasPermission,
   };

@@ -1,5 +1,5 @@
 import { ChevronDown, LogOut, Menu, User } from "lucide-react";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -74,10 +74,27 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
               onClick={handleProfileClick}
               className="flex items-center space-x-2 sm:space-x-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {user?.email?.charAt(0).toUpperCase() || "U"}
-                </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {user?.profile_picture ? (
+                  <img
+                    src={user.profile_picture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to initial if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `<span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">${user?.email?.charAt(0).toUpperCase() || "U"}</span>`;
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {user?.email?.charAt(0).toUpperCase() || "U"}
+                  </span>
+                )}
               </div>
               <div className="hidden sm:block min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">

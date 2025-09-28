@@ -12,6 +12,11 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
+    // Skip adding Authorization header for login requests
+    if (config.url?.includes('/login/')) {
+      return config;
+    }
+    
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -35,6 +40,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    
+    // Skip token refresh for login requests
+    if (originalRequest.url?.includes('/login/')) {
+      return Promise.reject(error);
+    }
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -326,14 +336,24 @@ export const faqAPI = {
 };
 
 export const profileAPI = {
+  // Basic CRUD operations
   getProfile: () => api.get('/profile/'),
   updateProfile: (data: any) => api.put('/profile/', data),
+  deleteProfile: (data: { confirm_deletion: boolean; reason?: string }) => 
+    api.delete('/profile/delete/', { data }),
+  restoreProfile: () => api.post('/profile/restore/'),
+  resetProfile: () => api.post('/profile/reset/'),
+  exportProfile: () => api.get('/profile/export/'),
+  
+  // Profile picture operations
   uploadProfilePicture: (formData: FormData) => api.post('/profile/upload-picture/', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   }),
   deleteProfilePicture: () => api.delete('/profile/picture/'),
+  
+  // Password operations
   changePassword: (data: { old_password: string; new_password: string }) => 
     api.post('/profile/change-password/', data),
   

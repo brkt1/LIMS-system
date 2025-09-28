@@ -190,6 +190,12 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Force media URLs to use backend host in development
+if DEBUG:
+    # This ensures media URLs always point to the backend server
+    import os
+    os.environ['DJANGO_MEDIA_HOST'] = 'http://localhost:8001'
+
 # ------------------------
 # DEFAULT PK FIELD TYPE
 # ------------------------
@@ -201,16 +207,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",   # React dev server
     "http://localhost:3001",   # React dev server (alternative port)
+    "http://localhost:3002",   # React dev server (Vite alternative port)
     "http://localhost:3008",   # Vite dev server (current port)
     "http://localhost:3009",   # Vite dev server (alternative port)
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
     "http://127.0.0.1:3008",
     "http://127.0.0.1:3009",   # Vite dev server (current port)
     "http://localhost:5173",   # Vite dev server
     "http://127.0.0.1:5173",
     "http://localhost:8000",   # Django default
     "http://127.0.0.1:8000",
+    "http://localhost:8001",   # Django alternative port
+    "http://127.0.0.1:8001",
     "http://10.0.2.2:8000",
     "http://192.168.1.100:8000",
 ]

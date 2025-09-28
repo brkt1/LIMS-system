@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit, Eye, EyeOff, Save, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Edit, Eye, EyeOff, RotateCcw, Save, Trash2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -6,7 +6,7 @@ import { profileAPI } from "../../services/api";
 import ProfilePictureUpload from "../ProfilePictureUpload";
 
 const Profile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -24,6 +24,14 @@ const Profile: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
+  
+  // CRUD operation states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Profile options state
   const [timezones, setTimezones] = useState<any[]>([]);
@@ -327,6 +335,79 @@ const Profile: React.FC = () => {
     }
   };
 
+  // CRUD Operations
+  const handleExportProfile = async () => {
+    try {
+      setIsExporting(true);
+      setLocalError(null);
+
+      const response = await profileAPI.exportProfile();
+      const data = response.data.data;
+
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `profile-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setSuccessMessage("Profile data exported successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error("Profile export error:", err);
+      setLocalError("Failed to export profile data. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleResetProfile = async () => {
+    try {
+      setIsResetting(true);
+      setLocalError(null);
+
+      await profileAPI.resetProfile();
+      await loadProfile(); // Reload profile data
+
+      setSuccessMessage("Profile reset to default values successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+      setShowResetModal(false);
+    } catch (err: any) {
+      console.error("Profile reset error:", err);
+      setLocalError("Failed to reset profile. Please try again.");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    try {
+      setIsDeleting(true);
+      setLocalError(null);
+
+      await profileAPI.deleteProfile({
+        confirm_deletion: true,
+        reason: deleteReason
+      });
+
+      setSuccessMessage("Profile deleted successfully. You will be logged out.");
+      setTimeout(() => {
+        // Logout user after successful deletion
+        window.location.href = '/login';
+      }, 2000);
+    } catch (err: any) {
+      console.error("Profile deletion error:", err);
+      setLocalError("Failed to delete profile. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
       {/* Header */}
@@ -346,6 +427,35 @@ const Profile: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+            {/* CRUD Action Buttons */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleExportProfile}
+                disabled={isExporting}
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                title="Export Profile Data"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              <button
+                onClick={() => setShowResetModal(true)}
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                title="Reset Profile"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                title="Delete Profile"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            </div>
+            
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
@@ -824,6 +934,90 @@ const Profile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Profile Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Delete Profile
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Are you sure you want to delete your profile? This action cannot be undone and will permanently remove all your data.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Reason for deletion (optional)
+                </label>
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                  rows={3}
+                  placeholder="Please let us know why you're deleting your profile..."
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteProfile}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? "Deleting..." : "Delete Profile"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Profile Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <RotateCcw className="w-6 h-6 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Reset Profile
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Are you sure you want to reset your profile to default values? This will clear all your personal information but keep your account active.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowResetModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetProfile}
+                  disabled={isResetting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
+                >
+                  {isResetting ? "Resetting..." : "Reset Profile"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

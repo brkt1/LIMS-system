@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model, authenticate
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,6 +9,7 @@ from .login_serializers import UserSerializer
 
 User = get_user_model()
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     def post(self, request):
         email = request.data.get("email")
@@ -28,7 +31,7 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
 
         # Serialize user data
-        user_data = UserSerializer(user).data
+        user_data = UserSerializer(user, context={'request': request}).data
 
         # Handle tenant (check if user has tenant attribute)
         tenant_data = None

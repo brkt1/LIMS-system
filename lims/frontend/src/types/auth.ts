@@ -20,6 +20,7 @@ export interface User {
   tenant: string | null;
   isPaid: boolean;
   created_by: string | null;
+  profile_picture?: string | null;
 }
 
 export interface Tenant {
@@ -45,6 +46,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   hasRole: (role: UserRole | UserRole[]) => boolean;
   hasPermission: (permission: string) => boolean;
 }

@@ -11,9 +11,11 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 
 const AllTenants: React.FC = () => {
+  const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("name");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -84,16 +86,16 @@ const AllTenants: React.FC = () => {
 
   const generateCSV = (data: any[]) => {
     const headers = [
-      "ID",
-      "Name",
-      "Domain",
-      "Status",
-      "Users",
-      "Plan",
-      "Created",
-      "Last Active",
-      "Revenue",
-      "Growth (%)",
+      t('allTenants.exportHeaders.id'),
+      t('allTenants.exportHeaders.name'),
+      t('allTenants.exportHeaders.domain'),
+      t('allTenants.exportHeaders.status'),
+      t('allTenants.exportHeaders.users'),
+      t('allTenants.exportHeaders.plan'),
+      t('allTenants.exportHeaders.created'),
+      t('allTenants.exportHeaders.lastActive'),
+      t('allTenants.exportHeaders.revenue'),
+      t('allTenants.exportHeaders.growth'),
     ];
 
     const rows = data.map((tenant) => [
@@ -288,10 +290,10 @@ const AllTenants: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            All Tenants
+            {t('allTenants.title')}
           </h2>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-            Complete overview of all tenant organizations
+            {t('allTenants.description')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
@@ -300,7 +302,7 @@ const AllTenants: React.FC = () => {
             className="flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             <Download className="w-4 h-4" />
-            <span>Export All</span>
+            <span>{t('allTenants.exportAll')}</span>
           </button>
           <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg w-full sm:w-auto">
             <button
@@ -311,7 +313,7 @@ const AllTenants: React.FC = () => {
                   : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700"
               }`}
             >
-              Grid
+              {t('allTenants.grid')}
             </button>
             <button
               onClick={() => setViewMode("list")}
@@ -321,7 +323,7 @@ const AllTenants: React.FC = () => {
                   : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-700"
               }`}
             >
-              List
+              {t('allTenants.list')}
             </button>
           </div>
         </div>
@@ -333,7 +335,7 @@ const AllTenants: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                Total Tenants
+                {t('allTenants.totalTenants')}
               </p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {tenants.length}
@@ -346,7 +348,7 @@ const AllTenants: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                Active Tenants
+                {t('allTenants.activeTenants')}
               </p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {activeTenants}
@@ -359,7 +361,7 @@ const AllTenants: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                Total Users
+                {t('allTenants.totalUsers')}
               </p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {totalUsers}
@@ -372,7 +374,7 @@ const AllTenants: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                Total Revenue
+                {t('allTenants.totalRevenue')}
               </p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                 ${totalRevenue.toLocaleString()}
@@ -390,32 +392,32 @@ const AllTenants: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search tenants by name, domain, or plan..."
+              placeholder={t('allTenants.searchTenants')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
             >
-              <option value="all">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Pending">Pending</option>
+              <option value="all">{t('allTenants.allStatus')}</option>
+              <option value="Active">{t('allTenants.active')}</option>
+              <option value="Suspended">{t('allTenants.suspended')}</option>
+              <option value="Pending">{t('allTenants.pending')}</option>
             </select>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
             >
-              <option value="name">Sort by Name</option>
-              <option value="created">Sort by Created Date</option>
-              <option value="users">Sort by Users</option>
-              <option value="revenue">Sort by Revenue</option>
+              <option value="name">{t('allTenants.sortByName')}</option>
+              <option value="created">{t('allTenants.sortByCreated')}</option>
+              <option value="users">{t('allTenants.sortByUsers')}</option>
+              <option value="revenue">{t('allTenants.sortByRevenue')}</option>
             </select>
           </div>
         </div>
@@ -438,10 +440,10 @@ const AllTenants: React.FC = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                      {tenant.company_name || tenant.name || 'N/A'}
+                      {tenant.company_name || tenant.name || t('allTenants.notAvailable')}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {tenant.domain || 'N/A'}
+                      {tenant.domain || t('allTenants.notAvailable')}
                     </p>
                   </div>
                 </div>
@@ -457,7 +459,7 @@ const AllTenants: React.FC = () => {
               <div className="space-y-2 sm:space-y-3 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Users
+                    {t('allTenants.users')}
                   </span>
                   <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
                     {tenant.current_users || tenant.users || 0}
@@ -465,19 +467,19 @@ const AllTenants: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Plan
+                    {t('allTenants.plan')}
                   </span>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
                       tenant.plan_name || tenant.plan
                     )}`}
                   >
-                    {tenant.plan_name || tenant.plan || 'N/A'}
+                    {tenant.plan_name || tenant.plan || t('allTenants.notAvailable')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Revenue
+                    {t('allTenants.revenue')}
                   </span>
                   <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
                     ${(tenant.revenue || 0).toLocaleString()}
@@ -485,7 +487,7 @@ const AllTenants: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Growth
+                    {t('allTenants.growth')}
                   </span>
                   <span
                     className={`font-medium text-sm sm:text-base ${getGrowthColor(
@@ -500,8 +502,8 @@ const AllTenants: React.FC = () => {
 
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-y-1 sm:space-y-0 mb-3">
-                  <span>Created: {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : tenant.created || 'N/A'}</span>
-                  <span>Last active: {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : tenant.lastActive || 'N/A'}</span>
+                  <span>{t('allTenants.created')}: {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : tenant.created || t('allTenants.notAvailable')}</span>
+                  <span>{t('allTenants.lastActive')}: {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : tenant.lastActive || t('allTenants.notAvailable')}</span>
                 </div>
 
                 {/* Action Buttons */}
@@ -511,28 +513,28 @@ const AllTenants: React.FC = () => {
                     className="flex items-center space-x-1 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
                   >
                     <Eye className="w-3 h-3" />
-                    <span>View</span>
+                    <span>{t('allTenants.view')}</span>
                   </button>
                   <button
                     onClick={() => handleEditTenant(tenant)}
                     className="flex items-center space-x-1 px-2 py-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
                   >
                     <Edit className="w-3 h-3" />
-                    <span>Edit</span>
+                    <span>{t('allTenants.edit')}</span>
                   </button>
                   <button
                     onClick={() => handleDeleteTenant(tenant)}
                     className="flex items-center space-x-1 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span>Delete</span>
+                    <span>{t('allTenants.delete')}</span>
                   </button>
                   <button
                     onClick={() => handleMoreActions(tenant)}
                     className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     <MoreVertical className="w-3 h-3" />
-                    <span>More</span>
+                    <span>{t('allTenants.more')}</span>
                   </button>
                 </div>
               </div>
@@ -540,7 +542,7 @@ const AllTenants: React.FC = () => {
           )) : (
             <div className="col-span-full text-center py-12">
               <div className="text-gray-500 dark:text-gray-400">
-                {loading ? "Loading tenants..." : "No tenants found"}
+                {loading ? t('allTenants.loadingTenants') : t('allTenants.noTenantsFound')}
               </div>
             </div>
           )}
@@ -552,28 +554,28 @@ const AllTenants: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Tenant
+                    {t('allTenants.tenant')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Status
+                    {t('allTenants.status')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Users
+                    {t('allTenants.users')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Plan
+                    {t('allTenants.plan')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Revenue
+                    {t('allTenants.revenue')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Growth
+                    {t('allTenants.growth')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Created
+                    {t('allTenants.created')}
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Actions
+                    {t('allTenants.actions')}
                   </th>
                 </tr>
               </thead>
@@ -826,7 +828,7 @@ const AllTenants: React.FC = () => {
                     onChange={(e) =>
                       setEditTenant({ ...editTenant, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -839,7 +841,7 @@ const AllTenants: React.FC = () => {
                     onChange={(e) =>
                       setEditTenant({ ...editTenant, domain: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -851,7 +853,7 @@ const AllTenants: React.FC = () => {
                     onChange={(e) =>
                       setEditTenant({ ...editTenant, status: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   >
                     <option value="Active">Active</option>
                     <option value="Suspended">Suspended</option>
@@ -867,7 +869,7 @@ const AllTenants: React.FC = () => {
                     onChange={(e) =>
                       setEditTenant({ ...editTenant, plan: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   >
                     {planOptions.map((plan) => (
                       <option key={plan} value={plan}>
@@ -889,7 +891,7 @@ const AllTenants: React.FC = () => {
                         users: parseInt(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -905,7 +907,7 @@ const AllTenants: React.FC = () => {
                         revenue: parseInt(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -922,7 +924,7 @@ const AllTenants: React.FC = () => {
                         growth: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
               </div>

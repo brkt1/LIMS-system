@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate, get_user_model
+from lab.components.Profile.profile_models import UserProfile
 
 User = get_user_model()
 
@@ -23,6 +24,8 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = [
@@ -36,5 +39,23 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "tenant",
             "isPaid",
-            "created_by"
+            "created_by",
+            "profile_picture"
         ]
+    
+    def get_profile_picture(self, obj):
+        """Get the user's profile picture URL"""
+        try:
+            profile = UserProfile.objects.get(user=obj)
+            if profile.profile_picture:
+                # Return the full URL for the profile picture
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(profile.profile_picture.url)
+                # Fallback for when request context is not available
+                import os
+                media_host = os.environ.get('DJANGO_MEDIA_HOST', 'http://localhost:8001')
+                return f"{media_host}{profile.profile_picture.url}"
+        except UserProfile.DoesNotExist:
+            pass
+        return None

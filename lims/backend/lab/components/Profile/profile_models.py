@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class UserProfile(models.Model):
@@ -16,6 +17,57 @@ class UserProfile(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
     bio = models.TextField(blank=True)
+    
+    # Additional Personal Information
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(
+        max_length=20,
+        blank=True,
+        choices=[
+            ('Male', 'Male'),
+            ('Female', 'Female'),
+            ('Other', 'Other'),
+            ('Prefer not to say', 'Prefer not to say'),
+        ]
+    )
+    blood_type = models.CharField(
+        max_length=5,
+        blank=True,
+        choices=[
+            ('A+', 'A+'),
+            ('A-', 'A-'),
+            ('B+', 'B+'),
+            ('B-', 'B-'),
+            ('AB+', 'AB+'),
+            ('AB-', 'AB-'),
+            ('O+', 'O+'),
+            ('O-', 'O-'),
+        ]
+    )
+    
+    # Emergency Contact Information
+    emergency_contact = models.CharField(max_length=100, blank=True)
+    emergency_phone = models.CharField(max_length=20, blank=True)
+    
+    # Medical Information
+    medical_history = models.TextField(blank=True)
+    allergies = models.TextField(blank=True)
+    medications = models.TextField(blank=True)
+    
+    # Insurance Information
+    insurance_provider = models.CharField(max_length=100, blank=True)
+    insurance_number = models.CharField(max_length=50, blank=True)
+    
+    # Professional Information (for staff)
+    employee_id = models.CharField(max_length=50, blank=True)
+    department = models.CharField(max_length=100, blank=True)
+    position = models.CharField(max_length=100, blank=True)
+    hire_date = models.DateField(null=True, blank=True)
+    
+    # Account Status
+    is_active = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     
     # Profile Picture
     profile_picture = models.ImageField(
@@ -88,3 +140,21 @@ class UserProfile(models.Model):
             self.user.save()
         
         super().save(*args, **kwargs)
+    
+    def soft_delete(self):
+        """Soft delete the profile"""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
+    
+    def restore(self):
+        """Restore a soft-deleted profile"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save()
+    
+    class Meta:
+        db_table = 'user_profiles'
+        verbose_name = 'User Profile'
+        verbose_name_plural = 'User Profiles'
+        ordering = ['-created_at']

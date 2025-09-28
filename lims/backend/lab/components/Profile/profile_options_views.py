@@ -17,27 +17,21 @@ class ProfileOptionsViewSet(viewsets.ViewSet):
         Get list of available timezones
         """
         try:
-            # Get all timezone options
-            timezones = []
-            for tz in pytz.all_timezones:
-                # Get timezone info
-                tz_obj = pytz.timezone(tz)
-                offset = tz_obj.utcoffset(None)
-                offset_str = str(offset).split(':')[0] + ':' + str(offset).split(':')[1]
-                
-                # Format display name
-                display_name = tz.replace('_', ' ')
-                if '/' in display_name:
-                    display_name = display_name.split('/')[-1]
-                
-                timezones.append({
-                    'value': tz,
-                    'label': f"{display_name} (UTC{offset_str})",
-                    'offset': offset_str
-                })
-            
-            # Sort by offset
-            timezones.sort(key=lambda x: x['offset'])
+            # Simplified timezone list without pytz dependency
+            timezones = [
+                {'value': 'UTC', 'label': 'UTC (UTC+00:00)', 'offset': '+00:00'},
+                {'value': 'America/New_York', 'label': 'Eastern Time (UTC-05:00)', 'offset': '-05:00'},
+                {'value': 'America/Chicago', 'label': 'Central Time (UTC-06:00)', 'offset': '-06:00'},
+                {'value': 'America/Denver', 'label': 'Mountain Time (UTC-07:00)', 'offset': '-07:00'},
+                {'value': 'America/Los_Angeles', 'label': 'Pacific Time (UTC-08:00)', 'offset': '-08:00'},
+                {'value': 'Europe/London', 'label': 'London (UTC+00:00)', 'offset': '+00:00'},
+                {'value': 'Europe/Paris', 'label': 'Paris (UTC+01:00)', 'offset': '+01:00'},
+                {'value': 'Europe/Berlin', 'label': 'Berlin (UTC+01:00)', 'offset': '+01:00'},
+                {'value': 'Asia/Tokyo', 'label': 'Tokyo (UTC+09:00)', 'offset': '+09:00'},
+                {'value': 'Asia/Shanghai', 'label': 'Shanghai (UTC+08:00)', 'offset': '+08:00'},
+                {'value': 'Asia/Kolkata', 'label': 'Mumbai (UTC+05:30)', 'offset': '+05:30'},
+                {'value': 'Australia/Sydney', 'label': 'Sydney (UTC+10:00)', 'offset': '+10:00'},
+            ]
             
             return Response({
                 'success': True,

@@ -101,9 +101,7 @@ export const useProfile = () => {
         bio: data.bio || '',
         timezone: data.timezone || 'UTC',
         language: data.language || 'en',
-        profilePicture: data.profile_picture ? 
-          (data.profile_picture.startsWith('http') ? data.profile_picture : `${window.location.origin}${data.profile_picture}`) 
-          : '',
+        profilePicture: data.profile_picture_url || data.profile_picture || '',
         notifications: {
           email: data.email_notifications ?? true,
           sms: data.sms_notifications ?? false,
@@ -198,12 +196,10 @@ export const useProfile = () => {
       formData.append('profile_picture', file);
       
       const response = await profileAPI.uploadProfilePicture(formData);
-      const { profile_picture } = response.data;
+      const { profile_picture_url, profile_picture } = response.data;
       
-      // Construct full URL for the profile picture
-      const fullUrl = profile_picture.startsWith('http') 
-        ? profile_picture 
-        : `${window.location.origin}${profile_picture}`;
+      // Use the full URL from backend, fallback to constructing URL if needed
+      const fullUrl = profile_picture_url || profile_picture || '';
       
       // Update profile data with new picture URL
       setProfileData(prev => ({ ...prev, profilePicture: fullUrl }));

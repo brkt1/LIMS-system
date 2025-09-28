@@ -1,6 +1,7 @@
-import { Bell, Plus, X } from "lucide-react";
+import { Bell, Globe, Plus, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
+import GlobalNotificationBroadcaster from "../superadmin/GlobalNotificationBroadcaster";
 
 const Notifications: React.FC = () => {
   // State management for modals
@@ -8,6 +9,7 @@ const Notifications: React.FC = () => {
     useState(false);
   const [showNotificationHistoryModal, setShowNotificationHistoryModal] =
     useState(false);
+  const [showGlobalBroadcaster, setShowGlobalBroadcaster] = useState(false);
 
   // Form states
   const [notificationData, setNotificationData] = useState({
@@ -117,6 +119,13 @@ const Notifications: React.FC = () => {
           >
             <Bell className="w-4 h-4" />
             <span>History</span>
+          </button>
+          <button
+            onClick={() => setShowGlobalBroadcaster(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center"
+          >
+            <Globe className="w-4 h-4" />
+            <span>Global Broadcaster</span>
           </button>
           <button
             onClick={handleSendNotification}
@@ -371,6 +380,28 @@ const Notifications: React.FC = () => {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Notification Broadcaster Modal */}
+      {showGlobalBroadcaster && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Global Notification Broadcaster
+              </h2>
+              <button
+                onClick={() => setShowGlobalBroadcaster(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              <GlobalNotificationBroadcaster />
             </div>
           </div>
         </div>
