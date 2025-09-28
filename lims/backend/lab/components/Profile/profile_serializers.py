@@ -8,6 +8,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     full_name = serializers.CharField(read_only=True)
+    profile_picture_url = serializers.SerializerMethodField()
     
     class Meta:
         model = UserProfile
@@ -35,6 +36,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'position',
             'hire_date',
             'profile_picture',
+            'profile_picture_url',
             'timezone',
             'language',
             'email_notifications',
@@ -91,14 +93,27 @@ class UserProfileSerializer(serializers.ModelSerializer):
             if value > today:
                 raise serializers.ValidationError("Hire date cannot be in the future.")
         return value
+    
+    def get_profile_picture_url(self, obj):
+        """Get the full URL for the profile picture"""
+        if obj.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            # Fallback for when request context is not available
+            import os
+            media_host = os.environ.get('DJANGO_MEDIA_HOST', 'http://localhost:8001')
+            return f"{media_host}{obj.profile_picture.url}"
+        return None
 
 
 class ProfilePictureUploadSerializer(serializers.ModelSerializer):
     """Serializer for profile picture upload"""
+    profile_picture_url = serializers.SerializerMethodField()
     
     class Meta:
         model = UserProfile
-        fields = ['profile_picture']
+        fields = ['profile_picture', 'profile_picture_url']
     
     def validate_profile_picture(self, value):
         """Validate profile picture"""
@@ -113,6 +128,18 @@ class ProfilePictureUploadSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Only JPEG, PNG, GIF, and WebP images are allowed.")
         
         return value
+    
+    def get_profile_picture_url(self, obj):
+        """Get the full URL for the profile picture"""
+        if obj.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            # Fallback for when request context is not available
+            import os
+            media_host = os.environ.get('DJANGO_MEDIA_HOST', 'http://localhost:8001')
+            return f"{media_host}{obj.profile_picture.url}"
+        return None
 
 
 class PasswordChangeSerializer(serializers.Serializer):

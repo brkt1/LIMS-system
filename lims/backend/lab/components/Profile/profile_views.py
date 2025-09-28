@@ -30,11 +30,11 @@ def profile_view(request):
         )
         
         if request.method == 'GET':
-            serializer = UserProfileSerializer(profile)
+            serializer = UserProfileSerializer(profile, context={'request': request})
             return Response(serializer.data)
         
         elif request.method == 'PUT':
-            serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+            serializer = UserProfileSerializer(profile, data=request.data, partial=True, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
@@ -60,12 +60,13 @@ def upload_profile_picture(request):
             }
         )
         
-        serializer = ProfilePictureUploadSerializer(profile, data=request.data)
+        serializer = ProfilePictureUploadSerializer(profile, data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({
                 'message': 'Profile picture uploaded successfully',
-                'profile_picture': serializer.data['profile_picture']
+                'profile_picture': serializer.data['profile_picture'],
+                'profile_picture_url': serializer.data['profile_picture_url']
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     

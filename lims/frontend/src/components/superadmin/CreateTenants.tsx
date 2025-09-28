@@ -4,13 +4,13 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { superadminAPI } from "../../services/api";
 import { generateSecurePassword } from "../../utils/helpers";
 import {
-  handleApiError,
-  sanitizeFormData,
-  showValidationErrors,
-  validateDomain,
-  validateEmail,
-  validateInteger,
-  validateRequiredFields
+    handleApiError,
+    sanitizeFormData,
+    showValidationErrors,
+    validateDomain,
+    validateEmail,
+    validateInteger,
+    validateRequiredFields
 } from "../../utils/validation";
 
 const CreateTenants: React.FC = () => {
@@ -40,13 +40,23 @@ const CreateTenants: React.FC = () => {
   ]);
 
   const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
   // Load plans from API
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         const response = await superadminAPI.plans.getAll();
-        setPlans(response.data);
+        // Ensure the response data is an array and has the expected structure
+        const plansData = Array.isArray(response.data) ? response.data : [];
+        const validatedPlans = plansData.map(plan => ({
+          id: plan.id || 'unknown',
+          name: plan.name || 'Unnamed Plan',
+          price: plan.price || 'N/A',
+          maxUsers: plan.maxUsers || 0,
+          features: Array.isArray(plan.features) ? plan.features : [],
+        }));
+        setPlans(validatedPlans);
       } catch (error) {
         console.error("Failed to load plans:", error);
         // Fallback to default plans
@@ -73,6 +83,8 @@ const CreateTenants: React.FC = () => {
             features: (process.env.REACT_APP_ENTERPRISE_PLAN_FEATURES || "All Features,Custom Branding,Dedicated Support").split(","),
           },
         ]);
+      } finally {
+        setPlansLoading(false);
       }
     };
 
@@ -335,34 +347,40 @@ const CreateTenants: React.FC = () => {
                 {t('createTenants.planSelection')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {plans.map((plan) => (
+                {plansLoading ? (
+                  <div className="col-span-full text-center py-8">
+                    <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-300">Loading plans...</p>
+                  </div>
+                ) : (
+                  plans.map((plan, index) => (
                   <div
-                    key={plan.id}
+                    key={plan.id || `plan-${index}`}
                     className={`p-3 sm:p-4 border rounded-lg cursor-pointer transition-colors ${
                       formData.plan === plan.id
                         ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
                         : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
                     }`}
                     onClick={() =>
-                      setFormData((prev) => ({ ...prev, plan: plan.id }))
+                      setFormData((prev) => ({ ...prev, plan: plan.id || `plan-${index}` }))
                     }
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                        {plan.name}
+                        {plan.name || 'Unnamed Plan'}
                       </h4>
                       {formData.plan === plan.id && (
                         <Check className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                       )}
                     </div>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      {plan.price}
+                      {plan.price || 'N/A'}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-3">
-                      {t('createTenants.upToUsers').replace('{count}', plan.maxUsers.toString())}
+                      {t('createTenants.upToUsers').replace('{count}', (plan.maxUsers || 0).toString())}
                     </p>
                     <ul className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                      {plan.features.map((feature, index) => (
+                      {(plan.features || []).map((feature, index) => (
                         <li key={index} className="flex items-center space-x-2">
                           <Check className="w-3 h-3 text-green-600 dark:text-green-400 flex-shrink-0" />
                           <span className="truncate">{feature}</span>
@@ -370,7 +388,8 @@ const CreateTenants: React.FC = () => {
                       ))}
                     </ul>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 

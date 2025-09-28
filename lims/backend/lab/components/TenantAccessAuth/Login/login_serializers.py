@@ -52,7 +52,10 @@ class UserSerializer(serializers.ModelSerializer):
                 request = self.context.get('request')
                 if request:
                     return request.build_absolute_uri(profile.profile_picture.url)
-                return profile.profile_picture.url
+                # Fallback for when request context is not available
+                import os
+                media_host = os.environ.get('DJANGO_MEDIA_HOST', 'http://localhost:8001')
+                return f"{media_host}{profile.profile_picture.url}"
         except UserProfile.DoesNotExist:
             pass
         return None
