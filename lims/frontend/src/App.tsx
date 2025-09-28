@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
-  useNavigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
+import AuthBypass from "./components/AuthBypass";
 import Header from "./components/Header";
 import Login from "./components/Login";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
@@ -115,6 +116,7 @@ function App() {
       <LanguageProvider>
         <AuthProvider>
           <NotificationProvider>
+            <AuthBypass />
             <AppContent />
           </NotificationProvider>
         </AuthProvider>

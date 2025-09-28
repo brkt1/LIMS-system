@@ -2,6 +2,15 @@ import { Check, Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
 import { generateSecurePassword } from "../../utils/helpers";
+import {
+  handleApiError,
+  sanitizeFormData,
+  showValidationErrors,
+  validateDomain,
+  validateEmail,
+  validateInteger,
+  validateRequiredFields
+} from "../../utils/validation";
 
 const CreateTenants: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -87,23 +96,97 @@ const CreateTenants: React.FC = () => {
     }));
   };
 
+  const checkExistingTenant = async (domain: string, email: string) => {
+    try {
+      const response = await superadminAPI.tenants.getAll({ 
+        search: domain,
+        limit: 1 
+      });
+      
+      // Check if domain or email already exists
+      const existingTenants = response.data.results || response.data;
+      const domainExists = existingTenants.some((tenant: any) => 
+        tenant.domain === domain.toLowerCase()
+      );
+      const emailExists = existingTenants.some((tenant: any) => 
+        tenant.email === email.toLowerCase()
+      );
+      
+      return { domainExists, emailExists };
+    } catch (error) {
+      console.error('Error checking existing tenants:', error);
+      return { domainExists: false, emailExists: false };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      // Validate required fields
+      const requiredFields = ['tenantName', 'domain', 'adminEmail'];
+      const validationErrors = validateRequiredFields(formData, requiredFields);
+      
+      // Validate domain format
+      if (formData.domain.trim() && !validateDomain(formData.domain.trim())) {
+        validationErrors.push({
+          field: 'domain',
+          message: 'Domain can only contain letters, numbers, and hyphens'
+        });
+      }
+      
+      // Validate email format
+      if (formData.adminEmail.trim() && !validateEmail(formData.adminEmail.trim())) {
+        validationErrors.push({
+          field: 'adminEmail',
+          message: 'Please enter a valid email address'
+        });
+      }
+      
+      // Validate max users
+      validationErrors.push(...validateInteger(formData.maxUsers, 'maxUsers'));
+      
+      if (validationErrors.length > 0) {
+        showValidationErrors(validationErrors);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if domain or email already exists
+      const { domainExists, emailExists } = await checkExistingTenant(
+        formData.domain.trim().toLowerCase(),
+        formData.adminEmail.trim().toLowerCase()
+      );
+
+      if (domainExists) {
+        alert("A tenant with this domain already exists. Please choose a different domain.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (emailExists) {
+        alert("A tenant with this email already exists. Please use a different email address.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Sanitize and prepare data
+      const sanitizedData = sanitizeFormData(formData, ['tenantName', 'domain', 'adminEmail'], ['domain', 'adminEmail']);
+
       // Create tenant using the backend API
       const tenantData = {
-        company_name: formData.tenantName,
-        domain: formData.domain,
-        email: formData.adminEmail,
+        company_name: sanitizedData.tenantName,
+        domain: sanitizedData.domain,
+        email: sanitizedData.adminEmail,
         password: generateSecurePassword(), // Generate secure password
         status: 'active',
         billing_period: 'monthly',
-        max_users: formData.maxUsers,
-        created_by: 'superadmin', // This should come from the logged-in user
+        max_users: parseInt(sanitizedData.maxUsers.toString()),
+        created_by: 'SuperAdmin', // This should come from the logged-in user
       };
 
+      console.log('Creating tenant with data:', tenantData);
       await superadminAPI.tenants.create(tenantData);
       
       setIsSubmitting(false);
@@ -123,9 +206,8 @@ const CreateTenants: React.FC = () => {
         setShowSuccess(false);
       }, 3000);
     } catch (error: any) {
-      console.error("Error creating tenant:", error);
+      handleApiError(error, "Failed to create tenant");
       setIsSubmitting(false);
-      // Handle error (you might want to show an error message)
     }
   };
 

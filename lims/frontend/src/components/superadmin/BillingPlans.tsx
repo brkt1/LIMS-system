@@ -11,6 +11,16 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
+import {
+  extractErrorMessage,
+  getPlanType,
+  handleApiError,
+  sanitizeFormData,
+  showValidationErrors,
+  validateInteger,
+  validatePositiveNumber,
+  validateRequiredFields
+} from "../../utils/validation";
 
 const BillingPlans: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -67,14 +77,36 @@ const BillingPlans: React.FC = () => {
             superadminAPI.transactions.getAll(),
           ]);
 
-        setPlans(plansResponse.data);
-        setBillingData(analyticsResponse.data);
-        setTransactions(transactionsResponse.data);
-        setRecentTransactions(transactionsResponse.data.slice(0, 10)); // Get recent 10 transactions
+        // Map backend analytics data to frontend format
+        const backendAnalytics = analyticsResponse.data;
+        setBillingData({
+          totalRevenue: parseFloat(backendAnalytics.total_revenue) || 0,
+          monthlyRecurring: parseFloat(backendAnalytics.monthly_recurring) || 0,
+          annualRecurring: parseFloat(backendAnalytics.annual_recurring) || 0,
+          churnRate: parseFloat(backendAnalytics.churn_rate) || 0,
+          averageRevenuePerUser: parseFloat(backendAnalytics.average_revenue_per_user) || 0,
+          totalCustomers: parseInt(backendAnalytics.total_customers) || 0,
+        });
+
+        setPlans(plansResponse.data || []);
+        setTransactions(transactionsResponse.data || []);
+        setRecentTransactions((transactionsResponse.data || []).slice(0, 10)); // Get recent 10 transactions
       } catch (error: any) {
         console.error("Error fetching billing data:", error);
         setError(error.message || "Failed to load billing data");
+        
+        // Set fallback values when API fails
+        setBillingData({
+          totalRevenue: 0,
+          monthlyRecurring: 0,
+          annualRecurring: 0,
+          churnRate: 0,
+          averageRevenuePerUser: 0,
+          totalCustomers: 0,
+        });
         setPlans([]);
+        setTransactions([]);
+        setRecentTransactions([]);
       } finally {
         setLoading(false);
       }
@@ -155,15 +187,32 @@ const BillingPlans: React.FC = () => {
 
   const handleCreatePlanSubmit = async () => {
     try {
+      // Validate required fields
+      const requiredFields = ['name'];
+      const validationErrors = validateRequiredFields(newPlan, requiredFields);
+      
+      // Validate positive numbers
+      validationErrors.push(...validatePositiveNumber(newPlan.price, 'price'));
+      validationErrors.push(...validateInteger(newPlan.users, 'max_users'));
+      
+      if (validationErrors.length > 0) {
+        showValidationErrors(validationErrors);
+        return;
+      }
+
+      // Sanitize and prepare data
+      const sanitizedData = sanitizeFormData(newPlan, ['name'], []);
+      
       const planData = {
-        name: newPlan.name,
-        plan_type: newPlan.name.toLowerCase(),
-        price: newPlan.price,
-        billing_cycle: newPlan.billing,
-        max_users: newPlan.users,
-        features: newPlan.features,
+        name: sanitizedData.name,
+        plan_type: getPlanType(sanitizedData.name),
+        price: parseFloat(sanitizedData.price.toString()),
+        billing_cycle: sanitizedData.billing,
+        max_users: parseInt(sanitizedData.users.toString()),
+        features: sanitizedData.features,
       };
 
+      console.log('Creating plan with data:', planData);
       const response = await superadminAPI.plans.create(planData);
       setPlans((prev: any) => [...prev, response.data]);
       setShowCreatePlanModal(false);
@@ -175,21 +224,37 @@ const BillingPlans: React.FC = () => {
         features: [],
       });
     } catch (error: any) {
-      console.error("Error creating plan:", error);
-      setError(error.message || "Failed to create plan");
+      handleApiError(error, "Failed to create plan");
+      setError(extractErrorMessage(error));
     }
   };
 
   const handleUpdatePlan = async () => {
     if (selectedPlanData) {
       try {
+        // Validate required fields
+        const requiredFields = ['name'];
+        const validationErrors = validateRequiredFields(editPlan, requiredFields);
+        
+        // Validate positive numbers
+        validationErrors.push(...validatePositiveNumber(editPlan.price, 'price'));
+        validationErrors.push(...validateInteger(editPlan.users, 'max_users'));
+        
+        if (validationErrors.length > 0) {
+          showValidationErrors(validationErrors);
+          return;
+        }
+
+        // Sanitize and prepare data
+        const sanitizedData = sanitizeFormData(editPlan, ['name'], []);
+
         const updateData = {
-          name: editPlan.name,
-          plan_type: editPlan.name.toLowerCase(),
-          price: editPlan.price,
-          billing_cycle: editPlan.billing,
-          max_users: editPlan.users,
-          features: editPlan.features,
+          name: sanitizedData.name,
+          plan_type: getPlanType(sanitizedData.name),
+          price: parseFloat(sanitizedData.price.toString()),
+          billing_cycle: sanitizedData.billing,
+          max_users: parseInt(sanitizedData.users.toString()),
+          features: sanitizedData.features,
         };
 
         const response = await superadminAPI.plans.update(
@@ -204,8 +269,8 @@ const BillingPlans: React.FC = () => {
         setShowEditPlanModal(false);
         setSelectedPlanData(null);
       } catch (error: any) {
-        console.error("Error updating plan:", error);
-        setError(error.message || "Failed to update plan");
+        handleApiError(error, "Failed to update plan");
+        setError(extractErrorMessage(error));
       }
     }
   };
@@ -470,7 +535,7 @@ const BillingPlans: React.FC = () => {
                       ${plan.price}
                     </span>
                     <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
-                      /{plan.billing}
+                      /{plan.billing_cycle}
                     </span>
                   </div>
 
@@ -489,13 +554,13 @@ const BillingPlans: React.FC = () => {
                     <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2">
                       <span>Tenants</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {plan.tenants}
+                        {plan.active_tenants || 0}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       <span>Revenue</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${(plan.revenue || 0).toLocaleString()}
+                        ${(plan.monthly_revenue || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>

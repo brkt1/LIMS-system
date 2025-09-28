@@ -15,6 +15,13 @@ api.interceptors.request.use(
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // For development/testing, try to set a test token
+      if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
+        console.warn('No auth token found, API calls may fail with 401 errors');
+        // You can uncomment the line below to automatically set a test token
+        // localStorage.setItem('access_token', 'test-token-123');
+      }
     }
     return config;
   },

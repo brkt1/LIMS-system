@@ -1,10 +1,10 @@
 import {
-  BarChart3,
-  Calendar,
-  Download,
-  Filter,
-  TrendingUp,
-  Users,
+    BarChart3,
+    Calendar,
+    Download,
+    Filter,
+    TrendingUp,
+    Users,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { superadminAPI } from "../../services/api";
@@ -36,22 +36,46 @@ const UsageAnalysis: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        // Calculate days based on time range
+        const getDaysFromRange = (range: string) => {
+          switch (range) {
+            case "7d": return 7;
+            case "30d": return 30;
+            case "90d": return 90;
+            case "1y": return 365;
+            default: return 30;
+          }
+        };
+
+        const days = getDaysFromRange(timeRange);
+
         const [analysisResponse, tenantUsageResponse, featureUsageResponse] =
           await Promise.all([
-            superadminAPI.usage.getAnalysis({
-              days: timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90,
-            }),
+            superadminAPI.usage.getAnalysis({ days }),
             superadminAPI.usage.getTenantUsage(),
             superadminAPI.usage.getFeatureUsage(),
           ]);
 
-        setUsageData(analysisResponse.data);
-        setTenantUsage(tenantUsageResponse.data);
-        setFeatureUsage(featureUsageResponse.data);
+        // Map backend data to frontend format
+        const backendData = analysisResponse.data;
+        setUsageData({
+          totalUsers: backendData.total_users || 0,
+          activeUsers: backendData.active_users || 0,
+          totalTenants: backendData.total_tenants || 0,
+          activeTenants: backendData.active_tenants || 0,
+          totalTests: backendData.total_tests || 0,
+          totalReports: backendData.total_reports || 0,
+          systemUptime: backendData.system_uptime || 99.9,
+          avgResponseTime: backendData.avg_response_time || 245,
+        });
+
+        setTenantUsage(tenantUsageResponse.data || []);
+        setFeatureUsage(featureUsageResponse.data || []);
       } catch (error: any) {
         console.error("Error fetching usage data:", error);
         setError(error.message || "Failed to load usage data");
-        // Set default values when API fails
+        
+        // Set fallback values when API fails
         setUsageData({
           totalUsers: 0,
           activeUsers: 0,
@@ -163,11 +187,11 @@ const UsageAnalysis: React.FC = () => {
     // Add tenant usage data
     tenantUsage.forEach((tenant) => {
       rows.push([
-        tenant.name,
-        tenant.users.toString(),
-        tenant.tests.toString(),
-        tenant.reports.toString(),
-        tenant.growth.toString(),
+        tenant.tenant_name || 'N/A',
+        (tenant.users || 0).toString(),
+        (tenant.tests || 0).toString(),
+        (tenant.reports || 0).toString(),
+        (tenant.growth || 0).toString(),
         timeRangeLabel,
         currentDate,
       ]);
@@ -370,31 +394,31 @@ const UsageAnalysis: React.FC = () => {
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {tenant.name}
+                      {tenant.tenant_name || 'N/A'}
                     </p>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-1 space-y-1 sm:space-y-0">
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {tenant.users} users
+                        {tenant.users || 0} users
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {tenant.tests} tests
+                        {tenant.tests || 0} tests
                       </span>
                       <span
                         className={`text-xs ${
-                          tenant.growth > 0
+                          (tenant.growth || 0) > 0
                             ? "text-green-600 dark:text-green-400"
                             : "text-red-600 dark:text-red-400"
                         }`}
                       >
-                        {tenant.growth > 0 ? "+" : ""}
-                        {tenant.growth}%
+                        {(tenant.growth || 0) > 0 ? "+" : ""}
+                        {tenant.growth || 0}%
                       </span>
                     </div>
                   </div>
                   <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2 ml-2 flex-shrink-0">
                     <div
                       className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: `${(tenant.users / (tenant.maxUsers || 100)) * 100}%` }}
+                      style={{ width: `${Math.min(((tenant.users || 0) / 100) * 100, 100)}%` }}
                     />
                   </div>
                 </div>

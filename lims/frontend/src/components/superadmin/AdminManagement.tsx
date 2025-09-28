@@ -34,6 +34,15 @@ const AdminManagement: React.FC = () => {
     permissions: [] as string[],
   });
 
+  const [newAdmin, setNewAdmin] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    role: "system_admin",
+    status: "active",
+  });
+
   const [admins, setAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +53,6 @@ const AdminManagement: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        // For now, we'll use tenant users as admins since we don't have a separate admin model
         const response = await superadminAPI.users.getAll();
         setAdmins(response.data);
       } catch (error: any) {
@@ -69,7 +77,7 @@ const AdminManagement: React.FC = () => {
   const handleEditAdmin = (admin: any) => {
     setSelectedAdmin(admin);
     setEditAdmin({
-      name: admin.name || "",
+      name: admin.full_name || `${admin.first_name} ${admin.last_name}` || "",
       email: admin.email || "",
       role: admin.role || "",
       status: admin.status || "",
@@ -88,58 +96,135 @@ const AdminManagement: React.FC = () => {
     setShowMoreActionsModal(true);
   };
 
-  const handleUpdateAdmin = () => {
-    if (selectedAdmin) {
-      setAdmins((prev: any) =>
-        prev.map((admin: any) =>
-          admin.id === selectedAdmin.id ? { ...admin, ...editAdmin } : admin
-        )
-      );
-      setShowEditAdminModal(false);
-      setSelectedAdmin(null);
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await superadminAPI.users.create(newAdmin);
+      
+      // Refresh the admin list
+      const response = await superadminAPI.users.getAll();
+      setAdmins(response.data);
+      
+      // Reset form and close modal
+      setNewAdmin({
+        username: "",
+        email: "",
+        first_name: "",
+        last_name: "",
+        role: "system_admin",
+        status: "active",
+      });
+      setShowAddModal(false);
+    } catch (error: any) {
+      console.error("Error creating admin:", error);
+      setError(error.message || "Failed to create admin");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteAdminConfirm = () => {
+  const handleUpdateAdmin = async () => {
     if (selectedAdmin) {
-      setAdmins((prev: any) =>
-        prev.filter((admin: any) => admin.id !== selectedAdmin.id)
-      );
-      setShowDeleteAdminModal(false);
-      setSelectedAdmin(null);
+      try {
+        setLoading(true);
+        const [firstName, ...lastNameParts] = editAdmin.name.split(' ');
+        const lastName = lastNameParts.join(' ');
+        
+        const updateData = {
+          first_name: firstName,
+          last_name: lastName,
+          email: editAdmin.email,
+          role: editAdmin.role,
+          status: editAdmin.status,
+        };
+
+        await superadminAPI.users.update(selectedAdmin.id, updateData);
+        
+        // Refresh the admin list
+        const response = await superadminAPI.users.getAll();
+        setAdmins(response.data);
+        
+        setShowEditAdminModal(false);
+        setSelectedAdmin(null);
+      } catch (error: any) {
+        console.error("Error updating admin:", error);
+        setError(error.message || "Failed to update admin");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSuspendAdmin = () => {
+  const handleDeleteAdminConfirm = async () => {
     if (selectedAdmin) {
-      setAdmins((prev: any) =>
-        prev.map((admin: any) =>
-          admin.id === selectedAdmin.id
-            ? { ...admin, status: "Inactive" }
-            : admin
-        )
-      );
-      setShowMoreActionsModal(false);
-      setSelectedAdmin(null);
+      try {
+        setLoading(true);
+        await superadminAPI.users.delete(selectedAdmin.id);
+        
+        // Refresh the admin list
+        const response = await superadminAPI.users.getAll();
+        setAdmins(response.data);
+        
+        setShowDeleteAdminModal(false);
+        setSelectedAdmin(null);
+      } catch (error: any) {
+        console.error("Error deleting admin:", error);
+        setError(error.message || "Failed to delete admin");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleActivateAdmin = () => {
+  const handleSuspendAdmin = async () => {
     if (selectedAdmin) {
-      setAdmins((prev: any) =>
-        prev.map((admin: any) =>
-          admin.id === selectedAdmin.id ? { ...admin, status: "Active" } : admin
-        )
-      );
-      setShowMoreActionsModal(false);
-      setSelectedAdmin(null);
+      try {
+        setLoading(true);
+        await superadminAPI.users.suspend(selectedAdmin.id);
+        
+        // Refresh the admin list
+        const response = await superadminAPI.users.getAll();
+        setAdmins(response.data);
+        
+        setShowMoreActionsModal(false);
+        setSelectedAdmin(null);
+      } catch (error: any) {
+        console.error("Error suspending admin:", error);
+        setError(error.message || "Failed to suspend admin");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleActivateAdmin = async () => {
+    if (selectedAdmin) {
+      try {
+        setLoading(true);
+        await superadminAPI.users.activate(selectedAdmin.id);
+        
+        // Refresh the admin list
+        const response = await superadminAPI.users.getAll();
+        setAdmins(response.data);
+        
+        setShowMoreActionsModal(false);
+        setSelectedAdmin(null);
+      } catch (error: any) {
+        console.error("Error activating admin:", error);
+        setError(error.message || "Failed to activate admin");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   const filteredAdmins = admins.filter((admin) => {
+    const fullName = admin.full_name || `${admin.first_name} ${admin.last_name}` || "";
     const matchesSearch =
-      (admin.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (admin.email || "").toLowerCase().includes(searchTerm.toLowerCase());
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (admin.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (admin.username || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole =
       filterRole === "all" ||
       (admin.role || "").toLowerCase().includes(filterRole.toLowerCase());
@@ -147,12 +232,12 @@ const AdminManagement: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
+    switch (status?.toLowerCase()) {
+      case "active":
         return "bg-green-100 text-green-800";
-      case "Inactive":
+      case "inactive":
         return "bg-red-100 text-red-800";
-      case "Pending":
+      case "suspended":
         return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-gray-100 dark:bg-gray-700 text-gray-800";
@@ -160,15 +245,13 @@ const AdminManagement: React.FC = () => {
   };
 
   const getRoleColor = (role: string) => {
-    switch (role) {
-      case "Super Admin":
+    switch (role?.toLowerCase()) {
+      case "super_admin":
         return "bg-purple-100 text-purple-800";
-      case "System Admin":
+      case "system_admin":
         return "bg-blue-100 text-blue-800";
-      case "Support Admin":
+      case "support_admin":
         return "bg-green-100 text-green-800";
-      case "Billing Admin":
-        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 dark:bg-gray-700 text-gray-800";
     }
@@ -179,7 +262,7 @@ const AdminManagement: React.FC = () => {
     (admin) => (admin.status || "").toLowerCase() === "active"
   ).length;
   const superAdmins = admins.filter(
-    (admin) => (admin.role || "").toLowerCase() === "super admin"
+    (admin) => (admin.role || "").toLowerCase() === "super_admin"
   ).length;
 
   return (
@@ -363,7 +446,7 @@ const AdminManagement: React.FC = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {admin.name || "Unknown"}
+                            {admin.full_name || `${admin.first_name} ${admin.last_name}` || "Unknown"}
                           </p>
                           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                             {admin.email || "No email"}
@@ -377,7 +460,10 @@ const AdminManagement: React.FC = () => {
                           admin.role || "Unknown"
                         )}`}
                       >
-                        {admin.role || "Unknown"}
+                        {admin.role === 'super_admin' ? 'Super Admin' : 
+                         admin.role === 'system_admin' ? 'System Admin' : 
+                         admin.role === 'support_admin' ? 'Support Admin' : 
+                         admin.role || "Unknown"}
                       </span>
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
@@ -386,7 +472,10 @@ const AdminManagement: React.FC = () => {
                           admin.status || "Unknown"
                         )}`}
                       >
-                        {admin.status || "Unknown"}
+                        {admin.status === 'active' ? 'Active' : 
+                         admin.status === 'inactive' ? 'Inactive' : 
+                         admin.status === 'suspended' ? 'Suspended' : 
+                         admin.status || "Unknown"}
                       </span>
                     </td>
                     <td className="py-3 sm:py-4 px-2 sm:px-4">
@@ -475,15 +564,46 @@ const AdminManagement: React.FC = () => {
                 </button>
               </div>
 
-              <form className="space-y-3 sm:space-y-4">
+              <form onSubmit={handleCreateAdmin} className="space-y-3 sm:space-y-4">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
-                    Full Name
+                    Username
                   </label>
                   <input
                     type="text"
+                    value={newAdmin.username}
+                    onChange={(e) => setNewAdmin({...newAdmin, username: e.target.value})}
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                    placeholder="Enter full name"
+                    placeholder="Enter username"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newAdmin.first_name}
+                    onChange={(e) => setNewAdmin({...newAdmin, first_name: e.target.value})}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    placeholder="Enter first name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newAdmin.last_name}
+                    onChange={(e) => setNewAdmin({...newAdmin, last_name: e.target.value})}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    placeholder="Enter last name"
+                    required
                   />
                 </div>
 
@@ -493,8 +613,11 @@ const AdminManagement: React.FC = () => {
                   </label>
                   <input
                     type="email"
+                    value={newAdmin.email}
+                    onChange={(e) => setNewAdmin({...newAdmin, email: e.target.value})}
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                     placeholder="Enter email address"
+                    required
                   />
                 </div>
 
@@ -502,42 +625,18 @@ const AdminManagement: React.FC = () => {
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                     Role
                   </label>
-                  <select className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                    <option value="">Select role</option>
-                    <option value="super">Super Admin</option>
-                    <option value="system">System Admin</option>
-                    <option value="support">Support Admin</option>
-                    <option value="billing">Billing Admin</option>
+                  <select 
+                    value={newAdmin.role}
+                    onChange={(e) => setNewAdmin({...newAdmin, role: e.target.value})}
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    required
+                  >
+                    <option value="system_admin">System Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                    <option value="support_admin">Support Admin</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
-                    Permissions
-                  </label>
-                  <div className="space-y-2">
-                    {[
-                      "User Management",
-                      "System Settings",
-                      "Analytics",
-                      "Billing Management",
-                      "Support Management",
-                    ].map((permission) => (
-                      <label
-                        key={permission}
-                        className="flex items-center space-x-2"
-                      >
-                        <input
-                          type="checkbox"
-                          className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
-                        />
-                        <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                          {permission}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
 
                 <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-3 sm:pt-4">
                   <button
@@ -682,14 +781,29 @@ const AdminManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Name
+                      First Name
                     </label>
                     <input
                       type="text"
-                      value={editAdmin.name}
-                      onChange={(e) =>
-                        setEditAdmin({ ...editAdmin, name: e.target.value })
-                      }
+                      value={editAdmin.name.split(' ')[0] || ''}
+                      onChange={(e) => {
+                        const lastName = editAdmin.name.split(' ').slice(1).join(' ');
+                        setEditAdmin({ ...editAdmin, name: `${e.target.value} ${lastName}`.trim() })
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editAdmin.name.split(' ').slice(1).join(' ') || ''}
+                      onChange={(e) => {
+                        const firstName = editAdmin.name.split(' ')[0];
+                        setEditAdmin({ ...editAdmin, name: `${firstName} ${e.target.value}`.trim() })
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                     />
                   </div>
@@ -717,10 +831,9 @@ const AdminManagement: React.FC = () => {
                       }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                     >
-                      <option value="Super Admin">Super Admin</option>
-                      <option value="System Admin">System Admin</option>
-                      <option value="Support Admin">Support Admin</option>
-                      <option value="Billing Admin">Billing Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                      <option value="system_admin">System Admin</option>
+                      <option value="support_admin">Support Admin</option>
                     </select>
                   </div>
                   <div>
@@ -734,55 +847,10 @@ const AdminManagement: React.FC = () => {
                       }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                     >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="suspended">Suspended</option>
                     </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Permissions
-                  </label>
-                  <div className="space-y-2">
-                    {[
-                      "All Permissions",
-                      "User Management",
-                      "System Settings",
-                      "Analytics",
-                      "Support Management",
-                      "User Support",
-                      "Billing Management",
-                      "Financial Reports",
-                    ].map((permission) => (
-                      <label key={permission} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={editAdmin.permissions.includes(permission)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setEditAdmin({
-                                ...editAdmin,
-                                permissions: [
-                                  ...editAdmin.permissions,
-                                  permission,
-                                ],
-                              });
-                            } else {
-                              setEditAdmin({
-                                ...editAdmin,
-                                permissions: editAdmin.permissions.filter(
-                                  (p) => p !== permission
-                                ),
-                              });
-                            }
-                          }}
-                          className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {permission}
-                        </span>
-                      </label>
-                    ))}
                   </div>
                 </div>
               </div>

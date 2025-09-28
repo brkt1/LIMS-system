@@ -22,6 +22,7 @@ def create_sample_tenants():
     sample_tenants = [
         {
             "company_name": "Demo Lab 1",
+            "domain": "demolab1",
             "email": "demo1@lims.com",
             "password": "123",
             "role": "tenant-admin",
@@ -30,7 +31,8 @@ def create_sample_tenants():
             "billing_period": "monthly"
         },
         {
-            "company_name": "Demo Lab 2", 
+            "company_name": "Demo Lab 2",
+            "domain": "demolab2", 
             "email": "demo2@lims.com",
             "password": "123",
             "role": "tenant-admin",
@@ -40,6 +42,7 @@ def create_sample_tenants():
         },
         {
             "company_name": "Demo Lab 3",
+            "domain": "demolab3",
             "email": "demo3@lims.com", 
             "password": "123",
             "role": "tenant-admin",
