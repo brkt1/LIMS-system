@@ -1,13 +1,13 @@
 import {
-  AlertTriangle,
-  Box,
-  Edit,
-  Eye,
-  Package,
-  Plus,
-  Search,
-  Trash2,
-  X,
+    AlertTriangle,
+    Box,
+    Edit,
+    Eye,
+    Package,
+    Plus,
+    Search,
+    Trash2,
+    X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { inventoryAPI } from "../../services/api";
@@ -240,9 +240,9 @@ const Inventory: React.FC = () => {
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || item.category === filterCategory;
     const matchesStatus =
@@ -251,7 +251,7 @@ const Inventory: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "in_stock":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "low_stock":
@@ -264,7 +264,7 @@ const Inventory: React.FC = () => {
   };
 
   const getStatusText = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "in_stock":
         return "In Stock";
       case "low_stock":

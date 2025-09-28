@@ -35,7 +35,6 @@ const Login: React.FC = () => {
       password: "123",
     },
     { role: "Support", email: "support@lims.com", password: "123" },
-    { role: "Patient", email: "patient@lims.com", password: "123" },
   ];
 
   // Load remembered credentials on component mount

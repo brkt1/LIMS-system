@@ -1,4 +1,4 @@
-import { BookOpen, Plus, Search, FileText, Download } from "lucide-react";
+import { BookOpen, Download, FileText, Plus, Search } from "lucide-react";
 import React, { useState } from "react";
 
 const KnowledgeBase: React.FC = () => {
@@ -88,10 +88,10 @@ const KnowledgeBase: React.FC = () => {
 
   const filteredItems = knowledgeItems.filter((item) => {
     const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.tags || []).some((tag) =>
+        (tag?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     const matchesCategory =
       filterCategory === "all" || item.category === filterCategory;
@@ -99,7 +99,7 @@ const KnowledgeBase: React.FC = () => {
   });
 
   const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase() || '') {
       case "guide":
         return "bg-blue-100 text-blue-800";
       case "procedure":

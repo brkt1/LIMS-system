@@ -74,7 +74,7 @@ const Notifications: React.FC = () => {
   };
 
   const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase() || '') {
       case "info":
         return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "warning":
@@ -89,7 +89,7 @@ const Notifications: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase() || '') {
       case "high":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "normal":

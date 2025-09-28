@@ -1,10 +1,10 @@
 import {
-  Download,
-  Eye,
-  FileText,
-  Plus,
-  Search,
-  X
+    Download,
+    Eye,
+    FileText,
+    Plus,
+    Search,
+    X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supportAnalyticsAPI } from "../../services/api";
@@ -156,9 +156,9 @@ const Reports: React.FC = () => {
   // Enhanced filtering with date filter
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (report.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (report.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (report.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || report.type === filterType;
 
     // Date filtering
@@ -188,7 +188,7 @@ const Reports: React.FC = () => {
   });
 
   const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase() || '') {
       case "analytics":
         return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "performance":
@@ -207,7 +207,7 @@ const Reports: React.FC = () => {
   };
 
   const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
+    switch (category?.toLowerCase() || '') {
       case "support":
         return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "system":

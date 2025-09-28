@@ -165,7 +165,7 @@ const Profile: React.FC = () => {
       }));
     } else if (name.startsWith("password")) {
       // Map password field names to passwordData keys
-      const passwordKey = name.replace("password", "").toLowerCase();
+      const passwordKey = (name?.replace("password", "") || '').toLowerCase();
       const keyMap: { [key: string]: string } = {
         oldpassword: "oldPassword",
         newpassword: "newPassword",

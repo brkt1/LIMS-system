@@ -93,8 +93,8 @@ const Messages: React.FC = () => {
 
   const filteredConversations = conversations.filter(
     (conversation) =>
-      conversation.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conversation.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+      (conversation.user?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (conversation.lastMessage?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   const conversationMessages = selectedConversation
@@ -137,7 +137,7 @@ const Messages: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase() || '') {
       case "high":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "medium":
@@ -152,7 +152,7 @@ const Messages: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "active":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "resolved":

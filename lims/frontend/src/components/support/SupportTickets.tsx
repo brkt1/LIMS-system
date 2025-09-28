@@ -271,10 +271,10 @@ const SupportTickets: React.FC = () => {
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
-      ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.reporter.toLowerCase().includes(searchTerm.toLowerCase());
+      (ticket.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (ticket.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (ticket.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (ticket.reporter?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || ticket.status === filterStatus;
     const matchesPriority =
@@ -283,7 +283,7 @@ const SupportTickets: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "open":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "in_progress":
@@ -298,7 +298,7 @@ const SupportTickets: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase() || '') {
       case "urgent":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "high":
@@ -313,7 +313,7 @@ const SupportTickets: React.FC = () => {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "open":
         return (
           <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />

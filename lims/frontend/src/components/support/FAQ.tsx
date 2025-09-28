@@ -1,9 +1,9 @@
 import {
-  HelpCircle,
-  Plus,
-  Search,
-  ChevronDown,
-  ChevronRight,
+    ChevronDown,
+    ChevronRight,
+    HelpCircle,
+    Plus,
+    Search,
 } from "lucide-react";
 import React, { useState } from "react";
 
@@ -97,10 +97,10 @@ const FAQ: React.FC = () => {
 
   const filteredItems = faqItems.filter((item) => {
     const matchesSearch =
-      item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.answer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.question?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.answer?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.tags || []).some((tag) =>
+        (tag?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     const matchesCategory =
       filterCategory === "all" || item.category === filterCategory;
