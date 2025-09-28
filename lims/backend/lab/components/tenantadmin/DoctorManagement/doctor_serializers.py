@@ -17,7 +17,7 @@ class DoctorSerializer(serializers.ModelSerializer):
             'can_order_tests', 'can_review_results', 'requires_supervision', 'supervisor',
             'supervisor_name', 'is_available_today', 'current_patient_load'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'join_date', 'total_patients', 'rating']
+        read_only_fields = ['created_at', 'updated_at', 'join_date', 'total_patients', 'rating']
         extra_kwargs = {
             'created_by': {'required': False, 'allow_blank': True, 'allow_null': True}
         }

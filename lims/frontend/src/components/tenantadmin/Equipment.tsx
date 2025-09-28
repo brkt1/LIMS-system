@@ -6,7 +6,7 @@ import {
   Search,
   Settings,
   Wrench,
-  X
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { equipmentAPI } from "../../services/api";
@@ -81,25 +81,27 @@ const Equipment: React.FC = () => {
         const response = await equipmentAPI.getAll();
 
         // Map backend data to frontend expected format
-        const mappedEquipment = response.data.results ? response.data.results.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          type: item.equipment_type,
-          category: item.category,
-          serialNumber: item.serial_number,
-          manufacturer: item.manufacturer,
-          model: item.model,
-          status: item.status,
-          location: item.location,
-          purchaseDate: item.purchase_date,
-          warrantyExpiry: item.warranty_expiry,
-          lastMaintenance: item.last_maintenance,
-          nextMaintenance: item.next_maintenance,
-          maintenanceInterval: item.maintenance_interval,
-          responsible: item.responsible_person,
-          cost: parseFloat(item.cost),
-          condition: item.condition,
-        })) : [];
+        const mappedEquipment = response.data.results
+          ? response.data.results.map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              type: item.equipment_type,
+              category: item.category,
+              serialNumber: item.serial_number,
+              manufacturer: item.manufacturer,
+              model: item.model,
+              status: item.status,
+              location: item.location,
+              purchaseDate: item.purchase_date,
+              warrantyExpiry: item.warranty_expiry,
+              lastMaintenance: item.last_maintenance,
+              nextMaintenance: item.next_maintenance,
+              maintenanceInterval: item.maintenance_interval,
+              responsible: item.responsible_person,
+              cost: parseFloat(item.cost),
+              condition: item.condition,
+            }))
+          : [];
 
         setEquipment(mappedEquipment);
       } catch (error: any) {
@@ -321,7 +323,9 @@ const Equipment: React.FC = () => {
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading equipment...</span>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">
+            Loading equipment...
+          </span>
         </div>
       )}
 

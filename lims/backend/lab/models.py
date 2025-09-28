@@ -1,8 +1,59 @@
 from django.db import models
-from datetime import date
+from datetime import date, time
 from django.contrib.auth import get_user_model
+from lab.components.Doctor.NewTestRequest.NewTestRequest_models import TestRequest
 
 User = get_user_model()
+
+# TestReport model moved from Technician component
+class TestReport(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('In Progress', 'In Progress'),
+        ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('Routine', 'Routine'),
+        ('Urgent', 'Urgent'),
+        ('STAT', 'STAT'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('Hematology', 'Hematology'),
+        ('Biochemistry', 'Biochemistry'),
+        ('Immunology', 'Immunology'),
+        ('Microbiology', 'Microbiology'),
+        ('Radiology', 'Radiology'),
+        ('Pathology', 'Pathology'),
+    ]
+
+    test_request = models.OneToOneField(
+        TestRequest, on_delete=models.CASCADE, related_name="report", null=True, blank=True
+    )
+    test_name = models.CharField(max_length=255, default="General")
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default="Routine")
+    result = models.TextField(blank=True, null=True)
+    normal_range = models.CharField(max_length=100, blank=True, null=True)
+    units = models.CharField(max_length=50, blank=True, null=True)
+    technician = models.CharField(max_length=255, blank=True, null=True)
+    completed_date = models.DateField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    attachments = models.PositiveIntegerField(default=0)
+    
+    # Additional fields for standalone test reports
+    patient_name = models.CharField(max_length=255, blank=True, null=True)
+    patient_id = models.CharField(max_length=50, blank=True, null=True)
+    doctor_name = models.CharField(max_length=255, blank=True, null=True)
+    generated_date = models.DateField(auto_now_add=True)
+    generated_time = models.TimeField(auto_now_add=True)
+
+    def __str__(self):
+        patient_name = self.patient_name or (self.test_request.patient_name if self.test_request else "Unknown Patient")
+        return f"{patient_name} - {self.test_name}"
 
 # Example common model
 class LabBaseModel(models.Model):

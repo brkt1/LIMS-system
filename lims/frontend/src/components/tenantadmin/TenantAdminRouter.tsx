@@ -2,7 +2,6 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import TenantAdminDashboard from "../dashboards/TenantAdminDashboard";
 import Accounting from "./Accounting";
-import Analytics from "./Analytics";
 import BranchManagement from "./BranchManagement";
 import ContractManagement from "./ContractManagement";
 import CulturesAntibiotics from "./CulturesAntibiotics";
@@ -32,7 +31,6 @@ const TenantAdminRouter: React.FC = () => {
       <Route path="/doctors" element={<DoctorsManagement />} />
       <Route path="/patients" element={<PatientManagement />} />
       <Route path="/test-reports" element={<TestReports />} />
-      <Route path="/analytics" element={<Analytics />} />
       <Route path="/receipts" element={<ReceiptsPrinting />} />
       <Route path="/home-visit-requests" element={<HomeVisitRequests />} />
       <Route path="/home-visit-schedule" element={<HomeVisitSchedule />} />

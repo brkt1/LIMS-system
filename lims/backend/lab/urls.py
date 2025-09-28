@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from lab.components.TenantAccessAuth.Login.login_views import TenantUserListCreateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -21,4 +22,7 @@ path('api/superadmin/', include('lab.components.superadmin.CreateTenant.create_t
  path('api/accept/', include('lab.components.Technician.Sample.accept_urls')),  # new Accept API
     # Technician endpoints - Test Reports
     path('api/test-reports/', include('backend.lab.components.Technician.TestReport.test_report_urls')),
+    
+    # Accounting endpoints
+    path('api/accounting/', include('lab.components.Accounting.accounting_urls')),
 ]

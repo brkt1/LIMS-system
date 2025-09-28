@@ -8,7 +8,7 @@ import {
   Search,
   Settings,
   Users,
-  X
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { branchAPI } from "../../services/api";
@@ -79,7 +79,22 @@ const BranchManagement: React.FC = () => {
         setLoading(true);
         setError(null);
         const response = await branchAPI.getAll();
-        setBranches(response.data || []);
+        // Transform the data to match frontend expectations
+        const transformedBranches = (response.data || []).map(
+          (branch: any) => ({
+            ...branch,
+            zipCode: branch.zip_code,
+            establishedDate: branch.established_date,
+            operatingHours:
+              typeof branch.operating_hours === "object"
+                ? JSON.stringify(branch.operating_hours)
+                : branch.operating_hours || "",
+            services: Array.isArray(branch.services)
+              ? branch.services.join(", ")
+              : branch.services || "",
+          })
+        );
+        setBranches(transformedBranches);
       } catch (error: any) {
         console.error("Error fetching branches:", error);
         setError(error.message || "Failed to load branches");
@@ -193,41 +208,101 @@ const BranchManagement: React.FC = () => {
     setShowManageBranchModal(true);
   };
 
-  const handleCreateBranch = () => {
-    const newId = `BR${String(branches.length + 1).padStart(3, "0")}`;
-    const branch = {
-      id: newId,
-      ...newBranch,
-      totalStaff: parseInt(newBranch.totalStaff) || 0,
-      totalPatients: parseInt(newBranch.totalPatients) || 0,
-      services: newBranch.services
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s),
-      status: "active",
-    };
-    setBranches((prev: any) => [...prev, branch]);
-    setShowAddBranchModal(false);
+  const handleCreateBranch = async () => {
+    try {
+      // Transform data for API
+      const apiData = {
+        name: newBranch.name,
+        address: newBranch.address,
+        phone: newBranch.phone,
+        email: newBranch.email,
+        city: newBranch.city,
+        state: newBranch.state,
+        zip_code: newBranch.zipCode,
+        manager: newBranch.manager,
+        established_date: newBranch.establishedDate,
+        total_staff: parseInt(newBranch.totalStaff) || 0,
+        total_patients: parseInt(newBranch.totalPatients) || 0,
+        services: newBranch.services
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s),
+        operating_hours: newBranch.operatingHours,
+        status: "active",
+      };
+
+      const response = await branchAPI.create(apiData);
+
+      // Transform response data for frontend
+      const transformedBranch = {
+        ...response.data,
+        zipCode: response.data.zip_code,
+        establishedDate: response.data.established_date,
+        operatingHours:
+          typeof response.data.operating_hours === "object"
+            ? JSON.stringify(response.data.operating_hours)
+            : response.data.operating_hours || "",
+        services: Array.isArray(response.data.services)
+          ? response.data.services.join(", ")
+          : response.data.services || "",
+      };
+
+      setBranches((prev: any) => [...prev, transformedBranch]);
+      setShowAddBranchModal(false);
+    } catch (error: any) {
+      console.error("Error creating branch:", error);
+      setError(error.message || "Failed to create branch");
+    }
   };
 
-  const handleUpdateBranch = () => {
-    setBranches((prev: any) =>
-      prev.map((branch: any) =>
-        branch.id === selectedBranch.id
-          ? {
-              ...branch,
-              ...editBranch,
-              totalStaff: parseInt(editBranch.totalStaff) || 0,
-              totalPatients: parseInt(editBranch.totalPatients) || 0,
-              services: editBranch.services
-                .split(",")
-                .map((s) => s.trim())
-                .filter((s) => s),
-            }
-          : branch
-      )
-    );
-    setShowEditBranchModal(false);
+  const handleUpdateBranch = async () => {
+    try {
+      // Transform data for API
+      const apiData = {
+        name: editBranch.name,
+        address: editBranch.address,
+        phone: editBranch.phone,
+        email: editBranch.email,
+        city: editBranch.city,
+        state: editBranch.state,
+        zip_code: editBranch.zipCode,
+        manager: editBranch.manager,
+        established_date: editBranch.establishedDate,
+        total_staff: parseInt(editBranch.totalStaff) || 0,
+        total_patients: parseInt(editBranch.totalPatients) || 0,
+        services: editBranch.services
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s),
+        operating_hours: editBranch.operatingHours,
+      };
+
+      const response = await branchAPI.update(selectedBranch.id, apiData);
+
+      // Transform response data for frontend
+      const transformedBranch = {
+        ...response.data,
+        zipCode: response.data.zip_code,
+        establishedDate: response.data.established_date,
+        operatingHours:
+          typeof response.data.operating_hours === "object"
+            ? JSON.stringify(response.data.operating_hours)
+            : response.data.operating_hours || "",
+        services: Array.isArray(response.data.services)
+          ? response.data.services.join(", ")
+          : response.data.services || "",
+      };
+
+      setBranches((prev: any) =>
+        prev.map((branch: any) =>
+          branch.id === selectedBranch.id ? transformedBranch : branch
+        )
+      );
+      setShowEditBranchModal(false);
+    } catch (error: any) {
+      console.error("Error updating branch:", error);
+      setError(error.message || "Failed to update branch");
+    }
   };
 
   const handleManageAction = () => {
@@ -242,7 +317,9 @@ const BranchManagement: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading branches...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading branches...
+            </p>
           </div>
         </div>
       </div>

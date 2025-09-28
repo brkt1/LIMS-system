@@ -64,7 +64,9 @@ class PatientViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create a new patient with auto-generated ID"""
         patient_id = f"PAT{str(uuid.uuid4())[:8].upper()}"
-        serializer.save(patient_id=patient_id, created_by=self.request.user)
+        # Only set created_by if user is authenticated
+        created_by = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(patient_id=patient_id, created_by=created_by)
     
     @action(detail=True, methods=['get'])
     def appointments(self, request, pk=None):

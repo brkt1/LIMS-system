@@ -6,7 +6,7 @@ import {
   Search,
   UserCheck,
   Users,
-  X
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { patientAPI } from "../../services/api";
@@ -62,24 +62,32 @@ const PatientManagement: React.FC = () => {
         // Map backend data to frontend expected format
         const mappedPatients = response.data.map((patient: any) => ({
           id: patient.id,
-          name: patient.name || "Unknown Patient",
+          name:
+            patient.full_name ||
+            `${patient.first_name} ${patient.last_name}` ||
+            "Unknown Patient",
           email: patient.email || "No email",
           phone: patient.phone || "No phone",
           age: patient.age || 0,
           gender: patient.gender || "Unknown",
-          status: "active", // Default status since backend doesn't have it
+          status: patient.status || "Active",
           lastVisit:
             patient.last_visit || new Date().toISOString().split("T")[0],
-          totalVisits: patient.total_visits || 0,
-          primaryDoctor: patient.primary_doctor || "No doctor assigned",
-          insurance: patient.insurance || "No insurance",
-          emergencyContact: patient.emergency_contact || "No emergency contact",
+          totalVisits: 0, // This would need to be calculated from appointments
+          primaryDoctor: "No doctor assigned", // This would need to be linked to doctor records
+          insurance: patient.insurance_provider || "No insurance",
+          emergencyContact:
+            patient.emergency_contact_name || "No emergency contact",
         }));
 
         setPatients(mappedPatients);
       } catch (error: any) {
         console.error("Error fetching patients:", error);
-        setError(error.message || "Failed to load patients");
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to load patients"
+        );
         setPatients([]);
       } finally {
         setLoading(false);
@@ -171,15 +179,30 @@ const PatientManagement: React.FC = () => {
       newPatient.gender
     ) {
       try {
+        // Split name into first and last name
+        const nameParts = newPatient.name.trim().split(" ");
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(" ") || "Unknown";
+
+        // Calculate date of birth from age
+        const currentDate = new Date();
+        const birthYear = currentDate.getFullYear() - parseInt(newPatient.age);
+        const dateOfBirth = new Date(
+          birthYear,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+
         const patientData = {
-          name: newPatient.name,
+          first_name: firstName,
+          last_name: lastName,
           email: newPatient.email,
           phone: newPatient.phone,
-          age: parseInt(newPatient.age),
+          date_of_birth: dateOfBirth.toISOString().split("T")[0],
           gender: newPatient.gender,
-          primary_doctor: newPatient.primaryDoctor,
-          insurance: newPatient.insurance,
-          emergency_contact: newPatient.emergencyContact,
+          emergency_contact_name: newPatient.emergencyContact,
+          insurance_provider: newPatient.insurance,
+          status: "Active",
         };
 
         const response = await patientAPI.create(patientData);
@@ -188,18 +211,21 @@ const PatientManagement: React.FC = () => {
         // Map backend response to frontend format
         const mappedPatient = {
           id: createdPatient.id,
-          name: createdPatient.name,
+          name:
+            createdPatient.full_name ||
+            `${createdPatient.first_name} ${createdPatient.last_name}`,
           email: createdPatient.email,
           phone: createdPatient.phone,
           age: createdPatient.age,
           gender: createdPatient.gender,
-          status: "active",
-          lastVisit: new Date().toISOString().split("T")[0],
+          status: createdPatient.status || "Active",
+          lastVisit:
+            createdPatient.last_visit || new Date().toISOString().split("T")[0],
           totalVisits: 0,
-          primaryDoctor: createdPatient.primary_doctor || "No doctor assigned",
-          insurance: createdPatient.insurance || "No insurance",
+          primaryDoctor: "No doctor assigned",
+          insurance: createdPatient.insurance_provider || "No insurance",
           emergencyContact:
-            createdPatient.emergency_contact || "No emergency contact",
+            createdPatient.emergency_contact_name || "No emergency contact",
         };
 
         setPatients((prev: any) => [mappedPatient, ...prev]);
@@ -216,7 +242,12 @@ const PatientManagement: React.FC = () => {
         });
       } catch (error: any) {
         console.error("Error creating patient:", error);
-        setError(error.message || "Failed to create patient");
+        setError(
+          error.response?.data?.detail ||
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to create patient"
+        );
       }
     }
   };
@@ -231,15 +262,29 @@ const PatientManagement: React.FC = () => {
       editPatient.gender
     ) {
       try {
+        // Split name into first and last name
+        const nameParts = editPatient.name.trim().split(" ");
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(" ") || "Unknown";
+
+        // Calculate date of birth from age
+        const currentDate = new Date();
+        const birthYear = currentDate.getFullYear() - parseInt(editPatient.age);
+        const dateOfBirth = new Date(
+          birthYear,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+
         const patientData = {
-          name: editPatient.name,
+          first_name: firstName,
+          last_name: lastName,
           email: editPatient.email,
           phone: editPatient.phone,
-          age: parseInt(editPatient.age),
+          date_of_birth: dateOfBirth.toISOString().split("T")[0],
           gender: editPatient.gender,
-          primary_doctor: editPatient.primaryDoctor,
-          insurance: editPatient.insurance,
-          emergency_contact: editPatient.emergencyContact,
+          emergency_contact_name: editPatient.emergencyContact,
+          insurance_provider: editPatient.insurance,
         };
 
         const response = await patientAPI.update(
@@ -251,7 +296,9 @@ const PatientManagement: React.FC = () => {
         // Map backend response to frontend format
         const mappedPatient = {
           id: updatedPatient.id,
-          name: updatedPatient.name,
+          name:
+            updatedPatient.full_name ||
+            `${updatedPatient.first_name} ${updatedPatient.last_name}`,
           email: updatedPatient.email,
           phone: updatedPatient.phone,
           age: updatedPatient.age,
@@ -259,10 +306,10 @@ const PatientManagement: React.FC = () => {
           status: selectedPatient.status, // Keep existing status
           lastVisit: selectedPatient.lastVisit, // Keep existing last visit
           totalVisits: selectedPatient.totalVisits, // Keep existing total visits
-          primaryDoctor: updatedPatient.primary_doctor || "No doctor assigned",
-          insurance: updatedPatient.insurance || "No insurance",
+          primaryDoctor: "No doctor assigned",
+          insurance: updatedPatient.insurance_provider || "No insurance",
           emergencyContact:
-            updatedPatient.emergency_contact || "No emergency contact",
+            updatedPatient.emergency_contact_name || "No emergency contact",
         };
 
         setPatients((prev: any) =>
@@ -274,7 +321,11 @@ const PatientManagement: React.FC = () => {
         setSelectedPatient(null);
       } catch (error: any) {
         console.error("Error updating patient:", error);
-        setError(error.message || "Failed to update patient");
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to update patient"
+        );
       }
     }
   };
