@@ -208,9 +208,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",   # React dev server
     "http://localhost:3001",   # React dev server (alternative port)
     "http://localhost:3002",   # React dev server (Vite alternative port)
+    "http://localhost:3008",   # Vite dev server (current port)
+    "http://localhost:3009",   # Vite dev server (alternative port)
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
+    "http://127.0.0.1:3008",
+    "http://127.0.0.1:3009",   # Vite dev server (current port)
     "http://localhost:5173",   # Vite dev server
     "http://127.0.0.1:5173",
     "http://localhost:8000",   # Django default
@@ -260,9 +264,7 @@ REST_FRAMEWORK = {
 # ------------------------
 # AUTHENTICATION
 # ------------------------
-AUTH_USER_MODEL = 'tenantaccess_login.User'
-
-  # <-- Fixed: use app label + model name
+AUTH_USER_MODEL = 'tenantaccess_login.User'  # <-- Fixed: use app label + model name
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # keep default

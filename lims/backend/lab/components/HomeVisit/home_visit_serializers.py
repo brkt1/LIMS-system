@@ -6,6 +6,12 @@ class HomeVisitRequestSerializer(serializers.ModelSerializer):
         model = HomeVisitRequest
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at', 'approved_at', 'completed_at']
+    
+    def create(self, validated_data):
+        # If created_by is not provided, set it to None (will be handled by the view)
+        if 'created_by' not in validated_data:
+            validated_data['created_by'] = None
+        return super().create(validated_data)
 
 class HomeVisitRequestListSerializer(serializers.ModelSerializer):
     class Meta:

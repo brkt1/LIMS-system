@@ -1,11 +1,4 @@
-import {
-  Edit,
-  Eye,
-  Plus,
-  RotateCcw,
-  Search,
-  X
-} from "lucide-react";
+import { Edit, Eye, Plus, RotateCcw, Search, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { contractAPI } from "../../services/api";
 
@@ -63,7 +56,6 @@ const ContractManagement: React.FC = () => {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
 
   // Load contracts from backend API
   useEffect(() => {
@@ -201,55 +193,259 @@ const ContractManagement: React.FC = () => {
     setShowRenewContractModal(true);
   };
 
-  const handleCreateContract = () => {
-    const newId = `CT${String(contracts.length + 1).padStart(3, "0")}`;
-    const contract = {
-      id: newId,
-      ...newContract,
-      value: parseFloat(newContract.value),
-      status: "active",
-      renewalDate: newContract.endDate,
-      lastModified: new Date().toISOString().split("T")[0],
-      modifiedBy: "Current User",
-    };
-    setContracts((prev: any) => [...prev, contract]);
-    setShowAddContractModal(false);
+  const handleCreateContract = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Basic form validation
+      if (
+        !newContract.title ||
+        !newContract.type ||
+        !newContract.vendor ||
+        !newContract.vendorContact ||
+        !newContract.vendorEmail ||
+        !newContract.vendorPhone ||
+        !newContract.startDate ||
+        !newContract.endDate ||
+        !newContract.value
+      ) {
+        setError("Please fill in all required fields");
+        setLoading(false);
+        return;
+      }
+
+      // Prepare contract data for backend
+      const contractData = {
+        title: newContract.title,
+        type: newContract.type, // Already in correct format
+        vendor: newContract.vendor,
+        vendor_contact: newContract.vendorContact,
+        vendor_email: newContract.vendorEmail,
+        vendor_phone: newContract.vendorPhone,
+        start_date: newContract.startDate,
+        end_date: newContract.endDate,
+        value: parseFloat(newContract.value),
+        currency: newContract.currency,
+        terms: newContract.terms || "No terms specified", // Ensure terms is not empty
+        description: newContract.description || "No description provided", // Ensure description is not empty
+        status: "draft", // Start as draft
+        auto_renewal: false,
+        tenant: 1, // Default tenant - should be dynamic in production
+        created_by: 1, // Default user - should be dynamic in production
+      };
+
+      // Debug: Log the data being sent
+      console.log("Sending contract data:", contractData);
+
+      // Make API call to create contract
+      const response = await contractAPI.create(contractData);
+
+      // Map backend response to frontend format
+      const newContractData = {
+        id: response.data.id,
+        title: response.data.title,
+        type: response.data.type,
+        vendor: response.data.vendor,
+        vendorContact: response.data.vendor_contact,
+        vendorEmail: response.data.vendor_email,
+        vendorPhone: response.data.vendor_phone,
+        startDate: response.data.start_date,
+        endDate: response.data.end_date,
+        value: parseFloat(response.data.value),
+        currency: response.data.currency,
+        status: response.data.status,
+        renewalDate: response.data.renewal_date,
+        autoRenewal: response.data.auto_renewal,
+        terms: response.data.terms || "",
+        notes: response.data.notes || "",
+      };
+
+      // Add to local state
+      setContracts((prev: any) => [...prev, newContractData]);
+
+      // Reset form and close modal
+      setNewContract({
+        title: "",
+        type: "",
+        vendor: "",
+        vendorContact: "",
+        vendorEmail: "",
+        vendorPhone: "",
+        startDate: "",
+        endDate: "",
+        value: "",
+        currency: "USD",
+        terms: "",
+        description: "",
+      });
+      setShowAddContractModal(false);
+    } catch (error: any) {
+      console.error("Error creating contract:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create contract"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateContract = () => {
-    setContracts((prev: any) =>
-      prev.map((contract: any) =>
-        contract.id === selectedContract.id
-          ? {
-              ...contract,
-              ...editContract,
-              value: parseFloat(editContract.value),
-              lastModified: new Date().toISOString().split("T")[0],
-              modifiedBy: "Current User",
-            }
-          : contract
-      )
-    );
-    setShowEditContractModal(false);
+  const handleUpdateContract = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Basic form validation
+      if (
+        !editContract.title ||
+        !editContract.type ||
+        !editContract.vendor ||
+        !editContract.vendorContact ||
+        !editContract.vendorEmail ||
+        !editContract.vendorPhone ||
+        !editContract.startDate ||
+        !editContract.endDate ||
+        !editContract.value
+      ) {
+        setError("Please fill in all required fields");
+        setLoading(false);
+        return;
+      }
+
+      // Prepare contract data for backend
+      const contractData = {
+        title: editContract.title,
+        type: editContract.type,
+        vendor: editContract.vendor,
+        vendor_contact: editContract.vendorContact,
+        vendor_email: editContract.vendorEmail,
+        vendor_phone: editContract.vendorPhone,
+        start_date: editContract.startDate,
+        end_date: editContract.endDate,
+        value: parseFloat(editContract.value),
+        currency: editContract.currency,
+        terms: editContract.terms || "No terms specified",
+        description: editContract.description || "No description provided",
+      };
+
+      // Debug: Log the data being sent
+      console.log("Updating contract with data:", contractData);
+
+      // Make API call to update contract
+      const response = await contractAPI.update(
+        selectedContract.id,
+        contractData
+      );
+
+      // Map backend response to frontend format
+      const updatedContractData = {
+        id: response.data.id,
+        title: response.data.title,
+        type: response.data.type,
+        vendor: response.data.vendor,
+        vendorContact: response.data.vendor_contact,
+        vendorEmail: response.data.vendor_email,
+        vendorPhone: response.data.vendor_phone,
+        startDate: response.data.start_date,
+        endDate: response.data.end_date,
+        value: parseFloat(response.data.value),
+        currency: response.data.currency,
+        status: response.data.status,
+        renewalDate: response.data.renewal_date,
+        autoRenewal: response.data.auto_renewal,
+        terms: response.data.terms || "",
+        notes: response.data.notes || "",
+      };
+
+      // Update local state
+      setContracts((prev: any) =>
+        prev.map((contract: any) =>
+          contract.id === selectedContract.id ? updatedContractData : contract
+        )
+      );
+
+      setShowEditContractModal(false);
+    } catch (error: any) {
+      console.error("Error updating contract:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update contract"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRenewConfirm = () => {
-    setContracts((prev: any) =>
-      prev.map((contract: any) =>
-        contract.id === selectedContract.id
-          ? {
-              ...contract,
-              endDate: renewContract.newEndDate,
-              value: parseFloat(renewContract.newValue),
-              terms: renewContract.newTerms,
-              renewalDate: renewContract.newEndDate,
-              lastModified: new Date().toISOString().split("T")[0],
-              modifiedBy: "Current User",
-            }
-          : contract
-      )
-    );
-    setShowRenewContractModal(false);
+  const handleRenewConfirm = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Prepare renewal data for backend
+      const renewalData = {
+        new_end_date: renewContract.newEndDate,
+        new_value: renewContract.newValue
+          ? parseFloat(renewContract.newValue)
+          : null,
+        notes: renewContract.notes,
+      };
+
+      // Make API call to renew contract
+      const response = await contractAPI.renew(
+        selectedContract.id,
+        renewalData
+      );
+
+      // Refresh contracts list to get updated data
+      const contractsResponse = await contractAPI.getAll();
+      const mappedContracts = contractsResponse.data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        vendor: item.vendor,
+        vendorContact: item.vendor_contact,
+        vendorEmail: item.vendor_email,
+        vendorPhone: item.vendor_phone,
+        startDate: item.start_date,
+        endDate: item.end_date,
+        value: parseFloat(item.value),
+        currency: item.currency,
+        status: item.status,
+        renewalDate: item.renewal_date,
+        autoRenewal: item.auto_renewal,
+        terms: item.terms || "",
+        notes: item.notes || "",
+      }));
+
+      setContracts(mappedContracts);
+      setShowRenewContractModal(false);
+
+      // Reset renewal form
+      setRenewContract({
+        newEndDate: "",
+        newValue: "",
+        newTerms: "",
+        notes: "",
+      });
+    } catch (error: any) {
+      console.error("Error renewing contract:", error);
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to renew contract"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -271,7 +467,9 @@ const ContractManagement: React.FC = () => {
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading contracts...</span>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">
+            Loading contracts...
+          </span>
         </div>
       )}
 
@@ -517,10 +715,12 @@ const ContractManagement: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select type</option>
-                    <option value="Supply">Supply</option>
-                    <option value="Service">Service</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Lease">Lease</option>
+                    <option value="service">Service Contract</option>
+                    <option value="supply">Supply Contract</option>
+                    <option value="maintenance">Maintenance Contract</option>
+                    <option value="consulting">Consulting Contract</option>
+                    <option value="lease">Lease Contract</option>
+                    <option value="employment">Employment Contract</option>
                   </select>
                 </div>
                 <div>
@@ -915,10 +1115,13 @@ const ContractManagement: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Supply">Supply</option>
-                    <option value="Service">Service</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Lease">Lease</option>
+                    <option value="">Select type</option>
+                    <option value="service">Service Contract</option>
+                    <option value="supply">Supply Contract</option>
+                    <option value="maintenance">Maintenance Contract</option>
+                    <option value="consulting">Consulting Contract</option>
+                    <option value="lease">Lease Contract</option>
+                    <option value="employment">Employment Contract</option>
                   </select>
                 </div>
                 <div>

@@ -1,7 +1,7 @@
 import { Plus, Search, Stethoscope, UserCheck, Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { doctorAPI } from "../../services/api";
-import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
+import { getCurrentTenantId, getCurrentUserEmail } from "../../utils/helpers";
 
 const DoctorsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,7 +55,7 @@ const DoctorsManagement: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Load doctors
         const response = await doctorAPI.getAll();
 
@@ -77,24 +77,28 @@ const DoctorsManagement: React.FC = () => {
         }));
 
         setDoctors(mappedDoctors);
-        
+
         // Load specialties from backend API
         try {
           const specialtiesResponse = await doctorAPI.getSpecialties();
           if (specialtiesResponse.data.success) {
             setSpecialties(specialtiesResponse.data.data);
           } else {
-            throw new Error('Failed to load specialties');
+            throw new Error("Failed to load specialties");
           }
         } catch (specialtyError) {
           console.error("Error fetching specialties:", specialtyError);
           // Fallback to empty array if API fails
           setSpecialties([]);
         }
-        
       } catch (error: any) {
         console.error("Error fetching doctors:", error);
-        setError(error.message || "Failed to load doctors");
+        setError(
+          error.response?.data?.detail ||
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to load doctors"
+        );
         // Fallback to empty array if API fails
         setDoctors([]);
       } finally {
@@ -130,6 +134,23 @@ const DoctorsManagement: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  // Generate test data for easy testing
+  const generateTestData = () => {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 1000);
+
+    setNewDoctor({
+      name: `Dr. Test ${timestamp}`,
+      email: `test.${timestamp}@example.com`,
+      specialty: "cardiology",
+      licenseNumber: `LIC_${timestamp}_${randomNum}`,
+      phone: `555-${randomNum.toString().padStart(4, "0")}`,
+      experience: "5 years",
+      education: "MD, Test University",
+      schedule: "Mon-Fri 9-5",
+    });
   };
 
   // Handler functions
@@ -177,19 +198,28 @@ const DoctorsManagement: React.FC = () => {
   };
 
   const handleCreateDoctor = async () => {
-    if (newDoctor.name && newDoctor.email && newDoctor.specialty && newDoctor.licenseNumber) {
+    if (
+      newDoctor.name &&
+      newDoctor.email &&
+      newDoctor.specialty &&
+      newDoctor.licenseNumber
+    ) {
       try {
+        setLoading(true);
+        setError(null);
+
         const doctorData = {
           name: newDoctor.name,
           email: newDoctor.email,
           specialty: newDoctor.specialty,
           license_number: newDoctor.licenseNumber,
-          phone: newDoctor.phone,
-          experience: newDoctor.experience,
-          education: newDoctor.education,
-          schedule: newDoctor.schedule,
+          phone: newDoctor.phone || "",
+          experience: newDoctor.experience || "",
+          education: newDoctor.education || "",
+          schedule: newDoctor.schedule || "",
           tenant: getCurrentTenantId(), // Dynamic tenant ID
-          created_by: getCurrentUserId(), // Current user
+          created_by: getCurrentUserEmail(), // Current user email
+          status: "active", // Default status
         };
 
         const response = await doctorAPI.create(doctorData);
@@ -203,12 +233,13 @@ const DoctorsManagement: React.FC = () => {
           specialty: createdDoctor.specialty,
           licenseNumber: createdDoctor.license_number,
           phone: createdDoctor.phone || "No phone",
-          status: createdDoctor.status,
+          status: createdDoctor.status || "active",
           experience: createdDoctor.experience || "Not specified",
           education: createdDoctor.education || "Not specified",
-          joinDate: createdDoctor.join_date,
-          totalPatients: createdDoctor.total_patients,
-          rating: createdDoctor.rating,
+          joinDate:
+            createdDoctor.join_date || new Date().toISOString().split("T")[0],
+          totalPatients: createdDoctor.total_patients || 0,
+          rating: createdDoctor.rating || 0,
           schedule: createdDoctor.schedule || "Not specified",
         };
 
@@ -224,25 +255,41 @@ const DoctorsManagement: React.FC = () => {
           education: "",
           schedule: "",
         });
+
+        // Show success message
+        alert("Doctor created successfully!");
       } catch (error: any) {
         console.error("Error creating doctor:", error);
-        setError(error.message || "Failed to create doctor");
+        setError(
+          error.response?.data?.detail ||
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to create doctor"
+        );
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   const handleUpdateDoctor = async () => {
-    if (selectedDoctor && editDoctor.name && editDoctor.email && editDoctor.specialty && editDoctor.licenseNumber) {
+    if (
+      selectedDoctor &&
+      editDoctor.name &&
+      editDoctor.email &&
+      editDoctor.specialty &&
+      editDoctor.licenseNumber
+    ) {
       try {
         const doctorData = {
           name: editDoctor.name,
           email: editDoctor.email,
           specialty: editDoctor.specialty,
           license_number: editDoctor.licenseNumber,
-          phone: editDoctor.phone,
-          experience: editDoctor.experience,
-          education: editDoctor.education,
-          schedule: editDoctor.schedule,
+          phone: editDoctor.phone || "",
+          experience: editDoctor.experience || "",
+          education: editDoctor.education || "",
+          schedule: editDoctor.schedule || "",
         };
 
         const response = await doctorAPI.update(selectedDoctor.id, doctorData);
@@ -256,12 +303,13 @@ const DoctorsManagement: React.FC = () => {
           specialty: updatedDoctor.specialty,
           licenseNumber: updatedDoctor.license_number,
           phone: updatedDoctor.phone || "No phone",
-          status: updatedDoctor.status,
+          status: updatedDoctor.status || selectedDoctor.status,
           experience: updatedDoctor.experience || "Not specified",
           education: updatedDoctor.education || "Not specified",
-          joinDate: updatedDoctor.join_date,
-          totalPatients: updatedDoctor.total_patients,
-          rating: updatedDoctor.rating,
+          joinDate: updatedDoctor.join_date || selectedDoctor.joinDate,
+          totalPatients:
+            updatedDoctor.total_patients || selectedDoctor.totalPatients,
+          rating: updatedDoctor.rating || selectedDoctor.rating,
           schedule: updatedDoctor.schedule || "Not specified",
         };
 
@@ -274,7 +322,12 @@ const DoctorsManagement: React.FC = () => {
         setSelectedDoctor(null);
       } catch (error: any) {
         console.error("Error updating doctor:", error);
-        setError(error.message || "Failed to update doctor");
+        setError(
+          error.response?.data?.detail ||
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to update doctor"
+        );
       }
     }
   };
@@ -347,7 +400,7 @@ const DoctorsManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex-shrink-0">
-          <button 
+          <button
             onClick={handleAddDoctor}
             className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
           >
@@ -429,7 +482,9 @@ const DoctorsManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Patients</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Total Patients
+              </p>
               <p className="text-2xl font-bold text-blue-600">
                 {totalPatients}
               </p>
@@ -546,19 +601,19 @@ const DoctorsManagement: React.FC = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                      <button 
+                      <button
                         onClick={() => handleViewDoctor(doctor)}
                         className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
                       >
                         View
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleEditDoctor(doctor)}
                         className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
                       >
                         Edit
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleScheduleDoctor(doctor)}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-left"
                       >
@@ -597,7 +652,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={newDoctor.name}
-                    onChange={(e) => setNewDoctor({...newDoctor, name: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, name: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter doctor name"
                   />
@@ -609,7 +666,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="email"
                     value={newDoctor.email}
-                    onChange={(e) => setNewDoctor({...newDoctor, email: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, email: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter email address"
                   />
@@ -620,7 +679,9 @@ const DoctorsManagement: React.FC = () => {
                   </label>
                   <select
                     value={newDoctor.specialty}
-                    onChange={(e) => setNewDoctor({...newDoctor, specialty: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, specialty: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select specialty</option>
@@ -638,7 +699,12 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={newDoctor.licenseNumber}
-                    onChange={(e) => setNewDoctor({...newDoctor, licenseNumber: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({
+                        ...newDoctor,
+                        licenseNumber: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter license number"
                   />
@@ -650,7 +716,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="tel"
                     value={newDoctor.phone}
-                    onChange={(e) => setNewDoctor({...newDoctor, phone: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, phone: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Enter phone number"
                   />
@@ -662,7 +730,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={newDoctor.experience}
-                    onChange={(e) => setNewDoctor({...newDoctor, experience: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, experience: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., 5 years"
                   />
@@ -674,7 +744,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={newDoctor.education}
-                    onChange={(e) => setNewDoctor({...newDoctor, education: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, education: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., MD, Harvard Medical School"
                   />
@@ -686,7 +758,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={newDoctor.schedule}
-                    onChange={(e) => setNewDoctor({...newDoctor, schedule: e.target.value})}
+                    onChange={(e) =>
+                      setNewDoctor({ ...newDoctor, schedule: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., Mon-Fri 9AM-5PM"
                   />
@@ -695,17 +769,25 @@ const DoctorsManagement: React.FC = () => {
             </div>
             <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => setShowAddDoctorModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                onClick={generateTestData}
+                className="px-4 py-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
               >
-                Cancel
+                Generate Test Data
               </button>
-              <button
-                onClick={handleCreateDoctor}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Add Doctor
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowAddDoctorModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateDoctor}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Add Doctor
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -732,77 +814,104 @@ const DoctorsManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Doctor Name
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.name}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.name}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.email}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.email}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Specialty
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.specialty}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.specialty}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     License Number
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.licenseNumber}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.licenseNumber}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Phone
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.phone}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.phone}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Experience
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.experience}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.experience}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Education
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.education}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.education}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Status
                   </label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedDoctor.status)}`}>
-                    {selectedDoctor.status.charAt(0).toUpperCase() + selectedDoctor.status.slice(1)}
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      selectedDoctor.status
+                    )}`}
+                  >
+                    {selectedDoctor.status.charAt(0).toUpperCase() +
+                      selectedDoctor.status.slice(1)}
                   </span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Total Patients
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.totalPatients}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.totalPatients}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Rating
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedDoctor.rating > 0 ? `${selectedDoctor.rating} ⭐` : "No rating yet"}
+                    {selectedDoctor.rating > 0
+                      ? `${selectedDoctor.rating} ⭐`
+                      : "No rating yet"}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Join Date
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.joinDate}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.joinDate}
+                  </p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Schedule
                   </label>
-                  <p className="text-sm text-gray-900 dark:text-white">{selectedDoctor.schedule}</p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {selectedDoctor.schedule}
+                  </p>
                 </div>
               </div>
             </div>
@@ -842,7 +951,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editDoctor.name}
-                    onChange={(e) => setEditDoctor({...editDoctor, name: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({ ...editDoctor, name: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -853,7 +964,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="email"
                     value={editDoctor.email}
-                    onChange={(e) => setEditDoctor({...editDoctor, email: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({ ...editDoctor, email: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -863,7 +976,12 @@ const DoctorsManagement: React.FC = () => {
                   </label>
                   <select
                     value={editDoctor.specialty}
-                    onChange={(e) => setEditDoctor({...editDoctor, specialty: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({
+                        ...editDoctor,
+                        specialty: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     {specialties.map((specialty) => (
@@ -880,7 +998,12 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editDoctor.licenseNumber}
-                    onChange={(e) => setEditDoctor({...editDoctor, licenseNumber: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({
+                        ...editDoctor,
+                        licenseNumber: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -891,7 +1014,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="tel"
                     value={editDoctor.phone}
-                    onChange={(e) => setEditDoctor({...editDoctor, phone: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({ ...editDoctor, phone: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -902,7 +1027,12 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editDoctor.experience}
-                    onChange={(e) => setEditDoctor({...editDoctor, experience: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({
+                        ...editDoctor,
+                        experience: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -913,7 +1043,12 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editDoctor.education}
-                    onChange={(e) => setEditDoctor({...editDoctor, education: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({
+                        ...editDoctor,
+                        education: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -924,7 +1059,9 @@ const DoctorsManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editDoctor.schedule}
-                    onChange={(e) => setEditDoctor({...editDoctor, schedule: e.target.value})}
+                    onChange={(e) =>
+                      setEditDoctor({ ...editDoctor, schedule: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -976,7 +1113,12 @@ const DoctorsManagement: React.FC = () => {
                 <input
                   type="text"
                   value={scheduleData.schedule}
-                  onChange={(e) => setScheduleData({...scheduleData, schedule: e.target.value})}
+                  onChange={(e) =>
+                    setScheduleData({
+                      ...scheduleData,
+                      schedule: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="e.g., Mon-Fri 9AM-5PM"
                 />
@@ -987,7 +1129,9 @@ const DoctorsManagement: React.FC = () => {
                 </label>
                 <textarea
                   value={scheduleData.notes}
-                  onChange={(e) => setScheduleData({...scheduleData, notes: e.target.value})}
+                  onChange={(e) =>
+                    setScheduleData({ ...scheduleData, notes: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   rows={3}
                   placeholder="Additional notes about the schedule"

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from lab.components.TenantAccessAuth.Login.login_views import TenantUserListCreateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +26,7 @@ urlpatterns = [
     
     # Technician endpoints - Equipment (more specific paths to avoid conflicts)
     path('api/technician/equipment/', include('lab.components.Technician.Equipment.equipment_urls')),
+    
+    # Accounting endpoints
+    path('api/accounting/', include('lab.components.Accounting.accounting_urls')),
 ]

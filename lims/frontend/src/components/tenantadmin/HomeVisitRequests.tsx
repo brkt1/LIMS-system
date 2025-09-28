@@ -1,12 +1,4 @@
-import {
-  Calendar,
-  Check,
-  Eye,
-  MapPin,
-  Plus,
-  Search,
-  X
-} from "lucide-react";
+import { Calendar, Check, Eye, MapPin, Plus, Search, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { homeVisitRequestAPI } from "../../services/api";
 import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
@@ -41,7 +33,6 @@ const HomeVisitRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
 
   // Load home visit requests from backend API
   useEffect(() => {
@@ -131,67 +122,96 @@ const HomeVisitRequests: React.FC = () => {
   };
 
   const handleCreateRequest = async () => {
-    if (newRequest.patientName && newRequest.patientId && newRequest.address) {
-      try {
-        const requestData = {
-          patient_name: newRequest.patientName,
-          patient_id: newRequest.patientId,
-          address: newRequest.address,
-          phone: newRequest.phone,
-          requested_date: newRequest.requestedDate,
-          requested_time: newRequest.requestedTime,
-          service_type: newRequest.serviceType,
-          doctor: newRequest.doctor,
-          notes: newRequest.notes,
-          priority: newRequest.priority,
-          estimated_duration: newRequest.estimatedDuration,
-          status: "pending",
-          tenant: getCurrentTenantId(), // Dynamic tenant ID
-          created_by: getCurrentUserId(), // Dynamic user ID
-        };
+    try {
+      setLoading(true);
+      setError(null);
 
-        const response = await homeVisitRequestAPI.create(requestData);
-        const createdRequest = response.data;
-
-        // Map backend response to frontend format
-        const mappedRequest = {
-          id: createdRequest.id,
-          patientName: createdRequest.patient_name,
-          patientId: createdRequest.patient_id,
-          address: createdRequest.address,
-          phone: createdRequest.phone,
-          requestedDate: createdRequest.requested_date,
-          requestedTime: createdRequest.requested_time,
-          status: createdRequest.status,
-          priority: createdRequest.priority,
-          serviceType: createdRequest.service_type,
-          doctor: createdRequest.doctor,
-          notes: createdRequest.notes || "",
-          createdDate: createdRequest.created_at
-            ? createdRequest.created_at.split("T")[0]
-            : "Unknown",
-          estimatedDuration: createdRequest.estimated_duration || "30 minutes",
-        };
-
-        setRequests((prev: any) => [mappedRequest, ...prev]);
-        setNewRequest({
-          patientName: "",
-          patientId: "",
-          address: "",
-          phone: "",
-          requestedDate: "",
-          requestedTime: "",
-          serviceType: "",
-          doctor: "",
-          notes: "",
-          priority: "normal",
-          estimatedDuration: "",
-        });
-        setShowNewRequestModal(false);
-      } catch (error: any) {
-        console.error("Error creating home visit request:", error);
-        setError(error.message || "Failed to create home visit request");
+      // Basic form validation
+      if (
+        !newRequest.patientName ||
+        !newRequest.patientId ||
+        !newRequest.address ||
+        !newRequest.requestedDate ||
+        !newRequest.requestedTime ||
+        !newRequest.serviceType
+      ) {
+        setError(
+          "Please fill in all required fields (Patient Name, Patient ID, Address, Requested Date, Requested Time, Service Type)"
+        );
+        setLoading(false);
+        return;
       }
+
+      const requestData = {
+        patient_name: newRequest.patientName,
+        patient_id: newRequest.patientId,
+        address: newRequest.address,
+        phone: newRequest.phone || "",
+        requested_date: newRequest.requestedDate,
+        requested_time: newRequest.requestedTime,
+        service_type: newRequest.serviceType,
+        doctor: newRequest.doctor || "",
+        notes: newRequest.notes || "",
+        priority: newRequest.priority,
+        estimated_duration: newRequest.estimatedDuration || "30 minutes",
+        status: "pending",
+        tenant: getCurrentTenantId() || 2, // Default to tenant 2 if not available
+        created_by: getCurrentUserId() || null, // Allow null if not authenticated
+      };
+
+      // Debug: Log the data being sent
+      console.log("Creating home visit request with data:", requestData);
+
+      const response = await homeVisitRequestAPI.create(requestData);
+      const createdRequest = response.data;
+
+      // Map backend response to frontend format
+      const mappedRequest = {
+        id: createdRequest.id,
+        patientName: createdRequest.patient_name,
+        patientId: createdRequest.patient_id,
+        address: createdRequest.address,
+        phone: createdRequest.phone,
+        requestedDate: createdRequest.requested_date,
+        requestedTime: createdRequest.requested_time,
+        status: createdRequest.status,
+        priority: createdRequest.priority,
+        serviceType: createdRequest.service_type,
+        doctor: createdRequest.doctor,
+        notes: createdRequest.notes || "",
+        createdDate: createdRequest.created_at
+          ? createdRequest.created_at.split("T")[0]
+          : "Unknown",
+        estimatedDuration: createdRequest.estimated_duration || "30 minutes",
+      };
+
+      setRequests((prev: any) => [mappedRequest, ...prev]);
+      setNewRequest({
+        patientName: "",
+        patientId: "",
+        address: "",
+        phone: "",
+        requestedDate: "",
+        requestedTime: "",
+        serviceType: "",
+        doctor: "",
+        notes: "",
+        priority: "normal",
+        estimatedDuration: "",
+      });
+      setShowNewRequestModal(false);
+    } catch (error: any) {
+      console.error("Error creating home visit request:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create home visit request"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 

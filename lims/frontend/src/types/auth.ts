@@ -162,8 +162,7 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
     {
       title: 'REPORTS & ANALYTICS',
       items: [
-        { icon: 'FileText', label: 'Test Reports', labelKey: 'nav.testReports', path: '/test-reports' },
-        { icon: 'BarChart3', label: 'Analysis Dashboard', labelKey: 'nav.analysisDashboard', path: '/analytics' }
+        { icon: 'FileText', label: 'Test Reports', labelKey: 'nav.testReports', path: '/test-reports' }
       ]
     },
     {

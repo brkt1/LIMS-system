@@ -77,8 +77,10 @@ api.interceptors.response.use(
 // AUTHENTICATION API
 // ============================================================================
 export const authAPI = {
-  login: (credentials: { email: string; password: string }) =>
-    api.post('/login/', credentials),
+  login: (credentials: { email: string; password: string }) => {
+    console.log("API login called with:", { email: credentials.email, password: "***" });
+    return api.post('/login/', credentials);
+  },
   refreshToken: (refresh: string) =>
     api.post('/token/refresh/', { refresh }),
 };
@@ -161,14 +163,14 @@ export const doctorAPI = {
 
 // Equipment Management API (Tenant Admin)
 export const equipmentAPI = {
-  getAll: (tenantId?: string) => api.get(`/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/equipment/${id}/`),
-  create: (data: any) => api.post('/equipment/', data),
-  update: (id: string, data: any) => api.put(`/equipment/${id}/`, data),
-  delete: (id: string) => api.delete(`/equipment/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/equipment/?tenant=${tenantId}`),
-  getByType: (type: string) => api.get(`/equipment/?type=${type}`),
-  getByStatus: (status: string) => api.get(`/equipment/?status=${status}`),
+  getAll: (tenantId?: string) => api.get(`/api/tenant/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/api/tenant/equipment/${id}/`),
+  create: (data: any) => api.post('/api/tenant/equipment/', data),
+  update: (id: string, data: any) => api.put(`/api/tenant/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/tenant/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/tenant/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/api/tenant/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/api/tenant/equipment/?status=${status}`),
 };
 
 // Technician Equipment Management API
@@ -188,14 +190,14 @@ export const technicianEquipmentAPI = {
 
 // Branch Management API (Tenant Admin)
 export const branchAPI = {
-  getAll: (tenantId?: string) => api.get(`/api/branches/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/api/branches/${id}/`),
-  create: (data: any) => api.post('/api/branches/', data),
-  update: (id: string, data: any) => api.put(`/api/branches/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/branches/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/branches/?tenant=${tenantId}`),
-  getByStatus: (status: string) => api.get(`/api/branches/?status=${status}`),
-  getByCity: (city: string) => api.get(`/api/branches/?city=${city}`),
+  getAll: (tenantId?: string) => api.get(`/api/branches/branches/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/api/branches/branches/${id}/`),
+  create: (data: any) => api.post('/api/branches/branches/', data),
+  update: (id: string, data: any) => api.put(`/api/branches/branches/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/branches/branches/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/branches/branches/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/api/branches/branches/?status=${status}`),
+  getByCity: (city: string) => api.get(`/api/branches/branches/?city=${city}`),
 };
 
 export const testPricingAPI = {
@@ -482,13 +484,13 @@ export const appointmentAPI = {
 };
 
 export const patientAPI = {
-  getAll: () => api.get('/patients/patients/'),
-  getById: (id: number) => api.get(`/patients/patients/${id}/`),
-  create: (data: any) => api.post('/patients/patients/', data),
-  update: (id: number, data: any) => api.put(`/patients/patients/${id}/`, data),
-  delete: (id: number) => api.delete(`/patients/patients/${id}/`),
-  getByPatientId: (patientId: string) => api.get(`/patients/patients/?patient_id=${patientId}`),
-  search: (query: string) => api.get(`/patients/patients/?search=${query}`),
+  getAll: () => api.get('/patient/patients/'),
+  getById: (id: number) => api.get(`/patient/patients/${id}/`),
+  create: (data: any) => api.post('/patient/patients/', data),
+  update: (id: number, data: any) => api.put(`/patient/patients/${id}/`, data),
+  delete: (id: number) => api.delete(`/patient/patients/${id}/`),
+  getByPatientId: (patientId: string) => api.get(`/patient/patients/?patient_id=${patientId}`),
+  search: (query: string) => api.get(`/patient/patients/?search=${query}`),
 };
 
 export const messageAPI = {

@@ -55,13 +55,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
 
-
       // Try real API call first
       try {
+        console.log("Attempting login with:", {
+          email: credentials.email,
+          password: "***",
+        });
         const response = await authAPI.login({
           email: credentials.email,
           password: credentials.password,
         });
+        console.log("Login response:", response);
         const data: AuthResponse = response.data;
 
         // Store tokens and user data

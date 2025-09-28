@@ -34,12 +34,16 @@ class HomeVisitRequestViewSet(viewsets.ModelViewSet):
         if not data.get('id'):
             data['id'] = f"HVR{int(time.time() * 1000)}"
         
-        # Set default values
+        # Set default values - use existing tenant if available, otherwise use tenant 2
         if not data.get('tenant'):
-            data['tenant'] = 1  # Default tenant
+            data['tenant'] = 2  # Use tenant 2 (City Hospital Lab) as default
         
-        if not data.get('created_by'):
-            data['created_by'] = 1  # Default user
+        # Only set created_by if user is authenticated
+        if not data.get('created_by') and request.user.is_authenticated:
+            data['created_by'] = request.user.id
+        elif not data.get('created_by'):
+            # For unauthenticated requests, don't set created_by (let it be null)
+            pass
         
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -51,7 +55,8 @@ class HomeVisitRequestViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         visit_request = self.get_object()
         visit_request.status = 'approved'
-        visit_request.approved_by_id = 1  # Default user
+        if request.user.is_authenticated:
+            visit_request.approved_by = request.user
         visit_request.approved_at = timezone.now()
         visit_request.save()
         return Response({'status': 'Home visit request approved successfully'})

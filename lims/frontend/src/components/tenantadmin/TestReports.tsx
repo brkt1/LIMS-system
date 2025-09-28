@@ -1,11 +1,4 @@
-import {
-  Download,
-  Eye,
-  Plus,
-  Search,
-  Share,
-  X
-} from "lucide-react";
+import { Download, Eye, Plus, Search, Share, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { testReportAPI } from "../../services/api";
 
@@ -35,6 +28,34 @@ const TestReports: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Test API connection
+  const testAPIConnection = async () => {
+    try {
+      const response = await fetch("/api/test-reports/");
+      const data = await response.json();
+      console.log("Test Reports API Test Response:", data);
+      return data;
+    } catch (error) {
+      console.error("Test Reports API Test Failed:", error);
+      return null;
+    }
+  };
+
+  // Generate test data for easy testing
+  const generateTestData = () => {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 1000);
+
+    setNewReport({
+      patientName: `Patient ${timestamp}`,
+      patientId: `PAT_${timestamp}_${randomNum}`,
+      testName: `Test ${timestamp}`,
+      doctor: `Dr. Test ${randomNum}`,
+      priority: "normal",
+      notes: `Test notes for ${timestamp}`,
+    });
+  };
+
   // Load reports from backend API
   useEffect(() => {
     const fetchReports = async () => {
@@ -46,18 +67,24 @@ const TestReports: React.FC = () => {
         // Map backend data to frontend expected format
         const mappedReports = response.data.map((report: any) => ({
           id: report.id,
-          patientName: report.patient_name || "Unknown Patient",
+          patientName:
+            report.patient_name ||
+            report.patient_name_display ||
+            "Unknown Patient",
           patientId: report.patient_id || "Unknown ID",
           testName: report.test_name || "Unknown Test",
-          doctor: report.doctor || "Unknown Doctor",
+          doctor:
+            report.doctor_name ||
+            report.doctor_name_display ||
+            "Unknown Doctor",
           status: report.status?.toLowerCase() || "pending",
           generatedDate:
             report.generated_date || new Date().toISOString().split("T")[0],
           generatedTime: report.generated_time || "Unknown",
-          fileSize: report.file_size || "0 MB",
-          format: report.format || "PDF",
-          downloadCount: report.download_count || 0,
-          priority: report.priority || "normal",
+          fileSize: "2.5 MB", // Default file size
+          format: "PDF", // Default format
+          downloadCount: 0, // Default download count
+          priority: report.priority?.toLowerCase() || "normal",
         }));
 
         setReports(mappedReports);
@@ -115,25 +142,116 @@ const TestReports: React.FC = () => {
     setShowShareModal(true);
   };
 
-  const handleCreateReport = () => {
-    const newId = `RPT${String(reports.length + 1).padStart(3, "0")}`;
-    const now = new Date();
-    const report = {
-      ...newReport,
-      id: newId,
-      status: "completed",
-      generatedDate: now.toISOString().split("T")[0],
-      generatedTime: now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      fileSize: "2.5 MB",
-      format: "PDF",
-      downloadCount: 0,
-    };
-    setReports([...reports, report]);
-    setShowGenerateReportModal(false);
+  const handleCreateReport = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Test API connection first
+      const apiTest = await testAPIConnection();
+      if (!apiTest) {
+        throw new Error("API connection failed");
+      }
+
+      // Prepare data for backend API
+      const reportData = {
+        test_name: newReport.testName,
+        category: "Hematology", // Use valid category choice
+        status: "Pending",
+        priority:
+          newReport.priority === "normal"
+            ? "Routine"
+            : newReport.priority === "high"
+            ? "Urgent"
+            : "STAT",
+        notes: newReport.notes,
+        technician: "System Generated", // Could be set to current user
+        patient_name: newReport.patientName,
+        patient_id: newReport.patientId,
+        doctor_name: newReport.doctor,
+        // test_request is now optional, so we can create standalone reports
+      };
+
+      const response = await testReportAPI.create(reportData);
+
+      // Refresh the reports list
+      const updatedResponse = await testReportAPI.getAll();
+      const mappedReports = updatedResponse.data.map((report: any) => ({
+        id: report.id,
+        patientName:
+          report.patient_name ||
+          report.patient_name_display ||
+          "Unknown Patient",
+        patientId: report.patient_id || "Unknown ID",
+        testName: report.test_name || "Unknown Test",
+        doctor:
+          report.doctor_name || report.doctor_name_display || "Unknown Doctor",
+        status: report.status?.toLowerCase() || "pending",
+        generatedDate:
+          report.generated_date || new Date().toISOString().split("T")[0],
+        generatedTime:
+          report.generated_time ||
+          new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
+        fileSize: "2.5 MB",
+        format: "PDF",
+        downloadCount: 0,
+        priority: report.priority?.toLowerCase() || "normal",
+      }));
+
+      setReports(mappedReports);
+      setShowGenerateReportModal(false);
+
+      // Reset form
+      setNewReport({
+        patientName: "",
+        patientId: "",
+        testName: "",
+        doctor: "",
+        priority: "normal",
+        notes: "",
+      });
+
+      // Show success message
+      alert("Test report created successfully!");
+    } catch (error: any) {
+      console.error("Error creating report:", error);
+      console.error("Error response:", error.response);
+      console.error("Error message:", error.message);
+
+      // Handle validation errors
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        let errorMessage = "Failed to create report: ";
+
+        if (typeof errorData === "object") {
+          const errors = [];
+          if (errorData.category)
+            errors.push(`Category: ${errorData.category[0]}`);
+          if (errorData.status) errors.push(`Status: ${errorData.status[0]}`);
+          if (errorData.priority)
+            errors.push(`Priority: ${errorData.priority[0]}`);
+          if (errorData.patient_name)
+            errors.push(`Patient Name: ${errorData.patient_name[0]}`);
+          if (errorData.patient_id)
+            errors.push(`Patient ID: ${errorData.patient_id[0]}`);
+          if (errorData.error) errors.push(errorData.error);
+
+          errorMessage += errors.join(", ");
+        } else {
+          errorMessage += errorData;
+        }
+
+        setError(errorMessage);
+      } else {
+        setError(error.message || "Failed to create report");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDownloadConfirm = () => {
@@ -272,6 +390,12 @@ const TestReports: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={testAPIConnection}
+            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto justify-center"
+          >
+            <span>Test API</span>
+          </button>
           <button
             onClick={handleExportAll}
             className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 transition-colors w-full sm:w-auto justify-center"
@@ -606,19 +730,27 @@ const TestReports: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
               <button
-                onClick={() => setShowGenerateReportModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                onClick={generateTestData}
+                className="px-4 py-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
               >
-                Cancel
+                Generate Test Data
               </button>
-              <button
-                onClick={handleCreateReport}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Generate Report
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowGenerateReportModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateReport}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Generate Report
+                </button>
+              </div>
             </div>
           </div>
         </div>
