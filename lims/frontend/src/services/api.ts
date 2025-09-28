@@ -283,7 +283,13 @@ export const notificationAPI = {
   markAsRead: (id: number) => api.post(`/notifications/notifications/${id}/mark_read/`),
   markAllAsRead: (tenant?: string) => api.post('/notifications/notifications/mark_all_read/', { tenant }),
   getUnreadCount: (tenant?: string) => api.get('/notifications/notifications/unread_count/', { params: { tenant } }),
+  
+  // Global notification methods
   sendGlobal: (data: any) => api.post('/notifications/notifications/send_global/', data),
+  sendToRoles: (data: any) => api.post('/notifications/notifications/send_to_roles/', data),
+  sendToTenants: (data: any) => api.post('/notifications/notifications/send_to_tenants/', data),
+  sendMaintenanceAlert: (data: any) => api.post('/notifications/notifications/send_maintenance_alert/', data),
+  sendSecurityAlert: (data: any) => api.post('/notifications/notifications/send_security_alert/', data),
   
   // Preferences
   getPreferences: () => api.get('/notifications/preferences/'),
