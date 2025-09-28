@@ -1,21 +1,24 @@
 import {
-  AlertCircle,
-  Bell,
-  CheckCircle,
-  Clock,
-  Headphones,
-  Package,
-  TrendingUp,
-  X,
-  Edit,
-  RotateCcw,
-  AlertTriangle,
+    AlertCircle,
+    AlertTriangle,
+    Bell,
+    CheckCircle,
+    Clock,
+    Edit,
+    Headphones,
+    Package,
+    RotateCcw,
+    TrendingUp,
+    X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import BaseDashboard from "./BaseDashboard";
+import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { inventoryAPI, supportTicketAPI } from "../../services/api";
+import BaseDashboard from "./BaseDashboard";
 
 const SupportDashboard: React.FC = () => {
+  const { t } = useLanguage();
+  
   // State management for modals
   const [showManageInventoryModal, setShowManageInventoryModal] =
     useState(false);
@@ -163,18 +166,18 @@ const SupportDashboard: React.FC = () => {
   };
 
   const getStatusFromStock = (stock: number) => {
-    if (stock === 0) return "Out of Stock";
-    if (stock < 10) return "Low Stock";
-    return "In Stock";
+    if (stock === 0) return t('support.outOfStock');
+    if (stock < 10) return t('support.lowStock');
+    return t('support.inStock');
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "In Stock":
+      case t('support.inStock'):
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
-      case "Low Stock":
+      case t('support.lowStock'):
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
-      case "Out of Stock":
+      case t('support.outOfStock'):
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       default:
         return "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200";
@@ -183,30 +186,30 @@ const SupportDashboard: React.FC = () => {
 
   const supportCards = [
     {
-      title: "Open Tickets",
+      title: t('support.openTickets'),
       value: "23",
-      change: "+5 Today",
+      change: `+5 ${t('support.today')}`,
       color: "bg-orange-500",
       chartData: [18, 20, 22, 21, 23, 22, 23],
     },
     {
-      title: "Resolved Today",
+      title: t('support.resolvedToday'),
       value: "18",
-      change: "+3 This Week",
+      change: `+3 ${t('support.thisWeek')}`,
       color: "bg-green-500",
       chartData: [12, 14, 15, 16, 17, 18, 18],
     },
     {
-      title: "Avg Response Time",
+      title: t('support.avgResponseTime'),
       value: "2.3h",
-      change: "-0.5h This Week",
+      change: `-0.5h ${t('support.thisWeek')}`,
       color: "bg-blue-500",
       chartData: [3.2, 3.0, 2.8, 2.6, 2.4, 2.3, 2.3],
     },
     {
-      title: "Customer Satisfaction",
+      title: t('support.customerSatisfaction'),
       value: "4.7/5",
-      change: "+0.2 This Month",
+      change: `+0.2 ${t('support.thisMonth')}`,
       color: "bg-purple-500",
       chartData: [4.3, 4.4, 4.5, 4.6, 4.6, 4.7, 4.7],
     },
@@ -262,7 +265,7 @@ const SupportDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Recent Support Tickets
+              {t('support.recentSupportTickets')}
             </h3>
             <Headphones className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -272,7 +275,7 @@ const SupportDashboard: React.FC = () => {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Loading support tickets...
+                    {t('support.loadingSupportTickets')}
                   </p>
                 </div>
               </div>
@@ -290,7 +293,7 @@ const SupportDashboard: React.FC = () => {
                 <div className="text-center">
                   <Headphones className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No support tickets available
+                    {t('support.noSupportTicketsAvailable')}
                   </p>
                 </div>
               </div>

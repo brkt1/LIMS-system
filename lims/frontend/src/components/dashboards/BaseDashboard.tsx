@@ -20,15 +20,27 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
       return t('superadmin.welcome');
     }
     
-    const roleNames = {
-      "tenant-admin": "Tenant Administrator",
-      doctor: "Doctor",
-      technician: "Technician",
-      support: "Support Staff",
-      patient: "Patient",
-    };
+    if (user.role === 'tenant-admin') {
+      return t('tenantAdmin.welcome');
+    }
+    
+    if (user.role === 'doctor') {
+      return t('doctor.welcome');
+    }
+    
+    if (user.role === 'technician') {
+      return t('technician.welcome');
+    }
+    
+    if (user.role === 'support') {
+      return t('support.welcome');
+    }
+    
+    if (user.role === 'patient') {
+      return t('patient.welcome');
+    }
 
-    return `Welcome ${roleNames[user.role]}!`;
+    return `Welcome ${user.role}!`;
   };
 
   const getDashboardDescription = () => {
@@ -36,15 +48,27 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
       return t('superadmin.description');
     }
     
-    const descriptions = {
-      "tenant-admin": "Manage your tenant organization, users, and operations",
-      doctor: "Manage patient care, test requests, and appointments",
-      technician: "Process samples, manage equipment, and create test reports",
-      support: "Handle support tickets, manage inventory, and assist users",
-      patient: "View your appointments, test results, and manage your profile",
-    };
+    if (user.role === 'tenant-admin') {
+      return t('tenantAdmin.description');
+    }
+    
+    if (user.role === 'doctor') {
+      return t('doctor.description');
+    }
+    
+    if (user.role === 'technician') {
+      return t('technician.description');
+    }
+    
+    if (user.role === 'support') {
+      return t('support.description');
+    }
+    
+    if (user.role === 'patient') {
+      return t('patient.description');
+    }
 
-    return descriptions[user.role];
+    return `Manage your ${user.role} activities`;
   };
 
   return (

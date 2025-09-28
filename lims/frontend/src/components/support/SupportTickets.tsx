@@ -12,10 +12,12 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { supportTicketAPI } from "../../services/api";
 import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
 
 const SupportTickets: React.FC = () => {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
@@ -335,7 +337,7 @@ const SupportTickets: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading support tickets...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('support.loadingTickets')}</p>
           </div>
         </div>
       </div>
@@ -352,7 +354,7 @@ const SupportTickets: React.FC = () => {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                Error loading support tickets
+                {t('support.failedToLoadTickets')}
               </h3>
               <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                 {error}
@@ -370,10 +372,10 @@ const SupportTickets: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Support Tickets
+            {t('support.supportTickets')}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Manage and track customer support tickets
+            {t('support.manageAndTrackTickets')}
           </p>
         </div>
         <div className="flex-shrink-0">
@@ -382,7 +384,7 @@ const SupportTickets: React.FC = () => {
             className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
-            <span>New Ticket</span>
+            <span>{t('support.newTicket')}</span>
           </button>
         </div>
       </div>
@@ -394,7 +396,7 @@ const SupportTickets: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search by title, description, reporter, or ticket ID..."
+              placeholder={t('support.searchTickets')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -407,22 +409,22 @@ const SupportTickets: React.FC = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">All Status</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
+            <option value="all">{t('support.all')} {t('support.status')}</option>
+            <option value="open">{t('support.open')}</option>
+            <option value="in_progress">{t('support.inProgress')}</option>
+            <option value="resolved">{t('support.resolved')}</option>
+            <option value="closed">{t('support.closed')}</option>
           </select>
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">All Priority</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="all">{t('support.all')} {t('support.priority')}</option>
+            <option value="urgent">{t('support.urgent')}</option>
+            <option value="high">{t('support.high')}</option>
+            <option value="medium">{t('support.medium')}</option>
+            <option value="low">{t('support.low')}</option>
           </select>
         </div>
       </div>
@@ -434,28 +436,28 @@ const SupportTickets: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Ticket
+                  {t('support.ticket')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Reporter
+                  {t('support.reporter')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Category
+                  {t('support.category')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Priority
+                  {t('support.priority')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Status
+                  {t('support.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Assigned To
+                  {t('support.assignedTo')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Created
+                  {t('support.createdAt')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
+                  {t('support.actions')}
                 </th>
               </tr>
             </thead>

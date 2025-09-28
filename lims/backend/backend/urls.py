@@ -43,7 +43,7 @@ urlpatterns = [
     path('api/samples/', include('lab.components.Technician.Sample.sample_urls')),
     path('api/accept/', include('lab.components.Technician.Sample.accept_urls')),
     path('api/test-reports/', include('lab.components.Technician.TestReport.test_reports_urls')),
-    path('api/equipment/', include('lab.components.Technician.Equipment.equipment_urls')),
+    path('api/technician/equipment/', include('lab.components.Technician.Equipment.equipment_urls')),
     path('api/technician/', include('lab.components.Technician.technician_urls')),
     
     # Tenant Admin endpoints
@@ -51,7 +51,7 @@ urlpatterns = [
     path('api/tenantadmin/profiles/', include('lab.components.tenantadmin.TenantAdminProfile.tenantadmin_profile_urls')),
     path('', include('lab.components.tenantadmin.ManageUsers.manage_users_urls')),
     path('', include('lab.components.tenantadmin.DoctorManagement.doctor_urls')),
-    path('', include('lab.components.tenantadmin.EquipmentManagement.equipment_urls')),
+    path('api/equipment/', include('lab.components.tenantadmin.EquipmentManagement.equipment_urls')),
     path('', include('lab.components.tenantadmin.TestPricing.test_pricing_urls')),
     path('', include('lab.components.tenantadmin.CulturesAntibiotics.cultures_urls')),
     path('api/home-visit-patients/', include('lab.components.tenantadmin.HomeVisitRequests.approved_patient_urls')),

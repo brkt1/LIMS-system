@@ -41,7 +41,6 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // Skip token refresh for login requests
     if (originalRequest.url?.includes('/login/')) {
       return Promise.reject(error);
     }
@@ -172,6 +171,21 @@ export const equipmentAPI = {
   getByStatus: (status: string) => api.get(`/equipment/?status=${status}`),
 };
 
+// Technician Equipment Management API
+export const technicianEquipmentAPI = {
+  getAll: (tenantId?: string) => api.get(`/technician/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/technician/equipment/${id}/`),
+  create: (data: any) => api.post('/technician/equipment/', data),
+  update: (id: string, data: any) => api.put(`/technician/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/technician/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/technician/equipment/?status=${status}`),
+  maintain: (id: number, data: any) => api.post(`/technician/equipment/${id}/maintain/`, data),
+  calibrate: (id: number, data: any) => api.post(`/technician/equipment/${id}/calibrate/`, data),
+  updateStatus: (id: number, status: string) => api.post(`/technician/equipment/${id}/update_status/`, { status }),
+};
+
 // Branch Management API (Tenant Admin)
 export const branchAPI = {
   getAll: (tenantId?: string) => api.get(`/api/branches/?tenant=${tenantId || getCurrentTenantId()}`),
@@ -253,25 +267,6 @@ export const sampleAPI = {
   delete: (id: number) => api.delete(`/samples/${id}/`),
 };
 
-// Technician Equipment API
-export const technicianEquipmentAPI = {
-  getAll: () => api.get('/equipment/equipment/'),
-  getById: (id: number) => api.get(`/equipment/equipment/${id}/`),
-  create: (data: any) => api.post('/equipment/equipment/', data),
-  update: (id: number, data: any) => api.put(`/equipment/equipment/${id}/`, data),
-  delete: (id: number) => api.delete(`/equipment/equipment/${id}/`),
-  
-  // Maintenance endpoints
-  maintain: (id: number, data: any) => api.post(`/equipment/equipment/${id}/maintain/`, data),
-  getMaintenance: (id: number) => api.get(`/equipment/maintenance/?equipment=${id}`),
-  
-  // Calibration endpoints
-  calibrate: (id: number, data: any) => api.post(`/equipment/equipment/${id}/calibrate/`, data),
-  getCalibrations: (id: number) => api.get(`/equipment/calibrations/?equipment=${id}`),
-  
-  // Status update
-  updateStatus: (id: number, status: string) => api.post(`/equipment/equipment/${id}/update_status/`, { status }),
-};
 
 // ============================================================================
 // ANALYTICS & NOTIFICATIONS
@@ -872,20 +867,20 @@ export const technicianAPI = {
 
 // Sample Management API
 export const technicianSampleAPI = {
-  getAll: (params?: any) => api.get('/technician/samples/', { params }),
-  getById: (id: string) => api.get(`/technician/samples/${id}/`),
-  create: (data: any) => api.post('/technician/samples/', data),
-  update: (id: string, data: any) => api.put(`/technician/samples/${id}/`, data),
-  delete: (id: string) => api.delete(`/technician/samples/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/technician/samples/?tenant=${tenantId}`),
-  getByStatus: (status: string) => api.get(`/technician/samples/?status=${status}`),
-  getByTechnician: (technicianId: string) => api.get(`/technician/samples/?technician=${technicianId}`),
-  getBySampleType: (sampleType: string) => api.get(`/technician/samples/?sample_type=${sampleType}`),
-  getPending: () => api.get('/technician/samples/pending_samples/'),
-  assignTechnician: (id: string, data: any) => api.post(`/technician/samples/${id}/assign_technician/`, data),
-  updateStatus: (id: string, data: any) => api.post(`/technician/samples/${id}/update_status/`, data),
-  rejectSample: (id: string, data: any) => api.post(`/technician/samples/${id}/reject_sample/`, data),
-  getStatistics: (params?: any) => api.get('/technician/samples/statistics/', { params }),
+  getAll: (params?: any) => api.get('/samples/', { params }),
+  getById: (id: string) => api.get(`/samples/${id}/`),
+  create: (data: any) => api.post('/samples/', data),
+  update: (id: string, data: any) => api.put(`/samples/${id}/`, data),
+  delete: (id: string) => api.delete(`/samples/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/samples/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/samples/?status=${status}`),
+  getByTechnician: (technicianId: string) => api.get(`/samples/?technician=${technicianId}`),
+  getBySampleType: (sampleType: string) => api.get(`/samples/?sample_type=${sampleType}`),
+  getPending: () => api.get('/samples/pending_samples/'),
+  assignTechnician: (id: string, data: any) => api.post(`/samples/${id}/assign_technician/`, data),
+  updateStatus: (id: string, data: any) => api.post(`/samples/${id}/update_status/`, data),
+  rejectSample: (id: string, data: any) => api.post(`/samples/${id}/reject_sample/`, data),
+  getStatistics: (params?: any) => api.get('/samples/statistics/', { params }),
 };
 
 // Test Result Management API

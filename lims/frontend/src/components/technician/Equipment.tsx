@@ -1,19 +1,19 @@
 import {
   AlertTriangle,
+  Eye,
   Plus,
   Search,
   Settings,
   Wrench,
-  Eye,
-  Edit,
-  X,
-  Check,
-  Play,
+  X
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import { equipmentAPI } from "../../services/api";
+import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { technicianEquipmentAPI } from "../../services/api";
 
 const Equipment: React.FC = () => {
+  const { t } = useLanguage();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
@@ -49,7 +49,7 @@ const Equipment: React.FC = () => {
         setLoading(true);
         setError(null);
         console.log("Fetching equipment data...");
-        const response = await equipmentAPI.getAll();
+        const response = await technicianEquipmentAPI.getAll();
         console.log("Equipment API response:", response.data);
 
         // Transform backend data to match frontend format
@@ -149,19 +149,19 @@ const Equipment: React.FC = () => {
       };
 
       // Send maintenance record to backend
-      await equipmentAPI.maintain(
+      await technicianEquipmentAPI.maintain(
         parseInt(selectedEquipment.id),
         maintenanceData
       );
 
       // Update equipment status to maintenance
-      await equipmentAPI.updateStatus(
+      await technicianEquipmentAPI.updateStatus(
         parseInt(selectedEquipment.id),
         "maintenance"
       );
 
       // Refresh equipment list from backend
-      const response = await equipmentAPI.getAll();
+      const response = await technicianEquipmentAPI.getAll();
       const transformedEquipment = response.data.map((item: any) => ({
         id: item.id.toString(),
         name: item.name,
@@ -203,19 +203,19 @@ const Equipment: React.FC = () => {
       };
 
       // Send calibration record to backend
-      await equipmentAPI.calibrate(
+      await technicianEquipmentAPI.calibrate(
         parseInt(selectedEquipment.id),
         calibrationData
       );
 
       // Update equipment status to operational
-      await equipmentAPI.updateStatus(
+      await technicianEquipmentAPI.updateStatus(
         parseInt(selectedEquipment.id),
         "operational"
       );
 
       // Refresh equipment list from backend
-      const response = await equipmentAPI.getAll();
+      const response = await technicianEquipmentAPI.getAll();
       const transformedEquipment = response.data.map((item: any) => ({
         id: item.id.toString(),
         name: item.name,

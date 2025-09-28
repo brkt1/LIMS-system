@@ -1,13 +1,13 @@
 import {
-  Download,
-  Edit,
-  Eye,
-  Plus,
-  Search,
-  X
+    Download,
+    Edit,
+    Eye,
+    Plus,
+    Search,
+    X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { testResultAPI } from "../../services/api";
+import { testReportAPI } from "../../services/api";
 
 const TestReports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,7 +40,7 @@ const TestReports: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await testResultAPI.getAll();
+        const response = await testReportAPI.getAll();
         setReports(response.data || []);
       } catch (error: any) {
         console.error("Error fetching test reports:", error);

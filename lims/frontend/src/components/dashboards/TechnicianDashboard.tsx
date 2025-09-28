@@ -11,10 +11,13 @@ import {
   X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { equipmentAPI, technicianSampleAPI, testReportAPI } from "../../services/api";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { equipmentAPI, technicianSampleAPI, testReportAPI, testRequestAPI } from "../../services/api";
 import BaseDashboard from "./BaseDashboard";
 
 const TechnicianDashboard: React.FC = () => {
+  const { t } = useLanguage();
+  
   // Modal states
   const [showNewReportModal, setShowNewReportModal] = useState(false);
   const [showViewReportModal, setShowViewReportModal] = useState(false);
@@ -28,6 +31,7 @@ const TechnicianDashboard: React.FC = () => {
     testType: "",
     description: "",
     priority: "normal",
+    category: "Hematology",
   });
 
   // Test reports data
@@ -58,10 +62,20 @@ const TechnicianDashboard: React.FC = () => {
       setTestReportsError(null);
       const response = await testReportAPI.getAll();
       console.log("📊 Test Reports fetched:", response.data);
-      setTestReports(response.data);
+      
+      // Handle different response structures
+      if (Array.isArray(response.data)) {
+        setTestReports(response.data);
+      } else if (response.data && response.data.results) {
+        // Handle paginated response
+        setTestReports(response.data.results);
+      } else {
+        setTestReports([]);
+      }
     } catch (err: any) {
       console.error("Error fetching test reports:", err);
       setTestReportsError(err.message || "Failed to fetch test reports");
+      setTestReports([]); // Set empty array on error
     } finally {
       setTestReportsLoading(false);
     }
@@ -73,10 +87,20 @@ const TechnicianDashboard: React.FC = () => {
       setSamplesError(null);
       const response = await technicianSampleAPI.getAll();
       console.log("🧪 Samples fetched:", response.data);
-      setSamples(response.data);
+      
+      // Handle different response structures
+      if (Array.isArray(response.data)) {
+        setSamples(response.data);
+      } else if (response.data && response.data.results) {
+        // Handle paginated response
+        setSamples(response.data.results);
+      } else {
+        setSamples([]);
+      }
     } catch (err: any) {
       console.error("Error fetching samples:", err);
       setSamplesError(err.message || "Failed to fetch samples");
+      setSamples([]); // Set empty array on error
     } finally {
       setSamplesLoading(false);
     }
@@ -88,10 +112,21 @@ const TechnicianDashboard: React.FC = () => {
       setEquipmentError(null);
       const response = await equipmentAPI.getAll();
       console.log("🔧 Equipment fetched:", response.data);
-      setEquipment(response.data);
+      
+      // Handle different response structures
+      if (Array.isArray(response.data)) {
+        setEquipment(response.data);
+      } else if (response.data && typeof response.data === 'object') {
+        // If it's an object with URLs, set empty array for now
+        // TODO: Implement proper equipment fetching from the URLs
+        setEquipment([]);
+      } else {
+        setEquipment([]);
+      }
     } catch (err: any) {
       console.error("Error fetching equipment:", err);
       setEquipmentError(err.message || "Failed to fetch equipment");
+      setEquipment([]); // Set empty array on error
     } finally {
       setEquipmentLoading(false);
     }
@@ -119,14 +154,43 @@ const TechnicianDashboard: React.FC = () => {
 
   const handleCreateReport = async () => {
     try {
+      // Map frontend priority to backend priority choices
+      const priorityMap: { [key: string]: string } = {
+        "low": "Routine",
+        "normal": "Routine", 
+        "high": "Urgent"
+      };
+
+      // Get an available test request ID (find one that doesn't have a report yet)
+      let testRequestId = 11; // Default fallback - ID 11 is available
+      try {
+        const testRequestsResponse = await testRequestAPI.getAll();
+        const testRequests = testRequestsResponse.data;
+        
+        // Find an approved test request that doesn't have a report yet
+        const availableRequest = testRequests.find((req: any) => 
+          req.status === "Approved" && !testReports.some(report => report.test_request === req.id)
+        );
+        
+        if (availableRequest) {
+          testRequestId = availableRequest.id;
+          console.log("Found available test request ID:", testRequestId);
+        } else {
+          console.log("No available test requests found, using default ID:", testRequestId);
+        }
+      } catch (err) {
+        console.warn("Could not fetch test requests, using default ID:", err);
+      }
+
       const reportData = {
-        test_name: newReport.testType,
-        patient_name: newReport.patientName,
-        description: newReport.description,
-        priority: newReport.priority,
-        status: "processing",
+        test_request: testRequestId,
+        test_name: newReport.testType || "General Test",
+        category: newReport.category, // Use selected category
+        status: "Pending", // Valid status choice
+        priority: priorityMap[newReport.priority] || "Routine", // Map to valid priority
+        result: newReport.description || "Report being generated",
         technician: "Current Technician",
-        results: "Report being generated",
+        notes: newReport.description || "New test report created",
       };
 
       await testReportAPI.create(reportData);
@@ -135,12 +199,14 @@ const TechnicianDashboard: React.FC = () => {
         testType: "",
         description: "",
         priority: "normal",
+        category: "Hematology",
       });
       setShowNewReportModal(false);
       fetchTestReports(); // Refresh the list
     } catch (err: any) {
       console.error("Error creating test report:", err);
-      alert("Failed to create test report. Please try again.");
+      console.error("Error details:", err.response?.data);
+      alert(`Failed to create test report: ${err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -190,11 +256,11 @@ const TechnicianDashboard: React.FC = () => {
 
   const technicianCards = [
     {
-      title: "Samples Processed",
+      title: t('technician.samplesProcessed'),
       value: samplesLoading ? "..." : samples.length.toString(),
       change: samplesLoading
-        ? "Loading..."
-        : `+${Math.floor(samples.length * 0.1)} Today`,
+        ? t('technician.loading')
+        : `+${Math.floor(samples.length * 0.1)} ${t('technician.today')}`,
       color: "bg-blue-500",
       chartData: samplesLoading
         ? [0, 0, 0, 0, 0, 0, 0]
@@ -209,28 +275,28 @@ const TechnicianDashboard: React.FC = () => {
           ],
     },
     {
-      title: "Equipment Active",
+      title: t('technician.equipmentActive'),
       value: equipmentLoading
         ? "..."
         : `${equipment.filter((eq) => eq.status === "operational").length}/${
             equipment.length
           }`,
       change: equipmentLoading
-        ? "Loading..."
+        ? t('technician.loading')
         : `${
             equipment.filter((eq) => eq.status === "maintenance").length
-          } Maintenance Due`,
+          } ${t('technician.maintenanceDue')}`,
       color: "bg-green-500",
       chartData: equipmentLoading
         ? [0, 0, 0, 0, 0, 0, 0]
         : [equipment.filter((eq) => eq.status === "operational").length],
     },
     {
-      title: "Test Reports Created",
+      title: t('technician.testReportsCreated'),
       value: testReportsLoading ? "..." : testReports.length.toString(),
       change: testReportsLoading
-        ? "Loading..."
-        : `+${Math.floor(testReports.length * 0.15)} This Week`,
+        ? t('technician.loading')
+        : `+${Math.floor(testReports.length * 0.15)} ${t('technician.thisWeek')}`,
       color: "bg-purple-500",
       chartData: testReportsLoading
         ? [0, 0, 0, 0, 0, 0, 0]
@@ -245,9 +311,9 @@ const TechnicianDashboard: React.FC = () => {
           ],
     },
     {
-      title: "Quality Score",
+      title: t('technician.qualityScore'),
       value: "98.5%", // This would be calculated from test results
-      change: "+0.3% This Month",
+      change: `+0.3% ${t('technician.thisMonth')}`,
       color: "bg-emerald-500",
       chartData: [97, 97.5, 98, 98.2, 98.3, 98.4, 98.5],
     },
@@ -303,7 +369,7 @@ const TechnicianDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Sample Processing Queue
+              {t('technician.sampleProcessingQueue')}
             </h3>
             <ClipboardCheck className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -311,37 +377,37 @@ const TechnicianDashboard: React.FC = () => {
             {[
               {
                 id: "SP-001",
-                type: "Blood Panel",
-                priority: "High",
-                status: "Processing",
+                type: t('technician.bloodPanel'),
+                priority: t('technician.high'),
+                status: t('technician.processing'),
                 time: "2h 15m",
               },
               {
                 id: "SP-002",
-                type: "Urine Analysis",
-                priority: "Medium",
-                status: "Pending",
+                type: t('technician.urineAnalysis'),
+                priority: t('technician.medium'),
+                status: t('technician.pending'),
                 time: "1h 30m",
               },
               {
                 id: "SP-003",
-                type: "Tissue Biopsy",
-                priority: "High",
-                status: "Processing",
+                type: t('technician.tissueBiopsy'),
+                priority: t('technician.high'),
+                status: t('technician.processing'),
                 time: "3h 45m",
               },
               {
                 id: "SP-004",
-                type: "Swab Culture",
-                priority: "Low",
-                status: "Completed",
+                type: t('technician.swabCulture'),
+                priority: t('technician.low'),
+                status: t('technician.completed'),
                 time: "0h 20m",
               },
               {
                 id: "SP-005",
-                type: "Blood Typing",
-                priority: "Medium",
-                status: "Pending",
+                type: t('technician.bloodTyping'),
+                priority: t('technician.medium'),
+                status: t('technician.pending'),
                 time: "45m",
               },
             ].map((sample, index) => (
@@ -377,7 +443,7 @@ const TechnicianDashboard: React.FC = () => {
                       {sample.type}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Est. time: {sample.time}
+                      {t('technician.estimatedTime')}: {sample.time}
                     </p>
                   </div>
                 </div>
@@ -402,7 +468,7 @@ const TechnicianDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Equipment Status
+              {t('technician.equipmentStatus')}
             </h3>
             <Wrench className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -410,25 +476,25 @@ const TechnicianDashboard: React.FC = () => {
             {[
               {
                 name: "Microscope Alpha-1",
-                status: "Operational",
+                status: t('technician.operational'),
                 lastCalibration: "2025-01-15",
                 nextMaintenance: "2025-02-15",
               },
               {
                 name: "Centrifuge Beta-2",
-                status: "Maintenance Due",
+                status: t('technician.maintenanceDue'),
                 lastCalibration: "2025-01-10",
                 nextMaintenance: "2025-01-25",
               },
               {
                 name: "PCR Machine Gamma-3",
-                status: "Operational",
+                status: t('technician.operational'),
                 lastCalibration: "2025-01-18",
                 nextMaintenance: "2025-02-18",
               },
               {
                 name: "Incubator Delta-4",
-                status: "Calibrating",
+                status: t('technician.calibrating'),
                 lastCalibration: "2025-01-20",
                 nextMaintenance: "2025-02-20",
               },
@@ -462,7 +528,7 @@ const TechnicianDashboard: React.FC = () => {
                       {equipment.name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Last cal: {equipment.lastCalibration}
+                      {t('technician.lastCalibration')}: {equipment.lastCalibration}
                     </p>
                   </div>
                 </div>
@@ -489,7 +555,7 @@ const TechnicianDashboard: React.FC = () => {
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Recent Test Reports
+            {t('technician.recentTestReports')}
           </h3>
           <div className="flex items-center space-x-2">
             <button
@@ -497,7 +563,7 @@ const TechnicianDashboard: React.FC = () => {
               className="px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center space-x-1"
             >
               <Plus className="w-4 h-4" />
-              <span>New Report</span>
+              <span>{t('technician.newReport')}</span>
             </button>
             <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -507,22 +573,22 @@ const TechnicianDashboard: React.FC = () => {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
-                  Report ID
+                  {t('technician.reportId')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
-                  Patient
+                  {t('technician.patient')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
-                  Test Type
+                  {t('technician.testType')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
-                  Status
+                  {t('technician.status')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
-                  Created
+                  {t('technician.created')}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-300">
-                  Actions
+                  {t('technician.actions')}
                 </th>
               </tr>
             </thead>
@@ -533,7 +599,7 @@ const TechnicianDashboard: React.FC = () => {
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Loading test reports...
+                        {t('technician.loadingTestReports')}
                       </span>
                     </div>
                   </td>
@@ -552,7 +618,7 @@ const TechnicianDashboard: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="py-8 text-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                      No test reports available
+                      {t('technician.noTestReportsAvailable')}
                     </span>
                   </td>
                 </tr>
@@ -590,7 +656,7 @@ const TechnicianDashboard: React.FC = () => {
                           className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium flex items-center space-x-1"
                         >
                           <Eye className="w-3 h-3" />
-                          <span>View</span>
+                          <span>{t('technician.view')}</span>
                         </button>
                         {report.status !== "completed" && (
                           <button
@@ -598,7 +664,7 @@ const TechnicianDashboard: React.FC = () => {
                             className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 text-sm font-medium flex items-center space-x-1"
                           >
                             <Edit className="w-3 h-3" />
-                            <span>Edit</span>
+                            <span>{t('technician.edit')}</span>
                           </button>
                         )}
                         {report.status === "processing" && (
@@ -607,7 +673,7 @@ const TechnicianDashboard: React.FC = () => {
                             className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium flex items-center space-x-1"
                           >
                             <Clock className="w-3 h-3" />
-                            <span>Track</span>
+                            <span>{t('technician.track')}</span>
                           </button>
                         )}
                       </div>
@@ -626,7 +692,7 @@ const TechnicianDashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Create New Report
+                {t('technician.createNewReport')}
               </h3>
               <button
                 onClick={() => setShowNewReportModal(false)}
@@ -638,7 +704,7 @@ const TechnicianDashboard: React.FC = () => {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Patient Name
+                  {t('technician.patientName')}
                 </label>
                 <input
                   type="text"
@@ -650,12 +716,12 @@ const TechnicianDashboard: React.FC = () => {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter patient name"
+                  placeholder={t('technician.enterPatientName')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Test Type
+                  {t('technician.testType')}
                 </label>
                 <input
                   type="text"
@@ -667,12 +733,34 @@ const TechnicianDashboard: React.FC = () => {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter test type"
+                  placeholder={t('technician.enterTestType')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Priority
+                  {t('technician.category')}
+                </label>
+                <select
+                  value={newReport.category}
+                  onChange={(e) =>
+                    setNewReport((prev) => ({
+                      ...prev,
+                      category: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="Hematology">{t('technician.hematology')}</option>
+                  <option value="Biochemistry">{t('technician.biochemistry')}</option>
+                  <option value="Immunology">{t('technician.immunology')}</option>
+                  <option value="Microbiology">{t('technician.microbiology')}</option>
+                  <option value="Radiology">{t('technician.radiology')}</option>
+                  <option value="Pathology">{t('technician.pathology')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {t('technician.priority')}
                 </label>
                 <select
                   value={newReport.priority}
@@ -684,14 +772,14 @@ const TechnicianDashboard: React.FC = () => {
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
+                  <option value="low">{t('technician.lowRoutine')}</option>
+                  <option value="normal">{t('technician.normalRoutine')}</option>
+                  <option value="high">{t('technician.highUrgent')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description
+                  {t('technician.description')}
                 </label>
                 <textarea
                   value={newReport.description}
@@ -702,7 +790,7 @@ const TechnicianDashboard: React.FC = () => {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter test description"
+                  placeholder={t('technician.enterTestDescription')}
                   rows={3}
                 />
               </div>
@@ -712,13 +800,13 @@ const TechnicianDashboard: React.FC = () => {
                 onClick={() => setShowNewReportModal(false)}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                Cancel
+                {t('technician.cancel')}
               </button>
               <button
                 onClick={handleCreateReport}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                Create Report
+                {t('technician.createReport')}
               </button>
             </div>
           </div>
@@ -731,7 +819,7 @@ const TechnicianDashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Report Details
+                {t('technician.reportDetails')}
               </h3>
               <button
                 onClick={() => setShowViewReportModal(false)}
@@ -744,7 +832,7 @@ const TechnicianDashboard: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Report ID
+                    {t('technician.reportId')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.id}
@@ -752,7 +840,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status
+                    {t('technician.status')}
                   </label>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
@@ -764,7 +852,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Patient Name
+                    {t('technician.patientName')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.patientName}
@@ -772,7 +860,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Test Type
+                    {t('technician.testType')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.testType}
@@ -780,7 +868,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Technician
+                    {t('technician.technician')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.technician}
@@ -788,7 +876,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Created Date
+                    {t('technician.createdDate')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.createdDate}
@@ -796,7 +884,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Description
+                    {t('technician.description')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.description}
@@ -804,7 +892,7 @@ const TechnicianDashboard: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Results
+                    {t('technician.results')}
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedReport.results}
@@ -817,7 +905,7 @@ const TechnicianDashboard: React.FC = () => {
                 onClick={() => setShowViewReportModal(false)}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                Close
+                {t('technician.close')}
               </button>
             </div>
           </div>
@@ -830,7 +918,7 @@ const TechnicianDashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Complete Report
+                {t('technician.completeReport')}
               </h3>
               <button
                 onClick={() => setShowEditReportModal(false)}
@@ -845,19 +933,18 @@ const TechnicianDashboard: React.FC = () => {
                   <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Complete Report
+                  {t('technician.completeReport')}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Mark report for <strong>{selectedReport.patientName}</strong>{" "}
-                  as completed?
+                  {t('technician.markReportAsCompleted').replace('{patientName}', selectedReport.patientName)}
                 </p>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    <strong>Test Type:</strong> {selectedReport.testType}
+                    <strong>{t('technician.testTypeLabel')}</strong> {selectedReport.testType}
                     <br />
-                    <strong>Technician:</strong> {selectedReport.technician}
+                    <strong>{t('technician.technicianLabel')}</strong> {selectedReport.technician}
                     <br />
-                    <strong>Created:</strong> {selectedReport.createdDate}
+                    <strong>{t('technician.createdLabel')}</strong> {selectedReport.createdDate}
                   </p>
                 </div>
               </div>
@@ -867,14 +954,14 @@ const TechnicianDashboard: React.FC = () => {
                 onClick={() => setShowEditReportModal(false)}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                Cancel
+                {t('technician.cancel')}
               </button>
               <button
                 onClick={handleUpdateReport}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
               >
                 <CheckCircle className="w-4 h-4" />
-                <span>Complete Report</span>
+                <span>{t('technician.completeReportButton')}</span>
               </button>
             </div>
           </div>
@@ -887,7 +974,7 @@ const TechnicianDashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Track Report Progress
+                {t('technician.trackReportProgress')}
               </h3>
               <button
                 onClick={() => setShowTrackReportModal(false)}
@@ -902,29 +989,28 @@ const TechnicianDashboard: React.FC = () => {
                   <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Report in Progress
+                  {t('technician.reportInProgress')}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Tracking report for{" "}
-                  <strong>{selectedReport.patientName}</strong>
+                  {t('technician.trackingReportFor').replace('{patientName}', selectedReport.patientName)}
                 </p>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    <strong>Test Type:</strong> {selectedReport.testType}
+                    <strong>{t('technician.testTypeLabel')}</strong> {selectedReport.testType}
                     <br />
-                    <strong>Status:</strong>{" "}
+                    <strong>{t('technician.statusLabel')}</strong>{" "}
                     {getStatusText(selectedReport.status)}
                     <br />
-                    <strong>Technician:</strong> {selectedReport.technician}
+                    <strong>{t('technician.technicianLabel')}</strong> {selectedReport.technician}
                     <br />
-                    <strong>Started:</strong> {selectedReport.createdDate}
+                    <strong>{t('technician.startedLabel')}</strong> {selectedReport.createdDate}
                   </p>
                 </div>
                 <div className="mt-4">
                   <div className="flex items-center justify-center space-x-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                     <span className="text-sm text-gray-600 dark:text-gray-300">
-                      Processing in progress...
+                      {t('technician.processingInProgress')}
                     </span>
                   </div>
                 </div>
@@ -935,7 +1021,7 @@ const TechnicianDashboard: React.FC = () => {
                 onClick={() => setShowTrackReportModal(false)}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                Close
+                {t('technician.close')}
               </button>
             </div>
           </div>

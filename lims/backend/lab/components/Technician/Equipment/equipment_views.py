@@ -15,6 +15,12 @@ class EquipmentViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at', 'status']
     ordering = ['name']
     
+    def get_queryset(self):
+        tenant_id = self.request.query_params.get("tenant")
+        if tenant_id:
+            return Equipment.objects.filter(tenant=tenant_id)
+        return Equipment.objects.all()
+    
     def get_serializer_class(self):
         if self.action == 'list':
             return EquipmentListSerializer

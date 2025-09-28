@@ -1,5 +1,6 @@
 import { Plus, Search, User, UserCheck, Users, UserX, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { userManagementAPI } from "../../services/api";
 import {
   generateSecurePassword,
@@ -8,6 +9,7 @@ import {
 } from "../../utils/helpers";
 
 const UserManagement: React.FC = () => {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -353,10 +355,10 @@ const UserManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            User Management
+            {t('userManagement.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Manage users, roles, and permissions for your organization
+            {t('userManagement.description')}
           </p>
         </div>
         <div className="flex-shrink-0">
@@ -365,7 +367,7 @@ const UserManagement: React.FC = () => {
             className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
-            <span>Add User</span>
+            <span>{t('userManagement.addUser')}</span>
           </button>
         </div>
       </div>
@@ -377,7 +379,7 @@ const UserManagement: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search by name, email, or user ID..."
+              placeholder={t('userManagement.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -390,21 +392,21 @@ const UserManagement: React.FC = () => {
             onChange={(e) => setFilterRole(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">All Roles</option>
-            <option value="doctor">Doctor</option>
-            <option value="technician">Technician</option>
-            <option value="support">Support</option>
+            <option value="all">{t('userManagement.allRoles')}</option>
+            <option value="doctor">{t('userManagement.doctor')}</option>
+            <option value="technician">{t('userManagement.technician')}</option>
+            <option value="support">{t('userManagement.support')}</option>
           </select>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
-            <option value="suspended">Suspended</option>
+            <option value="all">{t('userManagement.allStatus')}</option>
+            <option value="active">{t('userManagement.active')}</option>
+            <option value="inactive">{t('userManagement.inactive')}</option>
+            <option value="pending">{t('userManagement.pending')}</option>
+            <option value="suspended">{t('userManagement.suspended')}</option>
           </select>
         </div>
       </div>
@@ -415,7 +417,7 @@ const UserManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Users
+                {t('userManagement.totalUsers')}
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {users.length}
@@ -428,7 +430,7 @@ const UserManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Active Users
+                {t('userManagement.activeUsers')}
               </p>
               <p className="text-2xl font-bold text-green-600">
                 {users.filter((u) => u.status === "active").length}
@@ -441,7 +443,7 @@ const UserManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Doctors
+                {t('userManagement.doctors')}
               </p>
               <p className="text-2xl font-bold text-blue-600">
                 {users.filter((u) => u.role === "doctor").length}
@@ -454,7 +456,7 @@ const UserManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Pending Approval
+                {t('userManagement.pendingApproval')}
               </p>
               <p className="text-2xl font-bold text-yellow-600">
                 {users.filter((u) => u.status === "pending").length}
@@ -472,22 +474,22 @@ const UserManagement: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  User
+                  {t('userManagement.user')}
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Role
+                  {t('userManagement.role')}
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                  Department
+                  {t('userManagement.department')}
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Status
+                  {t('userManagement.status')}
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                  Last Login
+                  {t('userManagement.lastLogin')}
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Actions
+                  {t('userManagement.actions')}
                 </th>
               </tr>
             </thead>
@@ -529,7 +531,7 @@ const UserManagement: React.FC = () => {
                       {user.role
                         ? (user.role || "").charAt(0).toUpperCase() +
                           (user.role || "").slice(1)
-                        : "Unknown"}
+                        : t('userManagement.unknown')}
                     </span>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden sm:table-cell">
@@ -554,21 +556,21 @@ const UserManagement: React.FC = () => {
                         onClick={() => handleViewUser(user)}
                         className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-left"
                       >
-                        View
+                        {t('userManagement.view')}
                       </button>
                       <button
                         onClick={() => handleEditUser(user)}
                         className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-left"
                       >
-                        Edit
+                        {t('userManagement.edit')}
                       </button>
                       <button
                         onClick={() => handleSuspendUser(user)}
                         className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-left"
                       >
                         {(user.status || "active") === "active"
-                          ? "Suspend"
-                          : "Activate"}
+                          ? t('userManagement.suspend')
+                          : t('userManagement.activate')}
                       </button>
                     </div>
                   </td>
@@ -584,7 +586,7 @@ const UserManagement: React.FC = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Add New User
+                  {t('userManagement.addNewUser')}
                 </h3>
                 <button
                   onClick={() => setShowAddUserModal(false)}
@@ -596,7 +598,7 @@ const UserManagement: React.FC = () => {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Full Name
+                    {t('userManagement.fullName')}
                   </label>
                   <input
                     type="text"
@@ -605,12 +607,12 @@ const UserManagement: React.FC = () => {
                       setNewUser({ ...newUser, name: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter full name"
+                    placeholder={t('userManagement.enterFullName')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Email
+                    {t('userManagement.email')}
                   </label>
                   <input
                     type="email"
@@ -619,12 +621,12 @@ const UserManagement: React.FC = () => {
                       setNewUser({ ...newUser, email: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter email address"
+                    placeholder={t('userManagement.enterEmailAddress')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Role
+                    {t('userManagement.role')}
                   </label>
                   <select
                     value={newUser.role}
@@ -633,15 +635,15 @@ const UserManagement: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="">Select role</option>
-                    <option value="doctor">Doctor</option>
-                    <option value="technician">Technician</option>
-                    <option value="support">Support</option>
+                    <option value="">{t('userManagement.selectRole')}</option>
+                    <option value="doctor">{t('userManagement.doctor')}</option>
+                    <option value="technician">{t('userManagement.technician')}</option>
+                    <option value="support">{t('userManagement.support')}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Department
+                    {t('userManagement.department')}
                   </label>
                   <input
                     type="text"
@@ -650,12 +652,12 @@ const UserManagement: React.FC = () => {
                       setNewUser({ ...newUser, department: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter department"
+                    placeholder={t('userManagement.enterDepartment')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Phone
+                    {t('userManagement.phone')}
                   </label>
                   <input
                     type="tel"
@@ -664,7 +666,7 @@ const UserManagement: React.FC = () => {
                       setNewUser({ ...newUser, phone: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter phone number"
+                    placeholder={t('userManagement.enterPhoneNumber')}
                   />
                 </div>
               </div>
@@ -673,13 +675,13 @@ const UserManagement: React.FC = () => {
                   onClick={() => setShowAddUserModal(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  Cancel
+                  {t('userManagement.cancel')}
                 </button>
                 <button
                   onClick={handleCreateUser}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  Add User
+                  {t('userManagement.create')}
                 </button>
               </div>
             </div>
