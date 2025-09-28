@@ -2,8 +2,11 @@ from django.contrib.auth import get_user_model
 from .notification_models import Notification
 from django.utils import timezone
 from datetime import timedelta
+from typing import List, Optional, Dict, Any
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 class NotificationService:
     """Service class for creating and managing notifications"""
