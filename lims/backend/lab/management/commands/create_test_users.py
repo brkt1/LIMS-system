@@ -12,7 +12,7 @@ class Command(BaseCommand):
             {
                 'username': 'superadmin',
                 'email': 'superadmin@lims.com',
-                'password': 'superadmin123',
+                'password': '123',
                 'role': 'superadmin',
                 'tenant': 'Main Lab',
                 'is_staff': True,
@@ -21,7 +21,7 @@ class Command(BaseCommand):
             {
                 'username': 'tenantadmin',
                 'email': 'tenantadmin@lims.com',
-                'password': 'tenantadmin123',
+                'password': '123',
                 'role': 'tenant-admin',
                 'tenant': 'Lab Corp',
                 'is_staff': True,
@@ -30,7 +30,7 @@ class Command(BaseCommand):
             {
                 'username': 'doctor',
                 'email': 'doctor@lims.com',
-                'password': 'doctor123',
+                'password': '123',
                 'role': 'doctor',
                 'tenant': 'Lab Corp',
                 'is_staff': False,
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             {
                 'username': 'technician',
                 'email': 'technician@lims.com',
-                'password': 'technician123',
+                'password': '123',
                 'role': 'technician',
                 'tenant': 'Lab Corp',
                 'is_staff': False,
@@ -48,7 +48,7 @@ class Command(BaseCommand):
             {
                 'username': 'support',
                 'email': 'support@lims.com',
-                'password': 'support123',
+                'password': '123',
                 'role': 'support',
                 'tenant': 'Lab Corp',
                 'is_staff': False,
@@ -57,7 +57,7 @@ class Command(BaseCommand):
             {
                 'username': 'patient',
                 'email': 'patient@lims.com',
-                'password': 'patient123',
+                'password': '123',
                 'role': 'patient',
                 'tenant': 'Lab Corp',
                 'is_staff': False,
@@ -100,8 +100,9 @@ class Command(BaseCommand):
         )
         self.stdout.write('\n📋 Test Credentials:')
         self.stdout.write('=' * 50)
+        self.stdout.write('🔑 All test accounts use password: 123')
+        self.stdout.write('=' * 50)
         for user_data in test_users:
             self.stdout.write(f'Role: {user_data["role"].upper()}')
             self.stdout.write(f'Email: {user_data["email"]}')
-            self.stdout.write(f'Password: {user_data["password"]}')
             self.stdout.write('-' * 30)

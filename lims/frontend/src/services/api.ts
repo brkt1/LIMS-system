@@ -12,6 +12,11 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
+    // Skip adding Authorization header for login requests
+    if (config.url?.includes('/login/')) {
+      return config;
+    }
+    
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -35,6 +40,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    
+    // Skip token refresh for login requests
+    if (originalRequest.url?.includes('/login/')) {
+      return Promise.reject(error);
+    }
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
