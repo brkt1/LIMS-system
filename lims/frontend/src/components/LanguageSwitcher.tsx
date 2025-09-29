@@ -46,7 +46,11 @@ const LanguageSwitcher: React.FC = () => {
         <Globe className="w-4 h-4 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400" />
         <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           <span className="hidden xs:inline">
-            {currentLanguage?.flag} {currentLanguage?.code.toUpperCase()}
+            {currentLanguage?.flag}{" "}
+            <span className="text-xs sm:text-sm">
+              {currentLanguage?.code.toUpperCase()}
+            </span>{" "}
+            {currentLanguage?.name}
           </span>
           <span className="xs:hidden">{currentLanguage?.flag}</span>
         </span>
@@ -76,7 +80,10 @@ const LanguageSwitcher: React.FC = () => {
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 }`}
               >
-                <span className="mr-3 text-lg">{lang.flag}</span>
+                <span className="mr-3 text-lg">
+                  {lang.flag}{" "}
+                  <span className="text-sm">{lang.code.toUpperCase()}</span>
+                </span>
                 <span className="flex-1 text-left">{lang.name}</span>
                 {language === lang.code && (
                   <span className="text-primary-600 dark:text-primary-400">
