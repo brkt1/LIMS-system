@@ -5,7 +5,7 @@ class AccountingEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountingEntry
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tenant', 'created_by']
 
 class AccountingEntryListSerializer(serializers.ModelSerializer):
     class Meta:

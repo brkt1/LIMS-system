@@ -43,6 +43,7 @@ const ContractManagement: React.FC = () => {
     currency: "USD",
     terms: "",
     description: "",
+    status: "draft",
   });
 
   const [renewContract, setRenewContract] = useState({
@@ -178,6 +179,7 @@ const ContractManagement: React.FC = () => {
       currency: contract.currency,
       terms: contract.terms,
       description: contract.description,
+      status: contract.status,
     });
     setShowEditContractModal(true);
   };
@@ -331,6 +333,7 @@ const ContractManagement: React.FC = () => {
         currency: editContract.currency,
         terms: editContract.terms || "No terms specified",
         description: editContract.description || "No description provided",
+        status: editContract.status,
       };
 
       // Debug: Log the data being sent
@@ -1253,6 +1256,28 @@ const ContractManagement: React.FC = () => {
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
                     <option value="GBP">GBP</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editContract.status}
+                    onChange={(e) =>
+                      setEditContract({
+                        ...editContract,
+                        status: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="terminated">Terminated</option>
+                    <option value="renewed">Renewed</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
               </div>

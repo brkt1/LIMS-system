@@ -59,7 +59,8 @@ const EquipmentTest: React.FC = () => {
             <p>Serial: {item.serial_number}</p>
             <p>Status: {item.status}</p>
             <p>Location: {item.location}</p>
-            <p>Department: {item.department}</p>
+            <p>Type: {item.type}</p>
+            <p>Category: {item.category}</p>
           </div>
         ))}
       </div>

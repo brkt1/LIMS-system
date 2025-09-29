@@ -1,14 +1,6 @@
-import {
-    Edit,
-    Eye,
-    MapPin,
-    Play,
-    Plus,
-    Search,
-    X
-} from "lucide-react";
+import { Edit, Eye, MapPin, Play, Plus, Search, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { homeVisitScheduleAPI } from "../../services/api";
+import { homeVisitScheduleAPI, homeVisitRequestAPI } from "../../services/api";
 
 const HomeVisitSchedule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,7 +38,6 @@ const HomeVisitSchedule: React.FC = () => {
   const [scheduledVisits, setScheduledVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
 
   // Load home visit schedules from backend API
   useEffect(() => {
@@ -137,45 +128,173 @@ const HomeVisitSchedule: React.FC = () => {
     setShowRescheduleModal(true);
   };
 
-  const handleCreateVisit = () => {
-    const newId = `HV${String(scheduledVisits.length + 1).padStart(3, "0")}`;
-    const visit = {
-      ...newVisit,
-      id: newId,
-      status: "scheduled",
-    };
-    setScheduledVisits([...scheduledVisits, visit]);
-    setShowScheduleVisitModal(false);
-  };
+  const handleCreateVisit = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const handleStartVisitConfirm = () => {
-    if (selectedVisit) {
-      setScheduledVisits(
-        scheduledVisits.map((visit) =>
-          visit.id === selectedVisit.id
-            ? { ...visit, status: "in-progress" }
-            : visit
-        )
+      // Basic form validation
+      if (
+        !newVisit.patientName ||
+        !newVisit.patientId ||
+        !newVisit.address ||
+        !newVisit.scheduledDate ||
+        !newVisit.scheduledTime ||
+        !newVisit.serviceType
+      ) {
+        setError(
+          "Please fill in all required fields (Patient Name, Patient ID, Address, Scheduled Date, Scheduled Time, Service Type)"
+        );
+        setLoading(false);
+        return;
+      }
+
+      // First create a home visit request
+      const requestData = {
+        patient_name: newVisit.patientName,
+        patient_id: newVisit.patientId,
+        address: newVisit.address,
+        phone: newVisit.phone || "",
+        requested_date: newVisit.scheduledDate,
+        requested_time: newVisit.scheduledTime,
+        service_type: newVisit.serviceType,
+        doctor: newVisit.doctor || "",
+        notes: newVisit.notes || "",
+        priority: newVisit.priority,
+        estimated_duration: newVisit.estimatedDuration || "30 minutes",
+        status: "approved", // Auto-approve when scheduling directly
+        tenant: 1, // Default tenant
+        created_by: 1, // Default user
+      };
+
+      console.log("Creating home visit request with data:", requestData);
+
+      const requestResponse = await homeVisitRequestAPI.create(requestData);
+      const createdRequest = requestResponse.data;
+
+      // Then create a schedule entry
+      const scheduleData = {
+        visit_request: createdRequest.id,
+        doctor: newVisit.doctor || "",
+        scheduled_date: newVisit.scheduledDate,
+        scheduled_time: newVisit.scheduledTime,
+        estimated_duration: newVisit.estimatedDuration || "30 minutes",
+        status: "scheduled",
+        notes: newVisit.notes || "",
+        tenant: 1, // Default tenant
+        created_by: 1, // Default user
+      };
+
+      console.log("Creating home visit schedule with data:", scheduleData);
+
+      const scheduleResponse = await homeVisitScheduleAPI.create(scheduleData);
+      const createdSchedule = scheduleResponse.data;
+
+      // Map backend response to frontend format
+      const mappedSchedule = {
+        id: createdSchedule.id,
+        patientName: createdRequest.patient_name,
+        patientId: createdRequest.patient_id,
+        address: createdRequest.address,
+        phone: createdRequest.phone,
+        scheduledDate: createdSchedule.scheduled_date,
+        scheduledTime: createdSchedule.scheduled_time,
+        status: createdSchedule.status,
+        serviceType: createdRequest.service_type,
+        doctor: createdSchedule.doctor,
+        estimatedDuration: createdSchedule.estimated_duration,
+        notes: createdSchedule.notes || "",
+        priority: "normal", // Default priority since backend doesn't have it
+      };
+
+      setScheduledVisits((prev: any) => [mappedSchedule, ...prev]);
+      setNewVisit({
+        patientName: "",
+        patientId: "",
+        address: "",
+        phone: "",
+        scheduledDate: "",
+        scheduledTime: "",
+        serviceType: "",
+        doctor: "",
+        notes: "",
+        priority: "normal",
+        estimatedDuration: "",
+      });
+      setShowScheduleVisitModal(false);
+    } catch (error: any) {
+      console.error("Error creating home visit schedule:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create home visit schedule"
       );
-      setShowStartVisitModal(false);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRescheduleConfirm = () => {
+  const handleStartVisitConfirm = async () => {
     if (selectedVisit) {
-      setScheduledVisits(
-        scheduledVisits.map((visit) =>
-          visit.id === selectedVisit.id
-            ? {
-                ...visit,
-                scheduledDate: rescheduleData.scheduledDate,
-                scheduledTime: rescheduleData.scheduledTime,
-                notes: rescheduleData.notes,
-              }
-            : visit
-        )
-      );
-      setShowRescheduleModal(false);
+      try {
+        setLoading(true);
+        setError(null);
+
+        await homeVisitScheduleAPI.startVisit(selectedVisit.id);
+
+        setScheduledVisits(
+          scheduledVisits.map((visit) =>
+            visit.id === selectedVisit.id
+              ? { ...visit, status: "in_progress" }
+              : visit
+          )
+        );
+        setShowStartVisitModal(false);
+      } catch (error: any) {
+        console.error("Error starting home visit:", error);
+        setError(error.message || "Failed to start home visit");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRescheduleConfirm = async () => {
+    if (selectedVisit) {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const updateData = {
+          scheduled_date: rescheduleData.scheduledDate,
+          scheduled_time: rescheduleData.scheduledTime,
+          notes: rescheduleData.notes,
+        };
+
+        await homeVisitScheduleAPI.update(selectedVisit.id, updateData);
+
+        setScheduledVisits(
+          scheduledVisits.map((visit) =>
+            visit.id === selectedVisit.id
+              ? {
+                  ...visit,
+                  scheduledDate: rescheduleData.scheduledDate,
+                  scheduledTime: rescheduleData.scheduledTime,
+                  notes: rescheduleData.notes,
+                }
+              : visit
+          )
+        );
+        setShowRescheduleModal(false);
+      } catch (error: any) {
+        console.error("Error rescheduling home visit:", error);
+        setError(error.message || "Failed to reschedule home visit");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -502,13 +621,12 @@ const HomeVisitSchedule: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select service type</option>
-                    <option value="Blood Collection">Blood Collection</option>
-                    <option value="Vaccination">Vaccination</option>
-                    <option value="COVID-19 Test">COVID-19 Test</option>
-                    <option value="Consultation">Consultation</option>
-                    <option value="Physical Examination">
-                      Physical Examination
-                    </option>
+                    <option value="consultation">Consultation</option>
+                    <option value="checkup">Checkup</option>
+                    <option value="sample_collection">Sample Collection</option>
+                    <option value="injection">Injection</option>
+                    <option value="emergency">Emergency</option>
+                    <option value="follow_up">Follow Up</option>
                   </select>
                 </div>
                 <div>

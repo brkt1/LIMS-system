@@ -81,11 +81,11 @@ const Equipment: React.FC = () => {
         const response = await equipmentAPI.getAll();
 
         // Map backend data to frontend expected format
-        const mappedEquipment = response.data.results
-          ? response.data.results.map((item: any) => ({
+        const mappedEquipment = Array.isArray(response.data)
+          ? response.data.map((item: any) => ({
               id: item.id,
               name: item.name,
-              type: item.equipment_type,
+              type: item.type,
               category: item.category,
               serialNumber: item.serial_number,
               manufacturer: item.manufacturer,
@@ -97,7 +97,7 @@ const Equipment: React.FC = () => {
               lastMaintenance: item.last_maintenance,
               nextMaintenance: item.next_maintenance,
               maintenanceInterval: item.maintenance_interval,
-              responsible: item.responsible_person,
+              responsible: item.responsible,
               cost: parseFloat(item.cost),
               condition: item.condition,
             }))
@@ -380,10 +380,10 @@ const Equipment: React.FC = () => {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="all">All Types</option>
-            <option value="Laboratory">Laboratory</option>
-            <option value="Imaging">Imaging</option>
-            <option value="Sterilization">Sterilization</option>
-            <option value="Diagnostic">Diagnostic</option>
+            <option value="laboratory">Laboratory</option>
+            <option value="imaging">Imaging</option>
+            <option value="sterilization">Sterilization</option>
+            <option value="diagnostic">Diagnostic</option>
           </select>
         </div>
       </div>
@@ -562,10 +562,10 @@ const Equipment: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select type</option>
-                    <option value="Laboratory">Laboratory</option>
-                    <option value="Imaging">Imaging</option>
-                    <option value="Sterilization">Sterilization</option>
-                    <option value="Diagnostic">Diagnostic</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="sterilization">Sterilization</option>
+                    <option value="diagnostic">Diagnostic</option>
                   </select>
                 </div>
                 <div>
@@ -753,10 +753,10 @@ const Equipment: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select condition</option>
-                    <option value="Excellent">Excellent</option>
-                    <option value="Good">Good</option>
-                    <option value="Fair">Fair</option>
-                    <option value="Needs Repair">Needs Repair</option>
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="needs_repair">Needs Repair</option>
                   </select>
                 </div>
               </div>
@@ -1160,10 +1160,10 @@ const Equipment: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Laboratory">Laboratory</option>
-                    <option value="Imaging">Imaging</option>
-                    <option value="Sterilization">Sterilization</option>
-                    <option value="Diagnostic">Diagnostic</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="imaging">Imaging</option>
+                    <option value="sterilization">Sterilization</option>
+                    <option value="diagnostic">Diagnostic</option>
                   </select>
                 </div>
                 <div>
@@ -1345,10 +1345,10 @@ const Equipment: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="Excellent">Excellent</option>
-                    <option value="Good">Good</option>
-                    <option value="Fair">Fair</option>
-                    <option value="Needs Repair">Needs Repair</option>
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="needs_repair">Needs Repair</option>
                   </select>
                 </div>
               </div>

@@ -28,6 +28,11 @@ class EquipmentSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        # Generate unique ID if not provided
+        if 'id' not in validated_data or not validated_data['id']:
+            import time
+            validated_data['id'] = f"EQ{int(time.time() * 1000)}"
+        
         # Set default created_by if not provided
         if 'created_by' not in validated_data:
             validated_data['created_by'] = 'system'

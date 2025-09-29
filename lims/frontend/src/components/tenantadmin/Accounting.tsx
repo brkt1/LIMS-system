@@ -1,12 +1,4 @@
-import {
-  Edit,
-  Eye,
-  Plus,
-  Receipt,
-  Search,
-  Trash2,
-  X
-} from "lucide-react";
+import { Edit, Eye, Plus, Receipt, Search, Trash2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { accountingAPI } from "../../services/api";
 import { getCurrentTenantId, getCurrentUserId } from "../../utils/helpers";
@@ -50,16 +42,17 @@ const Accounting: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [financialSummary, setFinancialSummary] = useState<any>(null);
 
-
   // Load transactions from backend API
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Build query parameters based on filters
         const params: any = {};
+        // Always include tenant ID to ensure we get the right data
+        params.tenant = parseInt(getCurrentTenantId()) || 1;
         if (filterType !== "all") {
           params.entry_type = filterType;
         }
@@ -67,19 +60,25 @@ const Accounting: React.FC = () => {
           const now = new Date();
           switch (filterPeriod) {
             case "today":
-              params.date = now.toISOString().split('T')[0];
+              params.date = now.toISOString().split("T")[0];
               break;
             case "week":
-              const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-              params.date__gte = weekStart.toISOString().split('T')[0];
+              const weekStart = new Date(
+                now.setDate(now.getDate() - now.getDay())
+              );
+              params.date__gte = weekStart.toISOString().split("T")[0];
               break;
             case "month":
               const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-              params.date__gte = monthStart.toISOString().split('T')[0];
+              params.date__gte = monthStart.toISOString().split("T")[0];
               break;
             case "quarter":
-              const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-              params.date__gte = quarterStart.toISOString().split('T')[0];
+              const quarterStart = new Date(
+                now.getFullYear(),
+                Math.floor(now.getMonth() / 3) * 3,
+                1
+              );
+              params.date__gte = quarterStart.toISOString().split("T")[0];
               break;
           }
         }
@@ -90,7 +89,11 @@ const Accounting: React.FC = () => {
         const response = await accountingAPI.getAll(params);
 
         // Map backend data to frontend expected format
-        const mappedTransactions = response.data.results ? response.data.results.map((item: any) => ({
+        // Backend returns data directly as array, not wrapped in 'results'
+        const dataArray = Array.isArray(response.data)
+          ? response.data
+          : response.data.results || [];
+        const mappedTransactions = dataArray.map((item: any) => ({
           id: item.id,
           date: item.date,
           description: item.description,
@@ -104,12 +107,16 @@ const Accounting: React.FC = () => {
           notes: item.notes || "",
           created_at: item.created_at,
           updated_at: item.updated_at,
-        })) : [];
+        }));
 
         setTransactions(mappedTransactions);
       } catch (error: any) {
         console.error("Error fetching accounting transactions:", error);
-        setError(error.response?.data?.detail || error.message || "Failed to load accounting transactions");
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to load accounting transactions"
+        );
         setTransactions([]);
       } finally {
         setLoading(false);
@@ -216,14 +223,20 @@ const Accounting: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       await accountingAPI.delete(transactionId);
-      
+
       // Remove the transaction from the list
-      setTransactions((prev: any) => prev.filter((t: any) => t.id !== transactionId));
+      setTransactions((prev: any) =>
+        prev.filter((t: any) => t.id !== transactionId)
+      );
     } catch (error: any) {
       console.error("Error deleting transaction:", error);
-      setError(error.response?.data?.detail || error.message || "Failed to delete transaction");
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to delete transaction"
+      );
     } finally {
       setLoading(false);
     }
@@ -259,7 +272,7 @@ const Accounting: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Prepare data for backend
       const transactionData = {
         description: newEntry.description.trim(),
@@ -271,12 +284,12 @@ const Accounting: React.FC = () => {
         account: newEntry.account.trim(),
         date: new Date().toISOString().split("T")[0],
         notes: "",
-        tenant: getCurrentTenantId(), // Dynamic tenant
-        created_by: getCurrentUserId(), // Dynamic user
+        tenant: parseInt(getCurrentTenantId()) || 1, // Dynamic tenant
+        created_by: parseInt(getCurrentUserId()) || 1, // Dynamic user
       };
 
       const response = await accountingAPI.create(transactionData);
-      
+
       // Add the new transaction to the list
       const newTransaction = {
         id: response.data.id,
@@ -293,10 +306,10 @@ const Accounting: React.FC = () => {
         created_at: response.data.created_at,
         updated_at: response.data.updated_at,
       };
-      
+
       setTransactions((prev: any) => [newTransaction, ...prev]);
       setShowAddEntryModal(false);
-      
+
       // Reset form
       setNewEntry({
         description: "",
@@ -309,7 +322,11 @@ const Accounting: React.FC = () => {
       });
     } catch (error: any) {
       console.error("Error creating transaction:", error);
-      setError(error.response?.data?.detail || error.message || "Failed to create transaction");
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to create transaction"
+      );
     } finally {
       setLoading(false);
     }
@@ -345,7 +362,7 @@ const Accounting: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Prepare data for backend
       const updateData = {
         description: editEntry.description.trim(),
@@ -355,11 +372,15 @@ const Accounting: React.FC = () => {
         payment_method: editEntry.paymentMethod,
         reference_number: editEntry.reference.trim(),
         account: editEntry.account.trim(),
+        date: selectedTransaction.date, // Include the original date
         notes: "",
       };
 
-      const response = await accountingAPI.update(selectedTransaction.id, updateData);
-      
+      const response = await accountingAPI.update(
+        selectedTransaction.id,
+        updateData
+      );
+
       // Update the transaction in the list
       const updatedTransaction = {
         id: response.data.id,
@@ -376,16 +397,22 @@ const Accounting: React.FC = () => {
         created_at: response.data.created_at,
         updated_at: response.data.updated_at,
       };
-      
+
       setTransactions((prev: any) =>
         prev.map((transaction: any) =>
-          transaction.id === selectedTransaction.id ? updatedTransaction : transaction
+          transaction.id === selectedTransaction.id
+            ? updatedTransaction
+            : transaction
         )
       );
       setShowEditEntryModal(false);
     } catch (error: any) {
       console.error("Error updating transaction:", error);
-      setError(error.response?.data?.detail || error.message || "Failed to update transaction");
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to update transaction"
+      );
     } finally {
       setLoading(false);
     }
@@ -443,7 +470,9 @@ Generated on: ${new Date().toLocaleString()}
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading accounting data...</span>
+          <span className="ml-2 text-gray-600 dark:text-gray-400">
+            Loading accounting data...
+          </span>
         </div>
       )}
 
@@ -473,13 +502,17 @@ Generated on: ${new Date().toLocaleString()}
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 dark:text-green-400 text-sm font-medium">+</span>
+                  <span className="text-green-600 dark:text-green-400 text-sm font-medium">
+                    +
+                  </span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Income</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Total Income
+                </p>
                 <p className="text-2xl font-semibold text-green-600 dark:text-green-400">
-                  ${financialSummary.total_income?.toFixed(2) || '0.00'}
+                  ${financialSummary.total_income?.toFixed(2) || "0.00"}
                 </p>
               </div>
             </div>
@@ -488,13 +521,17 @@ Generated on: ${new Date().toLocaleString()}
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 dark:text-red-400 text-sm font-medium">-</span>
+                  <span className="text-red-600 dark:text-red-400 text-sm font-medium">
+                    -
+                  </span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Expenses</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Total Expenses
+                </p>
                 <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-                  ${financialSummary.total_expenses?.toFixed(2) || '0.00'}
+                  ${financialSummary.total_expenses?.toFixed(2) || "0.00"}
                 </p>
               </div>
             </div>
@@ -502,28 +539,36 @@ Generated on: ${new Date().toLocaleString()}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  (financialSummary.net_profit || 0) >= 0 
-                    ? 'bg-green-100 dark:bg-green-900' 
-                    : 'bg-red-100 dark:bg-red-900'
-                }`}>
-                  <span className={`text-sm font-medium ${
-                    (financialSummary.net_profit || 0) >= 0 
-                      ? 'text-green-600 dark:text-green-400' 
-                      : 'text-red-600 dark:text-red-400'
-                  }`}>
-                    {(financialSummary.net_profit || 0) >= 0 ? '+' : ''}
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    (financialSummary.net_profit || 0) >= 0
+                      ? "bg-green-100 dark:bg-green-900"
+                      : "bg-red-100 dark:bg-red-900"
+                  }`}
+                >
+                  <span
+                    className={`text-sm font-medium ${
+                      (financialSummary.net_profit || 0) >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {(financialSummary.net_profit || 0) >= 0 ? "+" : ""}
                   </span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Net Profit</p>
-                <p className={`text-2xl font-semibold ${
-                  (financialSummary.net_profit || 0) >= 0 
-                    ? 'text-green-600 dark:text-green-400' 
-                    : 'text-red-600 dark:text-red-400'
-                }`}>
-                  ${financialSummary.net_profit?.toFixed(2) || '0.00'}
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Net Profit
+                </p>
+                <p
+                  className={`text-2xl font-semibold ${
+                    (financialSummary.net_profit || 0) >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  ${financialSummary.net_profit?.toFixed(2) || "0.00"}
                 </p>
               </div>
             </div>
@@ -775,8 +820,12 @@ Generated on: ${new Date().toLocaleString()}
                     <option value="">Select category</option>
                     <optgroup label="Income Categories">
                       <option value="patient_fees">Patient Fees</option>
-                      <option value="insurance_payments">Insurance Payments</option>
-                      <option value="consultation_fees">Consultation Fees</option>
+                      <option value="insurance_payments">
+                        Insurance Payments
+                      </option>
+                      <option value="consultation_fees">
+                        Consultation Fees
+                      </option>
                       <option value="test_fees">Test Fees</option>
                       <option value="other_income">Other Income</option>
                     </optgroup>
@@ -1070,8 +1119,12 @@ Generated on: ${new Date().toLocaleString()}
                     <option value="">Select category</option>
                     <optgroup label="Income Categories">
                       <option value="patient_fees">Patient Fees</option>
-                      <option value="insurance_payments">Insurance Payments</option>
-                      <option value="consultation_fees">Consultation Fees</option>
+                      <option value="insurance_payments">
+                        Insurance Payments
+                      </option>
+                      <option value="consultation_fees">
+                        Consultation Fees
+                      </option>
                       <option value="test_fees">Test Fees</option>
                       <option value="other_income">Other Income</option>
                     </optgroup>

@@ -34,9 +34,9 @@ class HomeVisitRequestViewSet(viewsets.ModelViewSet):
         if not data.get('id'):
             data['id'] = f"HVR{int(time.time() * 1000)}"
         
-        # Set default values - use existing tenant if available, otherwise use tenant 2
+        # Set default values - use existing tenant if available, otherwise use tenant 1
         if not data.get('tenant'):
-            data['tenant'] = 2  # Use tenant 2 (City Hospital Lab) as default
+            data['tenant'] = 1  # Use tenant 1 (Test Lab) as default
         
         # Only set created_by if user is authenticated
         if not data.get('created_by') and request.user.is_authenticated:

@@ -210,6 +210,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3002",   # React dev server (Vite alternative port)
     "http://localhost:3008",   # Vite dev server (current port)
     "http://localhost:3009",   # Vite dev server (alternative port)
+    "http://localhost:5173",   # Vite dev server (default port)
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",

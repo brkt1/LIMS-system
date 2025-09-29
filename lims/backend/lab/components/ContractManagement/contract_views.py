@@ -29,8 +29,8 @@ class ContractViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         
-        # Generate unique ID if missing
-        if not data.get('id'):
+        # Generate unique ID if missing or empty
+        if not data.get('id') or data.get('id') == '':
             data['id'] = f"CT{int(time.time() * 1000)}"
         
         # Set default values
@@ -45,6 +45,26 @@ class ContractViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        data = request.data.copy()
+        
+        # For updates, don't allow changing the ID, tenant, or created_by
+        # These should remain the same as the original instance
+        data['id'] = instance.id
+        data['tenant'] = instance.tenant_id
+        data['created_by'] = instance.created_by_id
+        
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+        
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):

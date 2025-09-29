@@ -155,7 +155,7 @@ const HomeVisitRequests: React.FC = () => {
         priority: newRequest.priority,
         estimated_duration: newRequest.estimatedDuration || "30 minutes",
         status: "pending",
-        tenant: getCurrentTenantId() || 2, // Default to tenant 2 if not available
+        tenant: getCurrentTenantId() || 1, // Default to tenant 1 if not available
         created_by: getCurrentUserId() || null, // Allow null if not authenticated
       };
 
@@ -233,14 +233,34 @@ const HomeVisitRequests: React.FC = () => {
     }
   };
 
-  const handleScheduleConfirm = () => {
+  const handleScheduleConfirm = async () => {
     if (selectedRequest) {
-      setRequests(
-        requests.map((req) =>
-          req.id === selectedRequest.id ? { ...req, status: "scheduled" } : req
-        )
-      );
-      setShowScheduleModal(false);
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Schedule the request using the backend API
+        const scheduleData = {
+          scheduled_date: selectedRequest.requestedDate,
+          scheduled_time: selectedRequest.requestedTime,
+        };
+
+        await homeVisitRequestAPI.schedule(selectedRequest.id, scheduleData);
+
+        setRequests(
+          requests.map((req) =>
+            req.id === selectedRequest.id
+              ? { ...req, status: "scheduled" }
+              : req
+          )
+        );
+        setShowScheduleModal(false);
+      } catch (error: any) {
+        console.error("Error scheduling home visit request:", error);
+        setError(error.message || "Failed to schedule home visit request");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -575,13 +595,12 @@ const HomeVisitRequests: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">Select service type</option>
-                    <option value="Blood Collection">Blood Collection</option>
-                    <option value="Vaccination">Vaccination</option>
-                    <option value="COVID-19 Test">COVID-19 Test</option>
-                    <option value="Consultation">Consultation</option>
-                    <option value="Physical Examination">
-                      Physical Examination
-                    </option>
+                    <option value="consultation">Consultation</option>
+                    <option value="checkup">Checkup</option>
+                    <option value="sample_collection">Sample Collection</option>
+                    <option value="injection">Injection</option>
+                    <option value="emergency">Emergency</option>
+                    <option value="follow_up">Follow Up</option>
                   </select>
                 </div>
                 <div>

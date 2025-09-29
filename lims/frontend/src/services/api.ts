@@ -164,29 +164,29 @@ export const doctorAPI = {
 
 // Equipment Management API (Tenant Admin)
 export const equipmentAPI = {
-  getAll: (tenantId?: string) => api.get(`/api/tenant/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/api/tenant/equipment/${id}/`),
-  create: (data: any) => api.post('/api/tenant/equipment/', data),
-  update: (id: string, data: any) => api.put(`/api/tenant/equipment/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/tenant/equipment/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/tenant/equipment/?tenant=${tenantId}`),
-  getByType: (type: string) => api.get(`/api/tenant/equipment/?type=${type}`),
-  getByStatus: (status: string) => api.get(`/api/tenant/equipment/?status=${status}`),
+  getAll: (tenantId?: string) => api.get(`/api/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/api/equipment/${id}/`),
+  create: (data: any) => api.post('/api/equipment/', data),
+  update: (id: string, data: any) => api.put(`/api/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/api/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/api/equipment/?status=${status}`),
 };
 
 // Technician Equipment Management API
 export const technicianEquipmentAPI = {
-  getAll: (tenantId?: string) => api.get(`/technician/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/technician/equipment/${id}/`),
-  create: (data: any) => api.post('/technician/equipment/', data),
-  update: (id: string, data: any) => api.put(`/technician/equipment/${id}/`, data),
-  delete: (id: string) => api.delete(`/technician/equipment/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/technician/equipment/?tenant=${tenantId}`),
-  getByType: (type: string) => api.get(`/technician/equipment/?type=${type}`),
-  getByStatus: (status: string) => api.get(`/technician/equipment/?status=${status}`),
-  maintain: (id: number, data: any) => api.post(`/technician/equipment/${id}/maintain/`, data),
-  calibrate: (id: number, data: any) => api.post(`/technician/equipment/${id}/calibrate/`, data),
-  updateStatus: (id: number, status: string) => api.post(`/technician/equipment/${id}/update_status/`, { status }),
+  getAll: (tenantId?: string) => api.get(`/api/technician/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/api/technician/equipment/${id}/`),
+  create: (data: any) => api.post('/api/technician/equipment/', data),
+  update: (id: string, data: any) => api.put(`/api/technician/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/technician/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/api/technician/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/api/technician/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/api/technician/equipment/?status=${status}`),
+  maintain: (id: number, data: any) => api.post(`/api/technician/equipment/${id}/maintain/`, data),
+  calibrate: (id: number, data: any) => api.post(`/api/technician/equipment/${id}/calibrate/`, data),
+  updateStatus: (id: number, status: string) => api.post(`/api/technician/equipment/${id}/update_status/`, { status }),
 };
 
 // Branch Management API (Tenant Admin)
