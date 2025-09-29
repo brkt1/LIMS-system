@@ -1,13 +1,14 @@
 import {
-    AlertTriangle,
-    Box,
-    Edit,
-    Eye,
-    Package,
-    Plus,
-    Search,
-    Trash2,
-    X,
+  AlertTriangle,
+  Box,
+  CheckCircle,
+  Edit,
+  Eye,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { inventoryAPI } from "../../services/api";
@@ -58,25 +59,52 @@ const Inventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load inventory from API
+  // Categories and suppliers state
+  const [apiCategories, setApiCategories] = useState<any[]>([]);
+  const [apiSuppliers, setApiSuppliers] = useState<any[]>([]);
+
+  // Edit operation state
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+
+  // Load inventory, categories, and suppliers from API
   useEffect(() => {
-    const fetchInventory = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await inventoryAPI.getItems();
-        setInventoryItems(response.data || []);
+
+        // Fetch all data in parallel
+        const [itemsResponse, categoriesResponse, suppliersResponse] =
+          await Promise.all([
+            inventoryAPI.getItems(),
+            inventoryAPI.getCategories(),
+            inventoryAPI.getSuppliers(),
+          ]);
+
+        // Set categories and suppliers
+        setApiCategories(categoriesResponse.data || []);
+        setApiSuppliers(suppliersResponse.data || []);
+
+        // Ensure response.data is an array
+        const items = Array.isArray(itemsResponse.data)
+          ? itemsResponse.data
+          : [];
+        setInventoryItems(items);
       } catch (error: any) {
-        console.error("Error fetching inventory:", error);
+        console.error("Error fetching data:", error);
         setError(error.message || "Failed to load inventory");
-        // Fallback to empty array if API fails
+        // Fallback to empty arrays if API fails
         setInventoryItems([]);
+        setApiCategories([]);
+        setApiSuppliers([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInventory();
+    fetchData();
   }, []);
 
   // Handler functions
@@ -105,17 +133,17 @@ const Inventory: React.FC = () => {
   const handleEditItem = (item: any) => {
     setSelectedItem(item);
     setEditItem({
-      name: item.name,
-      category: item.category,
-      description: item.description,
-      quantity: item.quantity.toString(),
-      minQuantity: item.minQuantity.toString(),
-      maxQuantity: item.maxQuantity.toString(),
-      unit: item.unit,
-      supplier: item.supplier,
-      cost: item.cost.toString(),
-      location: item.location,
-      expiryDate: item.expiryDate,
+      name: item.name || "",
+      category: item.category || "",
+      description: item.description || "",
+      quantity: (item.quantity || 0).toString(),
+      minQuantity: (item.minQuantity || 0).toString(),
+      maxQuantity: (item.maxQuantity || 0).toString(),
+      unit: item.unit || "",
+      supplier: item.supplier || "",
+      cost: (item.cost || 0).toString(),
+      location: item.location || "",
+      expiryDate: item.expiryDate || "",
     });
     setShowEditItemModal(true);
   };
@@ -149,41 +177,181 @@ const Inventory: React.FC = () => {
     setShowAddItemModal(false);
   };
 
-  const handleUpdateItem = () => {
-    if (selectedItem) {
-      const updatedItems = inventoryItems.map((item) =>
-        item.id === selectedItem.id
-          ? {
-              ...item,
-              name: editItem.name,
-              category: editItem.category,
-              description: editItem.description,
-              quantity: parseInt(editItem.quantity) || 0,
-              minQuantity: parseInt(editItem.minQuantity) || 0,
-              maxQuantity: parseInt(editItem.maxQuantity) || 0,
-              unit: editItem.unit,
-              supplier: editItem.supplier,
-              cost: parseFloat(editItem.cost) || 0,
-              status: getQuantityStatus({
-                quantity: parseInt(editItem.quantity) || 0,
-                minQuantity: parseInt(editItem.minQuantity) || 0,
-              }),
-              location: editItem.location,
-              lastUpdated: new Date().toLocaleDateString(),
-              expiryDate: editItem.expiryDate,
-            }
-          : item
+  const handleUpdateItem = async () => {
+    if (!selectedItem) return;
+
+    // Check if categories and suppliers are loaded
+    if (apiCategories.length === 0 || apiSuppliers.length === 0) {
+      setEditError(
+        "Categories and suppliers are still loading. Please wait and try again."
       );
-      setInventoryItems(updatedItems);
-      setShowEditItemModal(false);
-      setSelectedItem(null);
+      return;
+    }
+
+    // Form validation
+    if (!editItem.name.trim()) {
+      setEditError("Item name is required");
+      return;
+    }
+
+    if (!editItem.category.trim()) {
+      setEditError("Category is required");
+      return;
+    }
+
+    const quantity = parseInt(editItem.quantity) || 0;
+    const minQuantity = parseInt(editItem.minQuantity) || 0;
+    const maxQuantity = parseInt(editItem.maxQuantity) || 0;
+
+    if (quantity < 0) {
+      setEditError("Quantity cannot be negative");
+      return;
+    }
+
+    if (minQuantity < 0) {
+      setEditError("Minimum quantity cannot be negative");
+      return;
+    }
+
+    if (maxQuantity < minQuantity) {
+      setEditError(
+        "Maximum quantity must be greater than or equal to minimum quantity"
+      );
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      setEditError(null);
+      setEditSuccess(null);
+
+      // Find category and supplier IDs
+      const selectedCategory = apiCategories.find(
+        (cat) => cat.name === editItem.category
+      );
+      const selectedSupplier = apiSuppliers.find(
+        (sup) => sup.name === editItem.supplier
+      );
+
+      // Validate that we have a valid category
+      if (!selectedCategory) {
+        setEditError("Please select a valid category");
+        return;
+      }
+
+      // Prepare data for API call - match the working example format
+      const updateData = {
+        name: editItem.name.trim(),
+        category: selectedCategory.id, // Use category ID
+        description: editItem.description.trim() || "",
+        quantity: quantity,
+        threshold: minQuantity, // Backend uses 'threshold' for min quantity
+        status:
+          quantity === 0
+            ? "out-of-stock"
+            : quantity <= minQuantity
+            ? "low-stock"
+            : "in-stock",
+        supplier: selectedSupplier?.id || 1, // Use supplier ID, default to 1 like working example
+        location: editItem.location.trim() || "Main Storage",
+        unit_price: parseFloat(editItem.cost) || 0, // Backend uses 'unit_price' instead of 'cost'
+        // Note: Backend doesn't have expiry_date field, so we remove it
+      };
+
+      console.log("Updating item with data:", updateData);
+      console.log("Selected category:", selectedCategory);
+      console.log("Selected supplier:", selectedSupplier);
+      console.log("Categories available:", apiCategories);
+      console.log("Suppliers available:", apiSuppliers);
+
+      // Make API call
+      const response = await inventoryAPI.updateItem(
+        selectedItem.id,
+        updateData
+      );
+      console.log("Item update response:", response);
+
+      // Update local state with the response data
+      const updatedItem = response.data;
+      const mappedItem = {
+        id: updatedItem.id,
+        name: updatedItem.name,
+        category: updatedItem.category_name || updatedItem.category,
+        description: updatedItem.description || "",
+        quantity: updatedItem.quantity || 0,
+        minQuantity: updatedItem.threshold || 0,
+        maxQuantity: maxQuantity,
+        unit: "pieces", // Default unit since backend doesn't have this field
+        supplier: updatedItem.supplier_name || updatedItem.supplier,
+        cost: updatedItem.unit_price || 0, // Backend uses 'unit_price'
+        status: getQuantityStatus({
+          quantity: updatedItem.quantity || 0,
+          minQuantity: updatedItem.threshold || 0,
+        }),
+        location: updatedItem.location || "",
+        lastUpdated: new Date().toLocaleDateString(),
+        expiryDate: "", // Backend doesn't have expiry_date field
+      };
+
+      // Update the inventory items list
+      setInventoryItems((prev) =>
+        prev.map((item) => (item.id === selectedItem.id ? mappedItem : item))
+      );
+
+      // Show success message
+      setEditSuccess("Item updated successfully!");
+
+      // Close modal after a short delay
+      setTimeout(() => {
+        setShowEditItemModal(false);
+        setSelectedItem(null);
+        setEditSuccess(null);
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error updating item:", error);
+      console.error("Error response:", error.response);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error response status:", error.response?.status);
+
+      // Get more detailed error message
+      let errorMessage = "Failed to update item";
+      if (error.response?.data) {
+        if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else {
+          // Try to extract field-specific errors
+          const fieldErrors = Object.entries(error.response.data)
+            .map(
+              ([field, errors]) =>
+                `${field}: ${
+                  Array.isArray(errors) ? errors.join(", ") : errors
+                }`
+            )
+            .join("; ");
+          if (fieldErrors) {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setEditError(errorMessage);
+    } finally {
+      setEditLoading(false);
     }
   };
 
   const handleDeleteConfirm = () => {
     if (selectedItem) {
       const updatedItems = inventoryItems.filter(
-        (item) => item.id !== selectedItem.id
+        (item) => item.id !== selectedItem?.id
       );
       setInventoryItems(updatedItems);
       setShowDeleteItemModal(false);
@@ -240,9 +408,13 @@ const Inventory: React.FC = () => {
 
   const filteredItems = inventoryItems.filter((item) => {
     const matchesSearch =
-      (item.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (item.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (item.description?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (item.id?.toString().toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      );
     const matchesCategory =
       filterCategory === "all" || item.category === filterCategory;
     const matchesStatus =
@@ -251,7 +423,7 @@ const Inventory: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "in_stock":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "low_stock":
@@ -264,7 +436,7 @@ const Inventory: React.FC = () => {
   };
 
   const getStatusText = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "in_stock":
         return "In Stock";
       case "low_stock":
@@ -277,19 +449,25 @@ const Inventory: React.FC = () => {
   };
 
   const getQuantityStatus = (item: any) => {
-    if (item.quantity === 0) return "out_of_stock";
-    if (item.quantity <= item.minQuantity) return "low_stock";
+    const quantity = item.quantity || 0;
+    const minQuantity = item.minQuantity || 0;
+    if (quantity === 0) return "out_of_stock";
+    if (quantity <= minQuantity) return "low_stock";
     return "in_stock";
   };
 
   const categories = [
     "all",
-    ...Array.from(new Set(inventoryItems.map((item) => item.category))),
+    ...Array.from(
+      new Set(inventoryItems.map((item) => item.category).filter(Boolean))
+    ),
   ];
 
   const statuses = [
     "all",
-    ...Array.from(new Set(inventoryItems.map((item) => item.status))),
+    ...Array.from(
+      new Set(inventoryItems.map((item) => item.status).filter(Boolean))
+    ),
   ];
 
   const totalItems = inventoryItems.length;
@@ -300,9 +478,44 @@ const Inventory: React.FC = () => {
     (item) => item.status === "low_stock"
   ).length;
   const totalValue = inventoryItems.reduce(
-    (sum, item) => sum + item.quantity * item.cost,
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.cost || 0),
     0
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">
+            Loading inventory...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Error Loading Inventory
+          </h3>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -354,8 +567,8 @@ const Inventory: React.FC = () => {
             onChange={(e) => setFilterCategory(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            {categories.map((category) => (
-              <option key={category} value={category}>
+            {categories.map((category, index) => (
+              <option key={category || `category-${index}`} value={category}>
                 {category === "all" ? "All Categories" : category}
               </option>
             ))}
@@ -365,8 +578,8 @@ const Inventory: React.FC = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            {statuses.map((status) => (
-              <option key={status} value={status}>
+            {statuses.map((status, index) => (
+              <option key={status || `status-${index}`} value={status}>
                 {status === "all" ? "All Status" : getStatusText(status)}
               </option>
             ))}
@@ -461,9 +674,9 @@ const Inventory: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredItems.map((item) => (
+              {filteredItems.map((item, index) => (
                 <tr
-                  key={item.id}
+                  key={item.id || `item-${index}`}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -481,10 +694,11 @@ const Inventory: React.FC = () => {
                           {item.id}
                         </div>
                         <div className="text-xs text-gray-400 dark:text-gray-500 sm:hidden">
-                          {item.category} • {item.location}
+                          {item.category || "N/A"} • {item.location || "N/A"}
                         </div>
                         <div className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block lg:hidden">
-                          {item.supplier} • ${item.cost.toFixed(2)}
+                          {item.supplier || "N/A"} • $
+                          {Number(item.cost || 0).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -518,7 +732,7 @@ const Inventory: React.FC = () => {
                     {item.supplier}
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden lg:table-cell">
-                    ${item.cost.toFixed(2)}
+                    ${Number(item.cost || 0).toFixed(2)}
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
@@ -769,7 +983,7 @@ const Inventory: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                Item Details - {selectedItem.id}
+                Item Details - {selectedItem?.id || "N/A"}
               </h2>
               <button
                 onClick={() => setShowViewItemModal(false)}
@@ -781,10 +995,10 @@ const Inventory: React.FC = () => {
             <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                  {selectedItem.name}
+                  {selectedItem?.name || "N/A"}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {selectedItem.description}
+                  {selectedItem?.description || "No description available"}
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -793,7 +1007,7 @@ const Inventory: React.FC = () => {
                     Category
                   </label>
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                    {selectedItem.category}
+                    {selectedItem?.category || "N/A"}
                   </span>
                 </div>
                 <div>
@@ -815,7 +1029,7 @@ const Inventory: React.FC = () => {
                     Current Quantity
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.quantity} {selectedItem.unit}
+                    {selectedItem?.quantity || 0} {selectedItem?.unit || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -823,7 +1037,8 @@ const Inventory: React.FC = () => {
                     Min Quantity
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.minQuantity} {selectedItem.unit}
+                    {selectedItem?.minQuantity || 0}{" "}
+                    {selectedItem?.unit || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -831,7 +1046,8 @@ const Inventory: React.FC = () => {
                     Max Quantity
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.maxQuantity} {selectedItem.unit}
+                    {selectedItem?.maxQuantity || 0}{" "}
+                    {selectedItem?.unit || "N/A"}
                   </p>
                 </div>
               </div>
@@ -841,7 +1057,7 @@ const Inventory: React.FC = () => {
                     Supplier
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.supplier}
+                    {selectedItem?.supplier || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -849,7 +1065,7 @@ const Inventory: React.FC = () => {
                     Cost
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    ${selectedItem.cost.toFixed(2)}
+                    ${Number(selectedItem.cost || 0).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -859,7 +1075,7 @@ const Inventory: React.FC = () => {
                     Location
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.location}
+                    {selectedItem?.location || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -867,20 +1083,21 @@ const Inventory: React.FC = () => {
                     Last Updated
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.lastUpdated}
+                    {selectedItem?.lastUpdated || "N/A"}
                   </p>
                 </div>
               </div>
-              {selectedItem.expiryDate && selectedItem.expiryDate !== "N/A" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Expiry Date
-                  </label>
-                  <p className="text-sm text-gray-900 dark:text-white">
-                    {selectedItem.expiryDate}
-                  </p>
-                </div>
-              )}
+              {selectedItem?.expiryDate &&
+                selectedItem.expiryDate !== "N/A" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Expiry Date
+                    </label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {selectedItem?.expiryDate || "N/A"}
+                    </p>
+                  </div>
+                )}
             </div>
             <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
               <button
@@ -900,16 +1117,44 @@ const Inventory: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                Edit Item - {selectedItem.id}
+                Edit Item - {selectedItem?.id || "N/A"}
               </h2>
               <button
-                onClick={() => setShowEditItemModal(false)}
+                onClick={() => {
+                  setShowEditItemModal(false);
+                  setEditError(null);
+                  setEditSuccess(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
             <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Error Message */}
+              {editError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+                    <p className="text-red-700 dark:text-red-300 text-sm">
+                      {editError}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {editSuccess && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+                    <p className="text-green-700 dark:text-green-300 text-sm">
+                      {editSuccess}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -937,11 +1182,11 @@ const Inventory: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select category</option>
-                    <option value="Consumables">Consumables</option>
-                    <option value="Equipment">Equipment</option>
-                    <option value="Chemicals">Chemicals</option>
-                    <option value="Safety">Safety</option>
-                    <option value="Other">Other</option>
+                    {apiCategories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1039,15 +1284,20 @@ const Inventory: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Supplier
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={editItem.supplier}
                     onChange={(e) =>
                       setEditItem({ ...editItem, supplier: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter supplier name"
-                  />
+                  >
+                    <option value="">Select supplier</option>
+                    {apiSuppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.name}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1080,16 +1330,32 @@ const Inventory: React.FC = () => {
             </div>
             <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
               <button
-                onClick={() => setShowEditItemModal(false)}
+                onClick={() => {
+                  setShowEditItemModal(false);
+                  setEditError(null);
+                  setEditSuccess(null);
+                }}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateItem}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                disabled={editLoading}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center ${
+                  editLoading
+                    ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
+                }`}
               >
-                Update Item
+                {editLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-200 border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Item"
+                )}
               </button>
             </div>
           </div>
@@ -1119,8 +1385,8 @@ const Inventory: React.FC = () => {
                 </h3>
                 <p className="text-sm text-red-700 dark:text-red-300">
                   Are you sure you want to delete{" "}
-                  <strong>{selectedItem.name}</strong>? This action cannot be
-                  undone.
+                  <strong>{selectedItem?.name || "this item"}</strong>? This
+                  action cannot be undone.
                 </p>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
@@ -1128,17 +1394,17 @@ const Inventory: React.FC = () => {
                   Item Details:
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>ID:</strong> {selectedItem.id}
+                  <strong>ID:</strong> {selectedItem?.id || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>Category:</strong> {selectedItem.category}
+                  <strong>Category:</strong> {selectedItem?.category || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>Quantity:</strong> {selectedItem.quantity}{" "}
-                  {selectedItem.unit}
+                  <strong>Quantity:</strong> {selectedItem?.quantity || 0}{" "}
+                  {selectedItem?.unit || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <strong>Location:</strong> {selectedItem.location}
+                  <strong>Location:</strong> {selectedItem?.location || "N/A"}
                 </p>
               </div>
             </div>

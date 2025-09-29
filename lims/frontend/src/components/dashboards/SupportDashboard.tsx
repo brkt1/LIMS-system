@@ -1,15 +1,15 @@
 import {
-    AlertCircle,
-    AlertTriangle,
-    Bell,
-    CheckCircle,
-    Clock,
-    Edit,
-    Headphones,
-    Package,
-    RotateCcw,
-    TrendingUp,
-    X,
+  AlertCircle,
+  AlertTriangle,
+  Bell,
+  CheckCircle,
+  Clock,
+  Edit,
+  Headphones,
+  Package,
+  RotateCcw,
+  TrendingUp,
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -18,7 +18,7 @@ import BaseDashboard from "./BaseDashboard";
 
 const SupportDashboard: React.FC = () => {
   const { t } = useLanguage();
-  
+
   // State management for modals
   const [showManageInventoryModal, setShowManageInventoryModal] =
     useState(false);
@@ -69,10 +69,14 @@ const SupportDashboard: React.FC = () => {
       setInventoryError(null);
       const response = await inventoryAPI.getItems();
       console.log("📦 Inventory fetched:", response.data);
-      setInventoryItems(response.data);
+      // Ensure response.data is an array
+      const items = Array.isArray(response.data) ? response.data : [];
+      setInventoryItems(items);
     } catch (err: any) {
       console.error("Error fetching inventory:", err);
       setInventoryError(err.message || "Failed to fetch inventory");
+      // Fallback to empty array if API fails
+      setInventoryItems([]);
     } finally {
       setInventoryLoading(false);
     }
@@ -101,7 +105,7 @@ const SupportDashboard: React.FC = () => {
   const handleUpdate = (item: any) => {
     setSelectedItem(item);
     setUpdateData({
-      stockLevel: item.stockLevel.toString(),
+      stockLevel: item.quantity?.toString() || "0",
       notes: "",
     });
     setShowUpdateModal(true);
@@ -129,55 +133,124 @@ const SupportDashboard: React.FC = () => {
     setShowUrgentOrderModal(true);
   };
 
-  const handleUpdateStock = () => {
-    if (selectedItem) {
-      const updatedItems = inventoryItems.map((item) =>
-        item.id === selectedItem.id
-          ? {
-              ...item,
-              stockLevel: parseInt(updateData.stockLevel) || 0,
-              status: getStatusFromStock(parseInt(updateData.stockLevel) || 0),
-              lastUpdated: new Date().toLocaleString(),
-            }
-          : item
-      );
-      setInventoryItems(updatedItems);
-      setShowUpdateModal(false);
-      setSelectedItem(null);
+  const handleUpdateStock = async () => {
+    if (selectedItem && updateData.stockLevel) {
+      try {
+        // Calculate the quantity adjustment
+        const currentQuantity = selectedItem.quantity || 0;
+        const newQuantity = parseInt(updateData.stockLevel);
+        const adjustment = newQuantity - currentQuantity;
+
+        // Use the adjust_quantity endpoint to update the inventory
+        await inventoryAPI.adjustQuantity(selectedItem.id, {
+          quantity: adjustment,
+          transaction_type: "adjustment",
+          notes:
+            updateData.notes ||
+            `Stock level updated from ${currentQuantity} to ${newQuantity}`,
+        });
+
+        // Refresh the inventory data
+        await fetchInventory();
+
+        // Close modal and reset form
+        setShowUpdateModal(false);
+        setSelectedItem(null);
+        setUpdateData({ stockLevel: "", notes: "" });
+
+        // Show success message (you could add a toast notification here)
+        console.log("Stock updated successfully");
+      } catch (error) {
+        console.error("Error updating stock:", error);
+        // You could add error handling/notification here
+      }
     }
   };
 
-  const handleReorderSubmit = () => {
-    if (selectedItem) {
-      // In a real app, this would create a reorder request
-      console.log("Reorder submitted:", { selectedItem, reorderData });
-      setShowReorderModal(false);
-      setSelectedItem(null);
+  const handleReorderSubmit = async () => {
+    if (selectedItem && reorderData.quantity) {
+      try {
+        // Create a reorder request using the inventory API
+        await inventoryAPI.createReorderRequest({
+          item: selectedItem.id,
+          requested_quantity: parseInt(reorderData.quantity),
+          status: "pending",
+          requested_by: "Support Staff", // You could get this from user context
+          notes:
+            reorderData.notes || `Reorder request for ${selectedItem.name}`,
+          tenant: selectedItem.tenant || "default",
+        });
+
+        // Close modal and reset form
+        setShowReorderModal(false);
+        setSelectedItem(null);
+        setReorderData({
+          quantity: "",
+          supplier: "",
+          expectedDate: "",
+          notes: "",
+        });
+
+        // Show success message
+        console.log("Reorder request created successfully");
+      } catch (error) {
+        console.error("Error creating reorder request:", error);
+        // You could add error handling/notification here
+      }
     }
   };
 
-  const handleUrgentOrderSubmit = () => {
-    if (selectedItem) {
-      // In a real app, this would create an urgent order
-      console.log("Urgent order submitted:", { selectedItem, urgentOrderData });
-      setShowUrgentOrderModal(false);
-      setSelectedItem(null);
+  const handleUrgentOrderSubmit = async () => {
+    if (selectedItem && urgentOrderData.quantity) {
+      try {
+        // Create an urgent reorder request using the inventory API
+        await inventoryAPI.createReorderRequest({
+          item: selectedItem.id,
+          requested_quantity: parseInt(urgentOrderData.quantity),
+          status: "pending",
+          requested_by: "Support Staff", // You could get this from user context
+          notes: `URGENT: ${
+            urgentOrderData.notes ||
+            `Urgent reorder request for ${selectedItem.name}`
+          }`,
+          tenant: selectedItem.tenant || "default",
+        });
+
+        // Close modal and reset form
+        setShowUrgentOrderModal(false);
+        setSelectedItem(null);
+        setUrgentOrderData({
+          quantity: "",
+          supplier: "",
+          priority: "urgent",
+          notes: "",
+        });
+
+        // Show success message
+        console.log("Urgent order request created successfully");
+      } catch (error) {
+        console.error("Error creating urgent order request:", error);
+        // You could add error handling/notification here
+      }
     }
   };
 
   const getStatusFromStock = (stock: number) => {
-    if (stock === 0) return t('support.outOfStock');
-    if (stock < 10) return t('support.lowStock');
-    return t('support.inStock');
+    if (stock === 0) return t("support.outOfStock");
+    if (stock < 10) return t("support.lowStock");
+    return t("support.inStock");
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case t('support.inStock'):
+      case "in-stock":
+      case t("support.inStock"):
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
-      case t('support.lowStock'):
+      case "low-stock":
+      case t("support.lowStock"):
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
-      case t('support.outOfStock'):
+      case "out-of-stock":
+      case t("support.outOfStock"):
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       default:
         return "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200";
@@ -186,30 +259,30 @@ const SupportDashboard: React.FC = () => {
 
   const supportCards = [
     {
-      title: t('support.openTickets'),
+      title: t("support.openTickets"),
       value: "23",
-      change: `+5 ${t('support.today')}`,
+      change: `+5 ${t("support.today")}`,
       color: "bg-orange-500",
       chartData: [18, 20, 22, 21, 23, 22, 23],
     },
     {
-      title: t('support.resolvedToday'),
+      title: t("support.resolvedToday"),
       value: "18",
-      change: `+3 ${t('support.thisWeek')}`,
+      change: `+3 ${t("support.thisWeek")}`,
       color: "bg-green-500",
       chartData: [12, 14, 15, 16, 17, 18, 18],
     },
     {
-      title: t('support.avgResponseTime'),
+      title: t("support.avgResponseTime"),
       value: "2.3h",
-      change: `-0.5h ${t('support.thisWeek')}`,
+      change: `-0.5h ${t("support.thisWeek")}`,
       color: "bg-blue-500",
       chartData: [3.2, 3.0, 2.8, 2.6, 2.4, 2.3, 2.3],
     },
     {
-      title: t('support.customerSatisfaction'),
+      title: t("support.customerSatisfaction"),
       value: "4.7/5",
-      change: `+0.2 ${t('support.thisMonth')}`,
+      change: `+0.2 ${t("support.thisMonth")}`,
       color: "bg-purple-500",
       chartData: [4.3, 4.4, 4.5, 4.6, 4.6, 4.7, 4.7],
     },
@@ -265,7 +338,7 @@ const SupportDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('support.recentSupportTickets')}
+              {t("support.recentSupportTickets")}
             </h3>
             <Headphones className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -275,7 +348,7 @@ const SupportDashboard: React.FC = () => {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('support.loadingSupportTickets')}
+                    {t("support.loadingSupportTickets")}
                   </p>
                 </div>
               </div>
@@ -293,7 +366,7 @@ const SupportDashboard: React.FC = () => {
                 <div className="text-center">
                   <Headphones className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('support.noSupportTicketsAvailable')}
+                    {t("support.noSupportTicketsAvailable")}
                   </p>
                 </div>
               </div>
@@ -538,10 +611,10 @@ const SupportDashboard: React.FC = () => {
                       {item.name}
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                      {item.category}
+                      {item.category_name || item.category}
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                      {item.stockLevel} units
+                      {item.quantity} units
                     </td>
                     <td className="py-4 px-4">
                       <span
@@ -553,7 +626,9 @@ const SupportDashboard: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                      {item.lastUpdated}
+                      {new Date(
+                        item.updated_at || item.created_at
+                      ).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center space-x-2">
@@ -564,7 +639,8 @@ const SupportDashboard: React.FC = () => {
                           <Edit className="w-3 h-3" />
                           <span>Update</span>
                         </button>
-                        {item.status === "Low Stock" && (
+                        {(item.status === "low-stock" ||
+                          item.status === "Low Stock") && (
                           <button
                             onClick={() => handleReorder(item)}
                             className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
@@ -573,7 +649,8 @@ const SupportDashboard: React.FC = () => {
                             <span>Reorder</span>
                           </button>
                         )}
-                        {item.status === "Out of Stock" && (
+                        {(item.status === "out-of-stock" ||
+                          item.status === "Out of Stock") && (
                           <button
                             onClick={() => handleUrgentOrder(item)}
                             className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
@@ -676,10 +753,10 @@ const SupportDashboard: React.FC = () => {
                             {item.name}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                            {item.category}
+                            {item.category_name || item.category}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                            {item.stockLevel} units
+                            {item.quantity} units
                           </td>
                           <td className="py-4 px-4">
                             <span
@@ -691,7 +768,9 @@ const SupportDashboard: React.FC = () => {
                             </span>
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                            {item.lastUpdated}
+                            {new Date(
+                              item.updated_at || item.created_at
+                            ).toLocaleDateString()}
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center space-x-2">
@@ -702,7 +781,8 @@ const SupportDashboard: React.FC = () => {
                                 <Edit className="w-3 h-3" />
                                 <span>Update</span>
                               </button>
-                              {item.status === "Low Stock" && (
+                              {(item.status === "low-stock" ||
+                                item.status === "Low Stock") && (
                                 <button
                                   onClick={() => handleReorder(item)}
                                   className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm font-medium"
@@ -711,7 +791,8 @@ const SupportDashboard: React.FC = () => {
                                   <span>Reorder</span>
                                 </button>
                               )}
-                              {item.status === "Out of Stock" && (
+                              {(item.status === "out-of-stock" ||
+                                item.status === "Out of Stock") && (
                                 <button
                                   onClick={() => handleUrgentOrder(item)}
                                   className="flex items-center space-x-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
@@ -765,10 +846,11 @@ const SupportDashboard: React.FC = () => {
                   <strong>{selectedItem.name}</strong>
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Category: {selectedItem.category}
+                  Category:{" "}
+                  {selectedItem.category_name || selectedItem.category}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Current Stock: {selectedItem.stockLevel} units
+                  Current Stock: {selectedItem.quantity} units
                 </p>
               </div>
               <div>

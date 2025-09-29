@@ -49,7 +49,7 @@ class SupportTicketListSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupportTicket
         fields = ['id', 'title', 'status', 'priority', 'created_by_name', 'assigned_to_name', 
-                 'message_count', 'last_message', 'created_at', 'updated_at']
+                 'message_count', 'last_message', 'tags', 'created_at', 'updated_at']
     
     def get_message_count(self, obj):
         return obj.messages.count()

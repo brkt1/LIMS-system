@@ -26,21 +26,140 @@ const Messages: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Load data from API
+  // Local storage keys
+  const CONVERSATIONS_STORAGE_KEY = "support_conversations";
+  const MESSAGES_STORAGE_KEY = "support_messages";
+
+  // Helper functions for localStorage
+  const saveConversationsToStorage = (conversationsData: any[]) => {
+    try {
+      setIsSaving(true);
+      localStorage.setItem(
+        CONVERSATIONS_STORAGE_KEY,
+        JSON.stringify(conversationsData)
+      );
+      setTimeout(() => setIsSaving(false), 500); // Show saving state briefly
+    } catch (error) {
+      console.error("Error saving conversations to localStorage:", error);
+      setIsSaving(false);
+    }
+  };
+
+  const saveMessagesToStorage = (messagesData: any[]) => {
+    try {
+      setIsSaving(true);
+      localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messagesData));
+      setTimeout(() => setIsSaving(false), 500); // Show saving state briefly
+    } catch (error) {
+      console.error("Error saving messages to localStorage:", error);
+      setIsSaving(false);
+    }
+  };
+
+  const loadConversationsFromStorage = (): any[] => {
+    try {
+      const stored = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error("Error loading conversations from localStorage:", error);
+      return [];
+    }
+  };
+
+  const loadMessagesFromStorage = (): any[] => {
+    try {
+      const stored = localStorage.getItem(MESSAGES_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error("Error loading messages from localStorage:", error);
+      return [];
+    }
+  };
+
+  const clearStorageData = () => {
+    try {
+      localStorage.removeItem(CONVERSATIONS_STORAGE_KEY);
+      localStorage.removeItem(MESSAGES_STORAGE_KEY);
+      console.log("Storage data cleared");
+    } catch (error) {
+      console.error("Error clearing storage data:", error);
+    }
+  };
+
+  const exportData = () => {
+    try {
+      const data = {
+        conversations: conversations,
+        messages: messages,
+        exportDate: new Date().toISOString(),
+        version: "1.0",
+      };
+
+      const dataStr = JSON.stringify(data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `support-messages-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log("Data exported successfully");
+    } catch (error) {
+      console.error("Error exporting data:", error);
+    }
+  };
+
+  // Load data from API and localStorage
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        // Fetch conversations and messages from support ticket API
-        const conversationsResponse = await supportTicketAPI.getMessages();
-        setConversations(conversationsResponse.data || []);
-        setMessages([]); // Messages will be loaded per conversation
+
+        // Load data from localStorage first
+        const storedConversations = loadConversationsFromStorage();
+        const storedMessages = loadMessagesFromStorage();
+
+        // Try to fetch from API as well
+        try {
+          const conversationsResponse = await supportTicketAPI.getMessages();
+          const apiConversations = conversationsResponse.data || [];
+
+          // Merge API data with stored data (API data takes precedence for existing conversations)
+          const mergedConversations = [...storedConversations];
+          apiConversations.forEach((apiConv: any) => {
+            const existingIndex = mergedConversations.findIndex(
+              (conv) => conv.id === apiConv.id
+            );
+            if (existingIndex >= 0) {
+              mergedConversations[existingIndex] = {
+                ...mergedConversations[existingIndex],
+                ...apiConv,
+              };
+            } else {
+              mergedConversations.push(apiConv);
+            }
+          });
+
+          setConversations(mergedConversations);
+          setMessages(storedMessages);
+        } catch (apiError) {
+          console.warn("API fetch failed, using stored data:", apiError);
+          setConversations(storedConversations);
+          setMessages(storedMessages);
+        }
       } catch (error: any) {
-        console.error("Error fetching conversations:", error);
+        console.error("Error loading data:", error);
         setError(error.message || "Failed to load conversations");
-        // Fallback to empty arrays if API fails
+        // Fallback to empty arrays if everything fails
         setConversations([]);
         setMessages([]);
       } finally {
@@ -85,16 +204,29 @@ const Messages: React.FC = () => {
       isRead: true,
     };
 
-    setConversations([newConversation, ...conversations]);
-    setMessages([newMessageData, ...messages]);
+    const updatedConversations = [newConversation, ...conversations];
+    const updatedMessages = [newMessageData, ...messages];
+
+    // Update state
+    setConversations(updatedConversations);
+    setMessages(updatedMessages);
+
+    // Save to localStorage
+    saveConversationsToStorage(updatedConversations);
+    saveMessagesToStorage(updatedMessages);
+
     setShowNewMessageModal(false);
     setSelectedConversation(newConversation.id);
   };
 
   const filteredConversations = conversations.filter(
     (conversation) =>
-      (conversation.user?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (conversation.lastMessage?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      (conversation.user?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (conversation.lastMessage?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      )
   );
 
   const conversationMessages = selectedConversation
@@ -117,8 +249,7 @@ const Messages: React.FC = () => {
         isRead: true,
       };
 
-      // Update messages
-      setMessages([...messages, newMessageData]);
+      const updatedMessages = [...messages, newMessageData];
 
       // Update conversation's last message
       const updatedConversations = conversations.map((conv) =>
@@ -130,14 +261,21 @@ const Messages: React.FC = () => {
             }
           : conv
       );
+
+      // Update state
+      setMessages(updatedMessages);
       setConversations(updatedConversations);
+
+      // Save to localStorage
+      saveMessagesToStorage(updatedMessages);
+      saveConversationsToStorage(updatedConversations);
 
       setNewMessage("");
     }
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase() || '') {
+    switch (priority?.toLowerCase() || "") {
       case "high":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "medium":
@@ -152,7 +290,7 @@ const Messages: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "active":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "resolved":
@@ -171,18 +309,51 @@ const Messages: React.FC = () => {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Messages
+            {isSaving && (
+              <span className="ml-2 text-sm text-green-600 dark:text-green-400 font-normal">
+                Saving...
+              </span>
+            )}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             Communicate with users and provide support
+            {conversations.length > 0 && (
+              <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
+                ({conversations.length} conversations)
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex space-x-2">
           <button
             onClick={handleNewMessage}
             className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
             <span>New Message</span>
+          </button>
+          {/* Export button */}
+          <button
+            onClick={exportData}
+            className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+            title="Export messages data"
+            disabled={conversations.length === 0}
+          >
+            <span>Export</span>
+          </button>
+          {/* Debug button - remove in production */}
+          <button
+            onClick={() => {
+              clearStorageData();
+              setConversations([]);
+              setMessages([]);
+              setSelectedConversation(null);
+            }}
+            className="flex items-center space-x-2 px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+            title="Clear all messages (Debug)"
+          >
+            <X className="w-4 h-4" />
+            <span>Clear</span>
           </button>
         </div>
       </div>
@@ -204,61 +375,74 @@ const Messages: React.FC = () => {
               </div>
             </div>
             <div className="divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto h-80">
-              {filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  onClick={() => setSelectedConversation(conversation.id)}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                    selectedConversation === conversation.id
-                      ? "bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600"
-                      : ""
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {conversation.user}
+              {filteredConversations.length === 0 ? (
+                <div className="flex items-center justify-center h-full p-6">
+                  <div className="text-center">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {conversations.length === 0
+                        ? "No conversations yet. Create a new message to get started."
+                        : "No conversations match your search."}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => setSelectedConversation(conversation.id)}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                      selectedConversation === conversation.id
+                        ? "bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                          <User className="w-5 h-5 text-primary-600" />
                         </div>
-                        {conversation.unreadCount > 0 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
-                            {conversation.unreadCount}
-                          </span>
-                        )}
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-300 truncate">
-                        {conversation.lastMessage}
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {conversation.lastMessageTime}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {conversation.user}
+                          </div>
+                          {conversation.unreadCount > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
+                              {conversation.unreadCount}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex space-x-1">
-                          <span
-                            className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded ${getPriorityColor(
-                              conversation.priority
-                            )}`}
-                          >
-                            {conversation.priority}
-                          </span>
-                          <span
-                            className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded ${getStatusColor(
-                              conversation.status
-                            )}`}
-                          >
-                            {conversation.status}
-                          </span>
+                        <div className="text-sm text-gray-500 dark:text-gray-300 truncate">
+                          {conversation.lastMessage}
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            {conversation.lastMessageTime}
+                          </div>
+                          <div className="flex space-x-1">
+                            <span
+                              className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded ${getPriorityColor(
+                                conversation.priority
+                              )}`}
+                            >
+                              {conversation.priority}
+                            </span>
+                            <span
+                              className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded ${getStatusColor(
+                                conversation.status
+                              )}`}
+                            >
+                              {conversation.status}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

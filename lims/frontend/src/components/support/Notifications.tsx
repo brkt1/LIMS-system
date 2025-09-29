@@ -1,6 +1,16 @@
-import { Bell, Globe, Plus, X } from "lucide-react";
+import {
+  Bell,
+  Globe,
+  Plus,
+  X,
+  Send,
+  AlertCircle,
+  CheckCircle,
+  Info,
+  AlertTriangle,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { superadminAPI } from "../../services/api";
+import { notificationAPI, superadminAPI } from "../../services/api";
 import GlobalNotificationBroadcaster from "../superadmin/GlobalNotificationBroadcaster";
 
 const Notifications: React.FC = () => {
@@ -19,6 +29,7 @@ const Notifications: React.FC = () => {
     recipients: "all",
     priority: "normal",
   });
+  const [sending, setSending] = useState(false);
 
   // Notification history state
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -31,7 +42,7 @@ const Notifications: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await superadminAPI.globalNotifications.getAll();
+        const response = await notificationAPI.getAll();
         setNotifications(response.data || []);
       } catch (error: any) {
         console.error("Error fetching notifications:", error);
@@ -58,23 +69,64 @@ const Notifications: React.FC = () => {
     setShowSendNotificationModal(true);
   };
 
-  const handleSendNotificationSubmit = () => {
-    const newNotification = {
-      id: `NOTIF${String(notifications.length + 1).padStart(3, "0")}`,
-      title: notificationData.title,
-      message: notificationData.message,
-      type: notificationData.type,
-      recipients: notificationData.recipients,
-      priority: notificationData.priority,
-      sentDate: new Date().toLocaleString(),
-      status: "sent",
-    };
-    setNotifications([newNotification, ...notifications]);
-    setShowSendNotificationModal(false);
+  const handleSendNotificationSubmit = async () => {
+    try {
+      // Validate required fields
+      if (!notificationData.title.trim() || !notificationData.message.trim()) {
+        alert("Please fill in all required fields");
+        return;
+      }
+
+      setSending(true);
+
+      // Prepare notification data for API
+      const notificationPayload = {
+        title: notificationData.title,
+        message: notificationData.message,
+        notification_type: notificationData.type,
+        priority: notificationData.priority,
+        target_audience: notificationData.recipients,
+        created_by: "Support Staff", // You could get this from user context
+        expires_in_hours: 24,
+      };
+
+      // Send notification via API
+      const response = await notificationAPI.sendGlobal(notificationPayload);
+
+      if (response.data.success) {
+        // Refresh notifications list
+        const updatedResponse = await notificationAPI.getAll();
+        setNotifications(updatedResponse.data || []);
+
+        // Close modal and reset form
+        setShowSendNotificationModal(false);
+        setNotificationData({
+          title: "",
+          message: "",
+          type: "info",
+          recipients: "all",
+          priority: "normal",
+        });
+
+        alert("Notification sent successfully!");
+      } else {
+        alert(
+          "Failed to send notification: " +
+            (response.data.error || "Unknown error")
+        );
+      }
+    } catch (error: any) {
+      console.error("Error sending notification:", error);
+      alert(
+        "Error sending notification: " + (error.message || "Unknown error")
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   const getTypeColor = (type: string) => {
-    switch (type?.toLowerCase() || '') {
+    switch (type?.toLowerCase() || "") {
       case "info":
         return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "warning":
@@ -89,7 +141,7 @@ const Notifications: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase() || '') {
+    switch (priority?.toLowerCase() || "") {
       case "high":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "normal":
@@ -145,43 +197,88 @@ const Notifications: React.FC = () => {
           </h2>
         </div>
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {notifications.slice(0, 5).map((notification) => (
-            <div key={notification.id} className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                      {notification.title}
-                    </h3>
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                        notification.type
-                      )}`}
-                    >
-                      {notification.type}
-                    </span>
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                        notification.priority
-                      )}`}
-                    >
-                      {notification.priority}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                    {notification.message}
-                  </p>
-                  <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                    <span>Recipients: {notification.recipients}</span>
-                    <span>Sent: {notification.sentDate}</span>
-                    <span className="text-green-600 dark:text-green-400">
-                      Status: {notification.status}
-                    </span>
+          {loading ? (
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Loading notifications...
+                </p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                <p className="text-sm text-red-500 dark:text-red-400">
+                  {error}
+                </p>
+              </div>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No notifications available
+                </p>
+              </div>
+            </div>
+          ) : (
+            notifications.slice(0, 5).map((notification) => (
+              <div key={notification.id} className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                        {notification.title}
+                      </h3>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                          notification.notification_type || notification.type
+                        )}`}
+                      >
+                        {notification.notification_type || notification.type}
+                      </span>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                          notification.priority
+                        )}`}
+                      >
+                        {notification.priority}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                      {notification.message}
+                    </p>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                      <span>
+                        Recipients:{" "}
+                        {notification.is_global
+                          ? "All Users"
+                          : notification.recipient_name || "Specific User"}
+                      </span>
+                      <span>
+                        Sent:{" "}
+                        {notification.created_at
+                          ? new Date(notification.created_at).toLocaleString()
+                          : "Unknown"}
+                      </span>
+                      <span
+                        className={`${
+                          notification.is_read
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-blue-600 dark:text-blue-400"
+                        }`}
+                      >
+                        Status: {notification.is_read ? "Read" : "Unread"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -307,9 +404,20 @@ const Notifications: React.FC = () => {
               </button>
               <button
                 onClick={handleSendNotificationSubmit}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                disabled={sending}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
-                Send Notification
+                {sending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Send Notification</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -332,46 +440,93 @@ const Notifications: React.FC = () => {
               </button>
             </div>
             <div className="p-4 sm:p-6 overflow-y-auto flex-1">
-              <div className="space-y-4">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                        {notification.title}
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                            notification.type
-                          )}`}
-                        >
-                          {notification.type}
+              {loading ? (
+                <div className="flex items-center justify-center p-6">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Loading notification history...
+                    </p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center p-6">
+                  <div className="text-center">
+                    <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                    <p className="text-sm text-red-500 dark:text-red-400">
+                      {error}
+                    </p>
+                  </div>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex items-center justify-center p-6">
+                  <div className="text-center">
+                    <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No notification history available
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                          {notification.title}
+                        </h3>
+                        <div className="flex items-center space-x-2">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                              notification.notification_type ||
+                                notification.type
+                            )}`}
+                          >
+                            {notification.notification_type ||
+                              notification.type}
+                          </span>
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
+                              notification.priority
+                            )}`}
+                          >
+                            {notification.priority}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                        {notification.message}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>
+                          Recipients:{" "}
+                          {notification.is_global
+                            ? "All Users"
+                            : notification.recipient_name || "Specific User"}
+                        </span>
+                        <span>
+                          Sent:{" "}
+                          {notification.created_at
+                            ? new Date(notification.created_at).toLocaleString()
+                            : "Unknown"}
                         </span>
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
-                            notification.priority
-                          )}`}
+                          className={`${
+                            notification.is_read
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-blue-600 dark:text-blue-400"
+                          }`}
                         >
-                          {notification.priority}
+                          Status: {notification.is_read ? "Read" : "Unread"}
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                      {notification.message}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>Recipients: {notification.recipients}</span>
-                      <span>Sent: {notification.sentDate}</span>
-                      <span className="text-green-600 dark:text-green-400">
-                        Status: {notification.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
               <button

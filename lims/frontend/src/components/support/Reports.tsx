@@ -1,13 +1,10 @@
-import {
-    Download,
-    Eye,
-    FileText,
-    Plus,
-    Search,
-    X
-} from "lucide-react";
+import { Download, Eye, FileText, Plus, Search, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { supportAnalyticsAPI } from "../../services/api";
+import {
+  supportAnalyticsAPI,
+  financialReportAPI,
+  accountingAPI,
+} from "../../services/api";
 
 const Reports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,12 +23,27 @@ const Reports: React.FC = () => {
     type: "",
     category: "",
     format: "PDF",
+    start_date: "",
+    end_date: "",
   });
 
   // Reports data state
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>(() => {
+    // Load saved reports from localStorage on component mount
+    const savedReports = localStorage.getItem("support_reports_data");
+    return savedReports ? JSON.parse(savedReports) : [];
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  // Persistence for generate report button
+  const [showGenerateButton, setShowGenerateButton] = useState(() => {
+    const saved = localStorage.getItem(
+      "support_reports_generate_button_visible"
+    );
+    return saved ? JSON.parse(saved) : true;
+  });
 
   // Load reports from API
   useEffect(() => {
@@ -39,8 +51,88 @@ const Reports: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await supportAnalyticsAPI.getAll();
-        setReports(response.data || []);
+
+        // Fetch from multiple report sources
+        const [supportAnalytics, financialReports] = await Promise.allSettled([
+          supportAnalyticsAPI.getAll(),
+          financialReportAPI.getAll(),
+        ]);
+
+        let allReports: any[] = [];
+
+        // Process support analytics
+        if (
+          supportAnalytics.status === "fulfilled" &&
+          supportAnalytics.value.data
+        ) {
+          const analyticsData = Array.isArray(supportAnalytics.value.data)
+            ? supportAnalytics.value.data
+            : [supportAnalytics.value.data];
+
+          const analyticsReports = analyticsData.map(
+            (item: any, index: number) => ({
+              id: `SA${index + 1}`,
+              title: `Support Analytics - ${item.date || "Current"}`,
+              description: `Support performance metrics and analytics`,
+              type: "Analytics",
+              category: "Support",
+              generatedDate:
+                item.date || new Date().toISOString().split("T")[0],
+              generatedBy: "System",
+              fileSize: "2.1 MB",
+              format: "PDF",
+              downloadCount: 0,
+              status: "completed",
+              data: item,
+            })
+          );
+          allReports = [...allReports, ...analyticsReports];
+        }
+
+        // Process financial reports
+        if (
+          financialReports.status === "fulfilled" &&
+          financialReports.value.data
+        ) {
+          const financialData = Array.isArray(financialReports.value.data)
+            ? financialReports.value.data
+            : [financialReports.value.data];
+
+          const financialReportsList = financialData.map((item: any) => ({
+            id: item.id || `FR${Date.now()}`,
+            title: item.title || `${item.report_type} Report`,
+            description:
+              item.description ||
+              `Financial report from ${item.start_date} to ${item.end_date}`,
+            type: item.report_type || "Financial",
+            category: "Financial",
+            generatedDate: item.generated_at
+              ? item.generated_at.split("T")[0]
+              : new Date().toISOString().split("T")[0],
+            generatedBy: "System",
+            fileSize: "1.8 MB",
+            format: "PDF",
+            downloadCount: 0,
+            status: "completed",
+            data: item,
+          }));
+          allReports = [...allReports, ...financialReportsList];
+        }
+
+        // Get existing saved reports from localStorage
+        const savedReports = localStorage.getItem("support_reports_data");
+        const existingReports = savedReports ? JSON.parse(savedReports) : [];
+
+        // Merge API reports with existing saved reports
+        const mergedReports = [...allReports, ...existingReports];
+
+        // Remove duplicates based on ID
+        const uniqueReports = mergedReports.filter(
+          (report, index, self) =>
+            index === self.findIndex((r) => r.id === report.id)
+        );
+
+        setReports(uniqueReports);
       } catch (error: any) {
         console.error("Error fetching reports:", error);
         setError(error.message || "Failed to load reports");
@@ -54,6 +146,19 @@ const Reports: React.FC = () => {
     fetchReports();
   }, []);
 
+  // Save generate button visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem(
+      "support_reports_generate_button_visible",
+      JSON.stringify(showGenerateButton)
+    );
+  }, [showGenerateButton]);
+
+  // Save reports to localStorage whenever reports change
+  useEffect(() => {
+    localStorage.setItem("support_reports_data", JSON.stringify(reports));
+  }, [reports]);
+
   // Handler functions
   const handleGenerateReport = () => {
     setNewReport({
@@ -62,6 +167,8 @@ const Reports: React.FC = () => {
       type: "",
       category: "",
       format: "PDF",
+      start_date: "",
+      end_date: "",
     });
     setShowGenerateReportModal(true);
   };
@@ -94,22 +201,78 @@ const Reports: React.FC = () => {
     setReports(updatedReports);
   };
 
-  const handleCreateReport = () => {
-    const newReportData = {
-      id: `RPT${String(reports.length + 1).padStart(3, "0")}`,
-      title: newReport.title,
-      description: newReport.description,
-      type: newReport.type,
-      category: newReport.category,
-      generatedDate: new Date().toISOString().split("T")[0],
-      generatedBy: "Support Team",
-      fileSize: `${(Math.random() * 5 + 1).toFixed(1)} MB`,
-      format: newReport.format,
-      downloadCount: 0,
-      status: "completed",
-    };
-    setReports([newReportData, ...reports]);
-    setShowGenerateReportModal(false);
+  const handleCreateReport = async () => {
+    try {
+      setGenerating(true);
+
+      // Create report based on type
+      let reportData;
+      if (
+        newReport.type === "Financial" ||
+        newReport.category === "Financial"
+      ) {
+        // Create financial report
+        reportData = {
+          report_type: newReport.type.toLowerCase().replace(/\s+/g, "_"),
+          title: newReport.title,
+          start_date: newReport.start_date,
+          end_date: newReport.end_date,
+          tenant: 1, // Default tenant
+          generated_by: 1, // Default user
+        };
+
+        const response = await financialReportAPI.create(reportData);
+        const createdReport = response.data;
+
+        const newReportData = {
+          id: createdReport.id || `FR${Date.now()}`,
+          title: createdReport.title,
+          description: newReport.description,
+          type: createdReport.report_type,
+          category: "Financial",
+          generatedDate: createdReport.generated_at
+            ? createdReport.generated_at.split("T")[0]
+            : new Date().toISOString().split("T")[0],
+          generatedBy: "Support Team",
+          fileSize: "1.8 MB",
+          format: newReport.format,
+          downloadCount: 0,
+          status: "completed",
+          data: createdReport,
+        };
+
+        setReports([newReportData, ...reports]);
+      } else {
+        // Create support analytics report
+        const newReportData = {
+          id: `SA${Date.now()}`,
+          title: newReport.title,
+          description: newReport.description,
+          type: newReport.type,
+          category: newReport.category,
+          generatedDate: new Date().toISOString().split("T")[0],
+          generatedBy: "Support Team",
+          fileSize: `${(Math.random() * 5 + 1).toFixed(1)} MB`,
+          format: newReport.format,
+          downloadCount: 0,
+          status: "completed",
+        };
+        setReports([newReportData, ...reports]);
+      }
+
+      setShowGenerateReportModal(false);
+
+      // Hide the generate button after successful report creation
+      setShowGenerateButton(false);
+
+      // Show success message
+      console.log("Report generated successfully");
+    } catch (error: any) {
+      console.error("Error creating report:", error);
+      setError(error.message || "Failed to create report");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleExportAll = () => {
@@ -153,12 +316,28 @@ const Reports: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleClearAllReports = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to clear all saved reports? This action cannot be undone."
+      )
+    ) {
+      setReports([]);
+      localStorage.removeItem("support_reports_data");
+      setShowGenerateButton(true); // Show the generate button again
+    }
+  };
+
   // Enhanced filtering with date filter
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      (report.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (report.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (report.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (report.title?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (report.description?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (report.id?.toString().toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      );
     const matchesType = filterType === "all" || report.type === filterType;
 
     // Date filtering
@@ -188,7 +367,7 @@ const Reports: React.FC = () => {
   });
 
   const getTypeColor = (type: string) => {
-    switch (type?.toLowerCase() || '') {
+    switch (type?.toLowerCase() || "") {
       case "analytics":
         return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "performance":
@@ -207,7 +386,7 @@ const Reports: React.FC = () => {
   };
 
   const getCategoryColor = (category: string) => {
-    switch (category?.toLowerCase() || '') {
+    switch (category?.toLowerCase() || "") {
       case "support":
         return "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
       case "system":
@@ -224,10 +403,15 @@ const Reports: React.FC = () => {
   };
 
   const totalReports = reports.length;
-  const totalDownloads = reports.reduce((sum, r) => sum + (r.downloadCount || 0), 0);
-  const avgFileSize = reports.length > 0 
-    ? reports.reduce((sum, r) => sum + parseFloat(r.fileSize || '0'), 0) / reports.length
-    : 0;
+  const totalDownloads = reports.reduce(
+    (sum, r) => sum + (r.downloadCount || 0),
+    0
+  );
+  const avgFileSize =
+    reports.length > 0
+      ? reports.reduce((sum, r) => sum + parseFloat(r.fileSize || "0"), 0) /
+        reports.length
+      : 0;
 
   if (loading) {
     return (
@@ -235,7 +419,9 @@ const Reports: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading reports...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading reports...
+            </p>
           </div>
         </div>
       </div>
@@ -274,6 +460,12 @@ const Reports: React.FC = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             Generate and manage support reports and analytics
+            {reports.length > 0 && (
+              <span className="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+                {reports.length} report{reports.length !== 1 ? "s" : ""} saved
+                locally
+              </span>
+            )}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -284,13 +476,32 @@ const Reports: React.FC = () => {
             <Download className="w-4 h-4" />
             <span>Export All</span>
           </button>
-          <button
-            onClick={handleGenerateReport}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Generate Report</span>
-          </button>
+          {reports.length > 0 && (
+            <button
+              onClick={handleClearAllReports}
+              className="flex items-center space-x-2 px-4 py-2 border border-red-300 dark:border-red-600 dark:bg-red-700 dark:text-white text-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-600 transition-colors w-full sm:w-auto justify-center"
+            >
+              <X className="w-4 h-4" />
+              <span>Clear All</span>
+            </button>
+          )}
+          {showGenerateButton ? (
+            <button
+              onClick={handleGenerateReport}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Generate Report</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowGenerateButton(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto justify-center"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Show Generate Button</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -476,6 +687,11 @@ const Reports: React.FC = () => {
                     <option value="Error Analysis">Error Analysis</option>
                     <option value="Survey">Survey</option>
                     <option value="Security">Security</option>
+                    <option value="Financial">Financial</option>
+                    <option value="income_statement">Income Statement</option>
+                    <option value="balance_sheet">Balance Sheet</option>
+                    <option value="cash_flow">Cash Flow Statement</option>
+                    <option value="profit_loss">Profit & Loss</option>
                   </select>
                 </div>
                 <div>
@@ -495,7 +711,36 @@ const Reports: React.FC = () => {
                     <option value="Users">Users</option>
                     <option value="Customer">Customer</option>
                     <option value="Security">Security</option>
+                    <option value="Financial">Financial</option>
                   </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newReport.start_date}
+                    onChange={(e) =>
+                      setNewReport({ ...newReport, start_date: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newReport.end_date}
+                    onChange={(e) =>
+                      setNewReport({ ...newReport, end_date: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
                 </div>
               </div>
               <div>
@@ -525,9 +770,13 @@ const Reports: React.FC = () => {
               </button>
               <button
                 onClick={handleCreateReport}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                disabled={generating}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
-                Generate Report
+                {generating && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                <span>{generating ? "Generating..." : "Generate Report"}</span>
               </button>
             </div>
           </div>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages Persistence Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+        }
+
+        .clear-btn:hover {
+            background: #c82333;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Messages Persistence Test</h1>
+    <p>This page tests the localStorage functionality for the Messages component.</p>
+
+    <div class="test-section">
+        <h2>Test localStorage Functions</h2>
+        <button onclick="testSaveConversations()">Save Test Conversations</button>
+        <button onclick="testSaveMessages()">Save Test Messages</button>
+        <button onclick="loadAndDisplayData()">Load & Display Data</button>
+        <button onclick="clearAllData()" class="clear-btn">Clear All Data</button>
+
+        <div id="status"></div>
+        <div id="data-display"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Simulate Message Creation</h2>
+        <button onclick="simulateNewConversation()">Create New Conversation</button>
+        <button onclick="simulateNewMessage()">Add New Message</button>
+        <button onclick="refreshPage()">Refresh Page (Test Persistence)</button>
+    </div>
+
+    <script>
+        const CONVERSATIONS_STORAGE_KEY = 'support_conversations';
+        const MESSAGES_STORAGE_KEY = 'support_messages';
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function displayData() {
+            const dataDiv = document.getElementById('data-display');
+            const conversations = JSON.parse(localStorage.getItem(CONVERSATIONS_STORAGE_KEY) || '[]');
+            const messages = JSON.parse(localStorage.getItem(MESSAGES_STORAGE_KEY) || '[]');
+
+            dataDiv.innerHTML = `
+                <h3>Current Data:</h3>
+                <h4>Conversations (${conversations.length}):</h4>
+                <pre>${JSON.stringify(conversations, null, 2)}</pre>
+                <h4>Messages (${messages.length}):</h4>
+                <pre>${JSON.stringify(messages, null, 2)}</pre>
+            `;
+        }
+
+        function testSaveConversations() {
+            const testConversations = [
+                {
+                    id: 'CONV001',
+                    user: 'Dr. John Smith',
+                    userRole: 'Doctor',
+                    lastMessage: 'Hello, I need help with the system',
+                    lastMessageTime: new Date().toLocaleString(),
+                    unreadCount: 0,
+                    status: 'active',
+                    priority: 'normal'
+                },
+                {
+                    id: 'CONV002',
+                    user: 'Jane Technician',
+                    userRole: 'Technician',
+                    lastMessage: 'Equipment issue reported',
+                    lastMessageTime: new Date().toLocaleString(),
+                    unreadCount: 1,
+                    status: 'pending',
+                    priority: 'high'
+                }
+            ];
+
+            try {
+                localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(testConversations));
+                showStatus('Test conversations saved successfully!', 'success');
+                displayData();
+            } catch (error) {
+                showStatus('Error saving conversations: ' + error.message, 'error');
+            }
+        }
+
+        function testSaveMessages() {
+            const testMessages = [
+                {
+                    id: 'MSG001',
+                    conversationId: 'CONV001',
+                    sender: 'support',
+                    senderName: 'Support Team',
+                    message: 'Hello Dr. Smith, how can I help you today?',
+                    timestamp: new Date().toLocaleString(),
+                    isRead: true
+                },
+                {
+                    id: 'MSG002',
+                    conversationId: 'CONV001',
+                    sender: 'user',
+                    senderName: 'Dr. John Smith',
+                    message: 'I am having trouble accessing the patient records',
+                    timestamp: new Date().toLocaleString(),
+                    isRead: true
+                },
+                {
+                    id: 'MSG003',
+                    conversationId: 'CONV002',
+                    sender: 'user',
+                    senderName: 'Jane Technician',
+                    message: 'The centrifuge is making strange noises',
+                    timestamp: new Date().toLocaleString(),
+                    isRead: false
+                }
+            ];
+
+            try {
+                localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(testMessages));
+                showStatus('Test messages saved successfully!', 'success');
+                displayData();
+            } catch (error) {
+                showStatus('Error saving messages: ' + error.message, 'error');
+            }
+        }
+
+        function loadAndDisplayData() {
+            try {
+                const conversations = JSON.parse(localStorage.getItem(CONVERSATIONS_STORAGE_KEY) || '[]');
+                const messages = JSON.parse(localStorage.getItem(MESSAGES_STORAGE_KEY) || '[]');
+
+                showStatus(`Loaded ${conversations.length} conversations and ${messages.length} messages`, 'success');
+                displayData();
+            } catch (error) {
+                showStatus('Error loading data: ' + error.message, 'error');
+            }
+        }
+
+        function clearAllData() {
+            try {
+                localStorage.removeItem(CONVERSATIONS_STORAGE_KEY);
+                localStorage.removeItem(MESSAGES_STORAGE_KEY);
+                showStatus('All data cleared successfully!', 'success');
+                displayData();
+            } catch (error) {
+                showStatus('Error clearing data: ' + error.message, 'error');
+            }
+        }
+
+        function simulateNewConversation() {
+            const conversations = JSON.parse(localStorage.getItem(CONVERSATIONS_STORAGE_KEY) || '[]');
+            const messages = JSON.parse(localStorage.getItem(MESSAGES_STORAGE_KEY) || '[]');
+
+            const newConversation = {
+                id: `CONV${String(conversations.length + 1).padStart(3, "0")}`,
+                user: `Test User ${conversations.length + 1}`,
+                userRole: 'Doctor',
+                lastMessage: 'This is a test message',
+                lastMessageTime: new Date().toLocaleString(),
+                unreadCount: 0,
+                status: 'active',
+                priority: 'normal'
+            };
+
+            const newMessage = {
+                id: `MSG${String(messages.length + 1).padStart(3, "0")}`,
+                conversationId: newConversation.id,
+                sender: 'support',
+                senderName: 'Support Team',
+                message: newConversation.lastMessage,
+                timestamp: new Date().toLocaleString(),
+                isRead: true
+            };
+
+            conversations.unshift(newConversation);
+            messages.unshift(newMessage);
+
+            localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+            localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages));
+
+            showStatus('New conversation created successfully!', 'success');
+            displayData();
+        }
+
+        function simulateNewMessage() {
+            const conversations = JSON.parse(localStorage.getItem(CONVERSATIONS_STORAGE_KEY) || '[]');
+            const messages = JSON.parse(localStorage.getItem(MESSAGES_STORAGE_KEY) || '[]');
+
+            if (conversations.length === 0) {
+                showStatus('No conversations available. Create a conversation first.', 'error');
+                return;
+            }
+
+            const conversationId = conversations[0].id;
+            const newMessage = {
+                id: `MSG${String(messages.length + 1).padStart(3, "0")}`,
+                conversationId: conversationId,
+                sender: 'support',
+                senderName: 'Support Team',
+                message: `New test message ${messages.length + 1}`,
+                timestamp: new Date().toLocaleString(),
+                isRead: true
+            };
+
+            messages.push(newMessage);
+
+            // Update conversation's last message
+            const updatedConversations = conversations.map(conv =>
+                conv.id === conversationId
+                    ? { ...conv, lastMessage: newMessage.message, lastMessageTime: newMessage.timestamp }
+                    : conv
+            );
+
+            localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(updatedConversations));
+            localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages));
+
+            showStatus('New message added successfully!', 'success');
+            displayData();
+        }
+
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        // Load and display data on page load
+        window.onload = function () {
+            loadAndDisplayData();
+        };
+    </script>
+</body>
+
+</html>

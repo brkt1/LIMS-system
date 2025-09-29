@@ -553,73 +553,73 @@ export const inventoryAPI = {
 
 export const supportTicketAPI = {
   // Tickets
-  getTickets: () => api.get('/api/support/tickets/'),
-  getTicketById: (id: number) => api.get(`/api/support/tickets/${id}/`),
-  createTicket: (data: any) => api.post('/api/support/tickets/', data),
-  updateTicket: (id: number, data: any) => api.put(`/api/support/tickets/${id}/`, data),
-  deleteTicket: (id: number) => api.delete(`/api/support/tickets/${id}/`),
-  assignTicket: (id: number, data: any) => api.post(`/api/support/tickets/${id}/assign/`, data),
-  resolveTicket: (id: number) => api.post(`/api/support/tickets/${id}/resolve/`),
-  closeTicket: (id: number) => api.post(`/api/support/tickets/${id}/close/`),
-  escalateTicket: (id: number, data: any) => api.post(`/api/support/tickets/${id}/escalate/`, data),
-  addSatisfactionRating: (id: number, data: any) => api.post(`/api/support/tickets/${id}/add_satisfaction_rating/`, data),
-  addMessage: (id: number, data: any) => api.post(`/api/support/tickets/${id}/add_message/`, data),
+  getTickets: () => api.get('/support/tickets/'),
+  getTicketById: (id: number) => api.get(`/support/tickets/${id}/`),
+  createTicket: (data: any) => api.post('/support/tickets/', data),
+  updateTicket: (id: number, data: any) => api.put(`/support/tickets/${id}/`, data),
+  deleteTicket: (id: number) => api.delete(`/support/tickets/${id}/`),
+  assignTicket: (id: number, data: any) => api.post(`/support/tickets/${id}/assign/`, data),
+  resolveTicket: (id: number) => api.post(`/support/tickets/${id}/resolve/`),
+  closeTicket: (id: number) => api.post(`/support/tickets/${id}/close/`),
+  escalateTicket: (id: number, data: any) => api.post(`/support/tickets/${id}/escalate/`, data),
+  addSatisfactionRating: (id: number, data: any) => api.post(`/support/tickets/${id}/add_satisfaction_rating/`, data),
+  addMessage: (id: number, data: any) => api.post(`/support/tickets/${id}/add_message/`, data),
   
   // Messages
-  getMessages: () => api.get('/api/support/messages/'),
-  getMessageById: (id: number) => api.get(`/api/support/messages/${id}/`),
-  createMessage: (data: any) => api.post('/api/support/messages/', data),
-  updateMessage: (id: number, data: any) => api.put(`/api/support/messages/${id}/`, data),
-  deleteMessage: (id: number) => api.delete(`/api/support/messages/${id}/`),
-  getMessagesByTicket: (ticketId: number) => api.get(`/api/support/messages/?ticket=${ticketId}`),
+  getMessages: () => api.get('/support/messages/'),
+  getMessageById: (id: number) => api.get(`/support/messages/${id}/`),
+  createMessage: (data: any) => api.post('/support/messages/', data),
+  updateMessage: (id: number, data: any) => api.put(`/support/messages/${id}/`, data),
+  deleteMessage: (id: number) => api.delete(`/support/messages/${id}/`),
+  getMessagesByTicket: (ticketId: number) => api.get(`/support/messages/?ticket=${ticketId}`),
 };
 
 // Support Staff Management API
 export const supportStaffAPI = {
   // Staff Management
-  getAll: (params?: any) => api.get('/api/support/staff/', { params }),
-  getById: (id: string) => api.get(`/api/support/staff/${id}/`),
-  create: (data: any) => api.post('/api/support/staff/', data),
-  update: (id: string, data: any) => api.put(`/api/support/staff/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/support/staff/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/support/staff/?tenant=${tenantId}`),
-  getBySpecialization: (specialization: string) => api.get(`/api/support/staff/?specialization=${specialization}`),
-  getByLevel: (level: string) => api.get(`/api/support/staff/?level=${level}`),
-  getAvailable: () => api.get('/api/support/staff/?is_available=true'),
-  updateAvailability: (id: string, data: any) => api.post(`/api/support/staff/${id}/update_availability/`, data),
-  getWorkload: (id: string) => api.get(`/api/support/staff/${id}/workload/`),
+  getAll: (params?: any) => api.get('/support/staff/', { params }),
+  getById: (id: string) => api.get(`/support/staff/${id}/`),
+  create: (data: any) => api.post('/support/staff/', data),
+  update: (id: string, data: any) => api.put(`/support/staff/${id}/`, data),
+  delete: (id: string) => api.delete(`/support/staff/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/support/staff/?tenant=${tenantId}`),
+  getBySpecialization: (specialization: string) => api.get(`/support/staff/?specialization=${specialization}`),
+  getByLevel: (level: string) => api.get(`/support/staff/?level=${level}`),
+  getAvailable: () => api.get('/support/staff/?is_available=true'),
+  updateAvailability: (id: string, data: any) => api.post(`/support/staff/${id}/update_availability/`, data),
+  getWorkload: (id: string) => api.get(`/support/staff/${id}/workload/`),
 };
 
 // Support Teams API
 export const supportTeamAPI = {
-  getAll: (params?: any) => api.get('/api/support/teams/', { params }),
-  getById: (id: string) => api.get(`/api/support/teams/${id}/`),
-  create: (data: any) => api.post('/api/support/teams/', data),
-  update: (id: string, data: any) => api.put(`/api/support/teams/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/support/teams/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/support/teams/?tenant=${tenantId}`),
+  getAll: (params?: any) => api.get('/support/teams/', { params }),
+  getById: (id: string) => api.get(`/support/teams/${id}/`),
+  create: (data: any) => api.post('/support/teams/', data),
+  update: (id: string, data: any) => api.put(`/support/teams/${id}/`, data),
+  delete: (id: string) => api.delete(`/support/teams/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/support/teams/?tenant=${tenantId}`),
 };
 
 // Support SLA API
 export const supportSLAAPI = {
-  getAll: (params?: any) => api.get('/api/support/slas/', { params }),
-  getById: (id: string) => api.get(`/api/support/slas/${id}/`),
-  create: (data: any) => api.post('/api/support/slas/', data),
-  update: (id: string, data: any) => api.put(`/api/support/slas/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/support/slas/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/support/slas/?tenant=${tenantId}`),
-  getByPriority: (priority: string) => api.get(`/api/support/slas/?priority=${priority}`),
-  getByCategory: (category: string) => api.get(`/api/support/slas/?category=${category}`),
+  getAll: (params?: any) => api.get('/support/slas/', { params }),
+  getById: (id: string) => api.get(`/support/slas/${id}/`),
+  create: (data: any) => api.post('/support/slas/', data),
+  update: (id: string, data: any) => api.put(`/support/slas/${id}/`, data),
+  delete: (id: string) => api.delete(`/support/slas/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/support/slas/?tenant=${tenantId}`),
+  getByPriority: (priority: string) => api.get(`/support/slas/?priority=${priority}`),
+  getByCategory: (category: string) => api.get(`/support/slas/?category=${category}`),
 };
 
 // Support Analytics API
 export const supportAnalyticsAPI = {
-  getAll: (params?: any) => api.get('/api/support/analytics/', { params }),
-  getById: (id: string) => api.get(`/api/support/analytics/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/support/analytics/?tenant=${tenantId}`),
+  getAll: (params?: any) => api.get('/support/analytics/', { params }),
+  getById: (id: string) => api.get(`/support/analytics/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/support/analytics/?tenant=${tenantId}`),
   getByDateRange: (startDate: string, endDate: string) => 
-    api.get(`/api/support/analytics/?date__gte=${startDate}&date__lte=${endDate}`),
-  getSummary: (params?: any) => api.get('/api/support/analytics/summary/', { params }),
+    api.get(`/support/analytics/?date__gte=${startDate}&date__lte=${endDate}`),
+  getSummary: (params?: any) => api.get('/support/analytics/summary/', { params }),
 };
 
 // ============================================================================

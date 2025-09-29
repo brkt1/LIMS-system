@@ -5,6 +5,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import AuthBypass from "./components/AuthBypass";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import Header from "./components/Header";
 import Login from "./components/Login";
 import RoleBasedDashboard from "./components/RoleBasedDashboard";
@@ -101,7 +102,9 @@ function AppContent() {
           {/* Main Content Area */}
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
             <div className="min-h-full">
-              <RouterContent />
+              <ErrorBoundary>
+                <RouterContent />
+              </ErrorBoundary>
             </div>
           </main>
         </div>

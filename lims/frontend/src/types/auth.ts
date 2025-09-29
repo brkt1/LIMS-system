@@ -233,8 +233,7 @@ export const ROLE_NAVIGATION: Record<UserRole, Array<{
         { icon: 'LayoutDashboard', label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard' },
         { icon: 'Headphones', label: 'Support Tickets', labelKey: 'nav.supportTickets', path: '/support-tickets' },
         { icon: 'Package', label: 'Inventory', labelKey: 'nav.inventory', path: '/inventory' },
-        { icon: 'Bell', label: 'Notifications', labelKey: 'nav.notifications', path: '/notifications' },
-        { icon: 'User', label: 'Profile', labelKey: 'nav.profile', path: '/profile' }
+        { icon: 'Bell', label: 'Notifications', labelKey: 'nav.notifications', path: '/notifications' }
       ]
     },
     {

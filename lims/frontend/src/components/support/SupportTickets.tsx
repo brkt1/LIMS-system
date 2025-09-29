@@ -45,6 +45,10 @@ const SupportTickets: React.FC = () => {
     notes: "",
   });
 
+  // State for available users for assignment
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
   const [updateData, setUpdateData] = useState({
     status: "",
     priority: "",
@@ -77,6 +81,106 @@ const SupportTickets: React.FC = () => {
     fetchTickets();
   }, []);
 
+  // Function to fetch available users for assignment
+  const fetchAvailableUsers = async () => {
+    try {
+      setUsersLoading(true);
+      // Fetch users from the tenant admin API or user management API
+      const response = await fetch("/api/tenantadmin/users/", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        setAvailableUsers(users);
+      } else {
+        // Fallback to a default list of users if API fails
+        setAvailableUsers([
+          {
+            id: 1,
+            username: "admin",
+            first_name: "Admin",
+            last_name: "User",
+            role: "admin",
+          },
+          {
+            id: 2,
+            username: "tenantadmin",
+            first_name: "Tenant",
+            last_name: "Admin",
+            role: "tenantadmin",
+          },
+          {
+            id: 3,
+            username: "doctor",
+            first_name: "Dr.",
+            last_name: "Smith",
+            role: "doctor",
+          },
+          {
+            id: 4,
+            username: "technician",
+            first_name: "Lab",
+            last_name: "Technician",
+            role: "technician",
+          },
+          {
+            id: 9,
+            username: "support",
+            first_name: "Support",
+            last_name: "Staff",
+            role: "support",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      // Fallback to default users
+      setAvailableUsers([
+        {
+          id: 1,
+          username: "admin",
+          first_name: "Admin",
+          last_name: "User",
+          role: "admin",
+        },
+        {
+          id: 2,
+          username: "tenantadmin",
+          first_name: "Tenant",
+          last_name: "Admin",
+          role: "tenantadmin",
+        },
+        {
+          id: 3,
+          username: "doctor",
+          first_name: "Dr.",
+          last_name: "Smith",
+          role: "doctor",
+        },
+        {
+          id: 4,
+          username: "technician",
+          first_name: "Lab",
+          last_name: "Technician",
+          role: "technician",
+        },
+        {
+          id: 9,
+          username: "support",
+          first_name: "Support",
+          last_name: "Staff",
+          role: "support",
+        },
+      ]);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
   // Handler functions
   const handleNewTicket = () => {
     setNewTicket({
@@ -99,10 +203,12 @@ const SupportTickets: React.FC = () => {
   const handleAssignTicket = (ticket: any) => {
     setSelectedTicket(ticket);
     setAssignData({
-      assignedTo: ticket.assignedTo || "",
+      assignedTo: ticket.assigned_to || "",
       notes: "",
     });
     setShowAssignTicketModal(true);
+    // Fetch available users when opening the assign modal
+    fetchAvailableUsers();
   };
 
   const handleUpdateTicket = (ticket: any) => {
@@ -117,32 +223,62 @@ const SupportTickets: React.FC = () => {
 
   const handleCreateTicket = async () => {
     try {
+      // Clear any previous errors
+      setError(null);
+
+      // Validate required fields
+      if (!newTicket.title.trim()) {
+        setError("Title is required");
+        return;
+      }
+      if (!newTicket.description.trim()) {
+        setError("Description is required");
+        return;
+      }
+      if (!newTicket.category) {
+        setError("Category is required");
+        return;
+      }
+
       // Get current user info from localStorage or API
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const currentTenant = JSON.parse(localStorage.getItem('currentTenant') || '{}');
-      
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const currentTenant = JSON.parse(
+        localStorage.getItem("currentTenant") || "{}"
+      );
+
+      // Ensure we have valid user and tenant IDs
+      const userId = getCurrentUserId() || "1"; // Fallback to admin user
+      const tenantId = getCurrentTenantId() || "1"; // Fallback to default tenant
+
       const ticketData = {
-        title: newTicket.title,
-        description: newTicket.description,
-        priority: newTicket.priority,
+        title: newTicket.title.trim(),
+        description: newTicket.description.trim(),
+        priority: newTicket.priority || "medium",
         category: newTicket.category,
-        reporter_name: newTicket.reporter,
-        reporter_email: newTicket.reporterEmail,
+        reporter_name: newTicket.reporter?.trim() || "Anonymous",
+        reporter_email: newTicket.reporterEmail?.trim() || "",
         tags: newTicket.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag),
-        created_by: getCurrentUserId(), // Dynamic user ID
-        tenant: getCurrentTenantId(), // Dynamic tenant ID
+          ? newTicket.tags
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter((tag) => tag)
+          : [],
+        created_by: parseInt(userId), // Ensure it's an integer
+        tenant: parseInt(tenantId), // Ensure it's an integer
       };
+
+      console.log("🎫 Creating support ticket with data:", ticketData);
+      console.log("👤 User ID:", userId, "Tenant ID:", tenantId);
 
       const response = await supportTicketAPI.createTicket(ticketData);
       const createdTicket = response.data;
-      
+
+      console.log("✅ Support ticket created successfully:", createdTicket);
+
       // Refresh the tickets list
       const updatedResponse = await supportTicketAPI.getTickets();
       setTickets(updatedResponse.data || []);
-      
+
       setShowNewTicketModal(false);
       setNewTicket({
         title: "",
@@ -153,30 +289,91 @@ const SupportTickets: React.FC = () => {
         reporterEmail: "",
         tags: "",
       });
+
+      // Show success message (you could add a toast notification here)
+      console.log("🎉 Support ticket created successfully!");
     } catch (error: any) {
       console.error("Error creating ticket:", error);
-      setError(error.message || "Failed to create ticket");
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to create ticket"
+      );
     }
   };
 
   const handleAssignSubmit = async () => {
     if (selectedTicket) {
       try {
+        // Clear any previous errors
+        setError(null);
+
+        // Validate that a user is selected
+        if (!assignData.assignedTo) {
+          setError("Please select a user to assign the ticket to");
+          return;
+        }
+
         const assignmentData = {
-          assigned_to: assignData.assignedTo,
+          assigned_to: parseInt(assignData.assignedTo), // Ensure it's an integer
         };
 
+        console.log(
+          "🎫 Assigning ticket:",
+          selectedTicket.id,
+          "to user:",
+          assignmentData.assigned_to
+        );
+
         await supportTicketAPI.assignTicket(selectedTicket.id, assignmentData);
-        
+
+        // Send notification to the assigned user
+        const assignedUser = availableUsers.find(
+          (user) => user.id === parseInt(assignData.assignedTo)
+        );
+        if (assignedUser) {
+          try {
+            await fetch("/api/notifications/notifications/", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                recipient: assignedUser.id,
+                title: `Support Ticket Assigned`,
+                message: `You have been assigned support ticket #${selectedTicket.id}: "${selectedTicket.title}"`,
+                type: "ticket_assignment",
+                priority: "medium",
+                is_read: false,
+              }),
+            });
+            console.log("📧 Notification sent to user:", assignedUser.username);
+          } catch (notificationError) {
+            console.warn("Failed to send notification:", notificationError);
+            // Don't fail the assignment if notification fails
+          }
+        }
+
         // Refresh the tickets list
         const updatedResponse = await supportTicketAPI.getTickets();
         setTickets(updatedResponse.data || []);
-        
+
         setShowAssignTicketModal(false);
         setSelectedTicket(null);
+        setAssignData({ assignedTo: "", notes: "" });
+
+        console.log("✅ Ticket assigned successfully!");
       } catch (error: any) {
         console.error("Error assigning ticket:", error);
-        setError(error.message || "Failed to assign ticket");
+        console.error("Error response:", error.response?.data);
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to assign ticket"
+        );
       }
     }
   };
@@ -184,68 +381,135 @@ const SupportTickets: React.FC = () => {
   const handleUpdateSubmit = async () => {
     if (selectedTicket) {
       try {
+        // Clear any previous errors
+        setError(null);
+
+        // Validate required fields
+        if (!updateData.status) {
+          setError("Status is required");
+          return;
+        }
+
         const updateDataPayload = {
           title: selectedTicket.title,
           description: selectedTicket.description,
           status: updateData.status,
-          priority: updateData.priority,
+          priority: updateData.priority || selectedTicket.priority,
           category: selectedTicket.category,
           created_by: selectedTicket.created_by,
           internal_notes: updateData.notes,
         };
 
-        await supportTicketAPI.updateTicket(selectedTicket.id, updateDataPayload);
-        
+        console.log(
+          "🔄 Updating ticket:",
+          selectedTicket.id,
+          "with data:",
+          updateDataPayload
+        );
+
+        await supportTicketAPI.updateTicket(
+          selectedTicket.id,
+          updateDataPayload
+        );
+
         // Refresh the tickets list
         const updatedResponse = await supportTicketAPI.getTickets();
         setTickets(updatedResponse.data || []);
-        
+
         setShowUpdateTicketModal(false);
         setSelectedTicket(null);
+        setUpdateData({ status: "", priority: "", notes: "" });
+
+        console.log("✅ Ticket updated successfully!");
       } catch (error: any) {
         console.error("Error updating ticket:", error);
-        setError(error.message || "Failed to update ticket");
+        console.error("Error response:", error.response?.data);
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to update ticket"
+        );
       }
     }
   };
 
   const handleResolveTicket = async (ticket: any) => {
     try {
+      // Clear any previous errors
+      setError(null);
+
+      console.log("✅ Resolving ticket:", ticket.id);
+
       await supportTicketAPI.resolveTicket(ticket.id);
-      
+
       // Refresh the tickets list
       const updatedResponse = await supportTicketAPI.getTickets();
       setTickets(updatedResponse.data || []);
+
+      console.log("✅ Ticket resolved successfully!");
     } catch (error: any) {
       console.error("Error resolving ticket:", error);
-      setError(error.message || "Failed to resolve ticket");
+      console.error("Error response:", error.response?.data);
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to resolve ticket"
+      );
     }
   };
 
   const handleCloseTicket = async (ticket: any) => {
     try {
+      // Clear any previous errors
+      setError(null);
+
+      console.log("🔒 Closing ticket:", ticket.id);
+
       await supportTicketAPI.closeTicket(ticket.id);
-      
+
       // Refresh the tickets list
       const updatedResponse = await supportTicketAPI.getTickets();
       setTickets(updatedResponse.data || []);
+
+      console.log("✅ Ticket closed successfully!");
     } catch (error: any) {
       console.error("Error closing ticket:", error);
-      setError(error.message || "Failed to close ticket");
+      console.error("Error response:", error.response?.data);
+      setError(
+        error.response?.data?.detail ||
+          error.message ||
+          "Failed to close ticket"
+      );
     }
   };
 
   const handleDeleteTicket = async (ticket: any) => {
-    if (window.confirm(`Are you sure you want to delete ticket "${ticket.title}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ticket "${ticket.title}"?`
+      )
+    ) {
       try {
+        // Clear any previous errors
+        setError(null);
+
+        console.log("🗑️ Deleting ticket:", ticket.id);
+
         await supportTicketAPI.deleteTicket(ticket.id);
-        
+
         // Refresh the tickets list
         const updatedResponse = await supportTicketAPI.getTickets();
         setTickets(updatedResponse.data || []);
+
+        console.log("✅ Ticket deleted successfully!");
       } catch (error: any) {
         console.error("Error deleting ticket:", error);
-        setError(error.message || "Failed to delete ticket");
+        console.error("Error response:", error.response?.data);
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to delete ticket"
+        );
       }
     }
   };
@@ -254,27 +518,48 @@ const SupportTickets: React.FC = () => {
     const escalationReason = prompt("Please provide the escalation reason:");
     if (escalationReason) {
       try {
+        // Clear any previous errors
+        setError(null);
+
+        console.log(
+          "📈 Escalating ticket:",
+          ticket.id,
+          "with reason:",
+          escalationReason
+        );
+
         await supportTicketAPI.escalateTicket(ticket.id, {
           escalation_reason: escalationReason,
           escalation_level: (ticket.escalation_level || 0) + 1,
         });
-        
+
         // Refresh the tickets list
         const updatedResponse = await supportTicketAPI.getTickets();
         setTickets(updatedResponse.data || []);
+
+        console.log("✅ Ticket escalated successfully!");
       } catch (error: any) {
         console.error("Error escalating ticket:", error);
-        setError(error.message || "Failed to escalate ticket");
+        console.error("Error response:", error.response?.data);
+        setError(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to escalate ticket"
+        );
       }
     }
   };
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
-      (ticket.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (ticket.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (ticket.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (ticket.reporter?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (ticket.title?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (ticket.description?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (ticket.id?.toString().toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (ticket.reporter?.toLowerCase() || "").includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || ticket.status === filterStatus;
     const matchesPriority =
@@ -283,7 +568,7 @@ const SupportTickets: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "open":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "in_progress":
@@ -298,7 +583,7 @@ const SupportTickets: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase() || '') {
+    switch (priority?.toLowerCase() || "") {
       case "urgent":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "high":
@@ -313,7 +598,7 @@ const SupportTickets: React.FC = () => {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "open":
         return (
           <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -337,7 +622,9 @@ const SupportTickets: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">{t('support.loadingTickets')}</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              {t("support.loadingTickets")}
+            </p>
           </div>
         </div>
       </div>
@@ -354,7 +641,7 @@ const SupportTickets: React.FC = () => {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                {t('support.failedToLoadTickets')}
+                {t("support.failedToLoadTickets")}
               </h3>
               <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                 {error}
@@ -372,10 +659,10 @@ const SupportTickets: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t('support.supportTickets')}
+            {t("support.supportTickets")}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            {t('support.manageAndTrackTickets')}
+            {t("support.manageAndTrackTickets")}
           </p>
         </div>
         <div className="flex-shrink-0">
@@ -384,7 +671,7 @@ const SupportTickets: React.FC = () => {
             className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" />
-            <span>{t('support.newTicket')}</span>
+            <span>{t("support.newTicket")}</span>
           </button>
         </div>
       </div>
@@ -396,7 +683,7 @@ const SupportTickets: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
             <input
               type="text"
-              placeholder={t('support.searchTickets')}
+              placeholder={t("support.searchTickets")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -409,22 +696,26 @@ const SupportTickets: React.FC = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">{t('support.all')} {t('support.status')}</option>
-            <option value="open">{t('support.open')}</option>
-            <option value="in_progress">{t('support.inProgress')}</option>
-            <option value="resolved">{t('support.resolved')}</option>
-            <option value="closed">{t('support.closed')}</option>
+            <option value="all">
+              {t("support.all")} {t("support.status")}
+            </option>
+            <option value="open">{t("support.open")}</option>
+            <option value="in_progress">{t("support.inProgress")}</option>
+            <option value="resolved">{t("support.resolved")}</option>
+            <option value="closed">{t("support.closed")}</option>
           </select>
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">{t('support.all')} {t('support.priority')}</option>
-            <option value="urgent">{t('support.urgent')}</option>
-            <option value="high">{t('support.high')}</option>
-            <option value="medium">{t('support.medium')}</option>
-            <option value="low">{t('support.low')}</option>
+            <option value="all">
+              {t("support.all")} {t("support.priority")}
+            </option>
+            <option value="urgent">{t("support.urgent")}</option>
+            <option value="high">{t("support.high")}</option>
+            <option value="medium">{t("support.medium")}</option>
+            <option value="low">{t("support.low")}</option>
           </select>
         </div>
       </div>
@@ -436,28 +727,28 @@ const SupportTickets: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.ticket')}
+                  {t("support.ticket")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.reporter')}
+                  {t("support.reporter")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.category')}
+                  {t("support.category")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.priority')}
+                  {t("support.priority")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.status')}
+                  {t("support.status")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.assignedTo')}
+                  {t("support.assignedTo")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.createdAt')}
+                  {t("support.createdAt")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {t('support.actions')}
+                  {t("support.actions")}
                 </th>
               </tr>
             </thead>
@@ -482,7 +773,9 @@ const SupportTickets: React.FC = () => {
                           {ticket.title}
                         </div>
                         <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {ticket.tags.map((tag) => `#${tag}`).join(" ")}
+                          {ticket.tags && ticket.tags.length > 0
+                            ? ticket.tags.map((tag) => `#${tag}`).join(" ")
+                            : "No tags"}
                         </div>
                       </div>
                     </div>
@@ -554,7 +847,7 @@ const SupportTickets: React.FC = () => {
                         <Edit className="w-3 h-3" />
                         <span>Update</span>
                       </button>
-                      {ticket.status !== 'resolved' && (
+                      {ticket.status !== "resolved" && (
                         <button
                           onClick={() => handleResolveTicket(ticket)}
                           className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 text-xs"
@@ -563,7 +856,7 @@ const SupportTickets: React.FC = () => {
                           <span>Resolve</span>
                         </button>
                       )}
-                      {ticket.status !== 'closed' && (
+                      {ticket.status !== "closed" && (
                         <button
                           onClick={() => handleCloseTicket(ticket)}
                           className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 text-xs"
@@ -638,13 +931,15 @@ const SupportTickets: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select category</option>
-                    <option value="Authentication">Authentication</option>
-                    <option value="Reports">Reports</option>
-                    <option value="Equipment">Equipment</option>
-                    <option value="Data Export">Data Export</option>
-                    <option value="Notifications">Notifications</option>
-                    <option value="System">System</option>
-                    <option value="Other">Other</option>
+                    <option value="technical">Technical</option>
+                    <option value="billing">Billing</option>
+                    <option value="account">Account</option>
+                    <option value="appointments">Appointments</option>
+                    <option value="reports">Reports</option>
+                    <option value="equipment">Equipment</option>
+                    <option value="data_export">Data Export</option>
+                    <option value="notifications">Notifications</option>
+                    <option value="general">General</option>
                   </select>
                 </div>
               </div>
@@ -710,6 +1005,7 @@ const SupportTickets: React.FC = () => {
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
+                    <option value="critical">Critical</option>
                     <option value="urgent">Urgent</option>
                   </select>
                 </div>
@@ -916,13 +1212,21 @@ const SupportTickets: React.FC = () => {
                     setAssignData({ ...assignData, assignedTo: e.target.value })
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  disabled={usersLoading}
                 >
                   <option value="">Select assignee</option>
-                  <option value="Support Team">Support Team</option>
-                  <option value="Technical Support">Technical Support</option>
-                  <option value="Development Team">Development Team</option>
-                  <option value="System Admin">System Admin</option>
-                  <option value="Unassigned">Unassigned</option>
+                  {usersLoading ? (
+                    <option value="" disabled>
+                      Loading users...
+                    </option>
+                  ) : (
+                    availableUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name} ({user.username}) -{" "}
+                        {user.role}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
               <div>
@@ -995,9 +1299,11 @@ const SupportTickets: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 >
                   <option value="open">Open</option>
+                  <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
                   <option value="resolved">Resolved</option>
                   <option value="closed">Closed</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
               <div>
@@ -1014,6 +1320,7 @@ const SupportTickets: React.FC = () => {
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
+                  <option value="critical">Critical</option>
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
