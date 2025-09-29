@@ -1,11 +1,4 @@
-import {
-    Download,
-    Edit,
-    Eye,
-    Plus,
-    Search,
-    X
-} from "lucide-react";
+import { Download, Edit, Eye, Plus, Search, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { testReportAPI } from "../../services/api";
 
@@ -93,43 +86,68 @@ const TestReports: React.FC = () => {
     );
   };
 
-  const handleCreateReport = () => {
-    const now = new Date();
-    const newReportData = {
-      id: `RPT${String(reports.length + 1).padStart(3, "0")}`,
-      ...newReport,
-      status: "processing",
-      generatedDate: now.toISOString().split("T")[0],
-      generatedTime: now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      technician: "Current Technician",
-      fileSize: "0 MB",
-      format: "PDF",
-      downloadCount: 0,
-    };
+  const handleCreateReport = async () => {
+    try {
+      // Prepare data for backend API
+      const reportData = {
+        test_name: newReport.testName,
+        patient_name: newReport.patientName,
+        patient_id: newReport.patientId,
+        category: "Hematology", // Default category, can be made dynamic
+        status: "Pending",
+        priority: newReport.priority === "normal" ? "Routine" : "Urgent",
+        notes: newReport.notes,
+        technician: "Current Technician", // You can get this from auth context
+        // Optional fields
+        result: "",
+        normal_range: "",
+        units: "",
+        attachments: 0,
+      };
 
-    setReports((prev) => [...prev, newReportData]);
-    setNewReport({
-      patientName: "",
-      patientId: "",
-      testName: "",
-      sampleId: "",
-      priority: "normal",
-      notes: "",
-    });
-    setShowNewReportModal(false);
+      // Send to backend
+      const response = await testReportAPI.create(reportData);
+      console.log("Test report created successfully:", response.data);
+
+      // Refresh reports list from backend
+      const fetchResponse = await testReportAPI.getAll();
+      setReports(fetchResponse.data || []);
+
+      // Reset form
+      setNewReport({
+        patientName: "",
+        patientId: "",
+        testName: "",
+        sampleId: "",
+        priority: "normal",
+        notes: "",
+      });
+      setShowNewReportModal(false);
+    } catch (error) {
+      console.error("Error creating test report:", error);
+      alert("Failed to create test report. Please try again.");
+    }
   };
 
-  const handleUpdateReport = (updatedData: any) => {
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === selectedReport.id ? { ...r, ...updatedData } : r
-      )
-    );
-    setShowEditReportModal(false);
-    setSelectedReport(null);
+  const handleUpdateReport = async (updatedData: any) => {
+    try {
+      // Send update to backend
+      const response = await testReportAPI.update(
+        selectedReport.id,
+        updatedData
+      );
+      console.log("Test report updated successfully:", response.data);
+
+      // Refresh reports list from backend
+      const fetchResponse = await testReportAPI.getAll();
+      setReports(fetchResponse.data || []);
+
+      setShowEditReportModal(false);
+      setSelectedReport(null);
+    } catch (error) {
+      console.error("Error updating test report:", error);
+      alert("Failed to update test report. Please try again.");
+    }
   };
 
   const handleExportAll = () => {
@@ -188,16 +206,22 @@ const TestReports: React.FC = () => {
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
-      (report.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (report.testName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (report.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (report.patientName?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (report.testName?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (report.id?.toString().toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      );
     const matchesStatus =
       filterStatus === "all" || report.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "completed":
         return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
       case "processing":
@@ -212,7 +236,7 @@ const TestReports: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase() || '') {
+    switch (priority?.toLowerCase() || "") {
       case "urgent":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
       case "high":
@@ -233,7 +257,10 @@ const TestReports: React.FC = () => {
   const processingReports = reports.filter(
     (r) => r.status === "processing"
   ).length;
-  const totalDownloads = reports.reduce((sum, r) => sum + (r.downloadCount || 0), 0);
+  const totalDownloads = reports.reduce(
+    (sum, r) => sum + (r.downloadCount || 0),
+    0
+  );
 
   if (loading) {
     return (
@@ -241,7 +268,9 @@ const TestReports: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading test reports...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading test reports...
+            </p>
           </div>
         </div>
       </div>

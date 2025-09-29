@@ -423,8 +423,10 @@ const Messages: React.FC = () => {
                 handleCreateConversation({
                   patient: formData.get("patient"),
                   patientId: formData.get("patientId"),
-                  lastMessage: formData.get("initialMessage"),
-                  lastMessageTime: new Date().toLocaleString(),
+                  message: formData.get("initialMessage"),
+                  subject: formData.get("subject"),
+                  type: "General",
+                  isUrgent: false,
                 });
               }}
             >
@@ -451,6 +453,18 @@ const Messages: React.FC = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
                     placeholder="Enter patient ID"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    name="subject"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Enter message subject"
                   />
                 </div>
                 <div>

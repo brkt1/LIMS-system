@@ -71,23 +71,43 @@ const Patients: React.FC = () => {
 
   const handleCreatePatient = async (newPatient: any) => {
     try {
+      // Split the full name into first and last name
+      const nameParts = newPatient.name.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      // Use provided date of birth or calculate from age
+      let dateOfBirth;
+      if (newPatient.dateOfBirth) {
+        dateOfBirth = newPatient.dateOfBirth;
+      } else {
+        const currentDate = new Date();
+        const birthYear = currentDate.getFullYear() - parseInt(newPatient.age);
+        dateOfBirth = new Date(
+          birthYear,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        )
+          .toISOString()
+          .split("T")[0];
+      }
+
       const patientData = {
-        patient_id: `P${String(patients.length + 1).padStart(3, "0")}`,
-        name: newPatient.name,
-        age: parseInt(newPatient.age),
-        gender: newPatient.gender,
-        phone: newPatient.phone,
+        first_name: firstName,
+        last_name: lastName,
         email: newPatient.email,
-        address: newPatient.address,
-        date_of_birth: newPatient.dateOfBirth,
-        emergency_contact: newPatient.emergencyContact,
-        emergency_phone: newPatient.emergencyPhone,
-        medical_history: newPatient.medicalHistory,
-        allergies: newPatient.allergies,
+        phone: newPatient.phone,
+        date_of_birth: dateOfBirth,
+        gender: newPatient.gender,
+        address: newPatient.address || null,
+        emergency_contact_name: newPatient.emergencyContact || null,
+        emergency_contact_phone: newPatient.emergencyPhone || null,
+        medical_history: newPatient.medicalHistory || null,
+        allergies: newPatient.allergies || null,
         status: "Active",
-        last_visit: new Date().toISOString().split("T")[0],
       };
 
+      console.log("Creating patient with data:", patientData);
       await patientAPI.create(patientData);
       setShowAddPatientModal(false);
       fetchPatients(); // Refresh the list
@@ -356,6 +376,12 @@ const Patients: React.FC = () => {
                   gender: formData.get("gender"),
                   phone: formData.get("phone"),
                   email: formData.get("email"),
+                  address: formData.get("address") || "",
+                  dateOfBirth: formData.get("dateOfBirth") || "",
+                  emergencyContact: formData.get("emergencyContact") || "",
+                  emergencyPhone: formData.get("emergencyPhone") || "",
+                  medicalHistory: formData.get("medicalHistory") || "",
+                  allergies: formData.get("allergies") || "",
                 });
               }}
             >

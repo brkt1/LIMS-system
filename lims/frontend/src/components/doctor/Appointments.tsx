@@ -1,4 +1,4 @@
-import { Clock, Plus, Search, Eye, Check, X } from "lucide-react";
+import { Clock, Plus, Search, Eye, Check, X, RefreshCw } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { appointmentAPI } from "../../services/api";
 
@@ -22,6 +22,10 @@ const Appointments: React.FC = () => {
   const [appointmentsError, setAppointmentsError] = useState<string | null>(
     null
   );
+  const [newlyCreatedAppointments, setNewlyCreatedAppointments] = useState<
+    Set<string>
+  >(new Set());
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Fetch appointments from backend
   const fetchAppointments = async () => {
@@ -30,10 +34,16 @@ const Appointments: React.FC = () => {
     try {
       const response = await appointmentAPI.getAll();
       console.log("🔍 Appointments fetched:", response.data);
-      setAppointments(response.data);
+
+      // Ensure we have an array and sort by date/time
+      const appointmentsData = Array.isArray(response.data)
+        ? response.data
+        : [];
+      setAppointments(appointmentsData);
     } catch (err: any) {
       console.error("Error fetching appointments:", err);
       setAppointmentsError(err.message || "Failed to fetch appointments");
+      // Don't clear existing appointments on error to maintain persistence
     } finally {
       setAppointmentsLoading(false);
     }
@@ -77,9 +87,45 @@ const Appointments: React.FC = () => {
         notes: newAppointment.notes,
       };
 
-      await appointmentAPI.create(appointmentData);
+      const response = await appointmentAPI.create(appointmentData);
+      console.log("✅ Appointment created successfully:", response.data);
+
+      // Add the new appointment to the current list immediately
+      const newAppointmentWithId = {
+        ...appointmentData,
+        id: response.data.id || Date.now(), // Use response ID or fallback
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      setAppointments((prevAppointments) => [
+        newAppointmentWithId,
+        ...prevAppointments,
+      ]);
+
+      // Mark this appointment as newly created for visual highlighting
+      const appointmentId = newAppointmentWithId.id.toString();
+      setNewlyCreatedAppointments((prev) => new Set([...prev, appointmentId]));
+
+      // Remove the highlight after 5 seconds
+      setTimeout(() => {
+        setNewlyCreatedAppointments((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(appointmentId);
+          return newSet;
+        });
+      }, 5000);
+
       setShowNewAppointmentModal(false);
-      fetchAppointments(); // Refresh the list
+
+      // Show success message
+      setSuccessMessage(
+        `Appointment created successfully for ${newAppointment.patient}`
+      );
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      // Also refresh from server to ensure consistency
+      fetchAppointments();
     } catch (err: any) {
       console.error("Error creating appointment:", err);
       setAppointmentsError(err.message || "Failed to create appointment");
@@ -99,10 +145,35 @@ const Appointments: React.FC = () => {
           status: newStatus,
           notes: notes || appointment.notes,
         };
-        await appointmentAPI.update(parseInt(appointmentId), updateData);
+
+        const response = await appointmentAPI.update(
+          parseInt(appointmentId),
+          updateData
+        );
+        console.log(
+          "✅ Appointment status updated successfully:",
+          response.data
+        );
+
+        // Update the appointment in the local state immediately
+        setAppointments((prevAppointments) =>
+          prevAppointments.map((apt) =>
+            apt.id === appointmentId
+              ? {
+                  ...apt,
+                  status: newStatus,
+                  notes: notes || apt.notes,
+                  updated_at: new Date().toISOString(),
+                }
+              : apt
+          )
+        );
+
         setShowConfirmModal(false);
         setShowCancelModal(false);
-        fetchAppointments(); // Refresh the list
+
+        // Also refresh from server to ensure consistency
+        fetchAppointments();
       }
     } catch (err: any) {
       console.error("Error updating appointment:", err);
@@ -110,21 +181,36 @@ const Appointments: React.FC = () => {
     }
   };
 
-  const filteredAppointments = appointments.filter((appointment) => {
-    const matchesSearch =
-      appointment.patient_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      appointment.appointment_type
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      appointment.id?.toString().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" ||
-      appointment.status?.toLowerCase() === filterStatus.toLowerCase();
-    const matchesDate = appointment.appointment_date === selectedDate;
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  const filteredAppointments = appointments
+    .filter((appointment) => {
+      const matchesSearch =
+        appointment.patient_name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        appointment.appointment_type
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        appointment.id?.toString().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        filterStatus === "all" ||
+        appointment.status?.toLowerCase() === filterStatus.toLowerCase();
+      const matchesDate = appointment.appointment_date === selectedDate;
+      return matchesSearch && matchesStatus && matchesDate;
+    })
+    .sort((a, b) => {
+      // Sort by date first, then by time, with newest appointments first
+      const dateA = new Date(a.appointment_date);
+      const dateB = new Date(b.appointment_date);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime(); // Ascending date order
+      }
+
+      // If same date, sort by time
+      const timeA = new Date(`2000-01-01T${a.appointment_time}`);
+      const timeB = new Date(`2000-01-01T${b.appointment_time}`);
+      return timeA.getTime() - timeB.getTime(); // Ascending time order
+    });
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -169,17 +255,43 @@ const Appointments: React.FC = () => {
               Manage your patient appointments and schedule
             </p>
           </div>
-          <button
-            onClick={handleNewAppointment}
-            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Appointment</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <button
+              onClick={fetchAppointments}
+              disabled={appointmentsLoading}
+              className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base w-full sm:w-auto disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${
+                  appointmentsLoading ? "animate-spin" : ""
+                }`}
+              />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={handleNewAppointment}
+              className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Appointment</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div className="flex items-center">
+              <Check className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+              <p className="text-green-800 dark:text-green-200 text-sm font-medium">
+                {successMessage}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -220,15 +332,27 @@ const Appointments: React.FC = () => {
         {/* Appointments List */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-              Appointments for{" "}
-              {new Date(selectedDate).toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                Appointments for{" "}
+                {new Date(selectedDate).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </h3>
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                <span>
+                  Total: {appointments.length} appointment
+                  {appointments.length !== 1 ? "s" : ""}
+                </span>
+                <span>
+                  Showing: {filteredAppointments.length} appointment
+                  {filteredAppointments.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {appointmentsLoading ? (
@@ -244,92 +368,101 @@ const Appointments: React.FC = () => {
                 No appointments found for the selected date and filters.
               </div>
             ) : (
-              filteredAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center space-x-3 sm:space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center">
-                          <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" />
+              filteredAppointments.map((appointment) => {
+                const isNewlyCreated = newlyCreatedAppointments.has(
+                  appointment.id.toString()
+                );
+                return (
+                  <div
+                    key={appointment.id}
+                    className={`p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 ${
+                      isNewlyCreated
+                        ? "bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 shadow-md"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-center space-x-3 sm:space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center">
+                            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                            <h4 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+                              {appointment.patient_name}
+                            </h4>
+                            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                              ID: {appointment.patient_id}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center">
+                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                              {appointment.appointment_time} (
+                              {appointment.duration} min)
+                            </span>
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                                appointment.appointment_type
+                              )}`}
+                            >
+                              {appointment.appointment_type}
+                            </span>
+                          </div>
+                          {appointment.notes && (
+                            <p className="mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                              {appointment.notes}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                          <h4 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
-                            {appointment.patient_name}
-                          </h4>
-                          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                            ID: {appointment.patient_id}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center">
-                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                            {appointment.appointment_time} (
-                            {appointment.duration} min)
-                          </span>
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                              appointment.appointment_type
-                            )}`}
-                          >
-                            {appointment.appointment_type}
-                          </span>
-                        </div>
-                        {appointment.notes && (
-                          <p className="mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                            {appointment.notes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                      <span
-                        className={`inline-flex px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold rounded-full ${getStatusColor(
-                          appointment.status
-                        )}`}
-                      >
-                        {appointment.status}
-                      </span>
-                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <button
-                          onClick={() => handleViewAppointment(appointment)}
-                          className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span
+                          className={`inline-flex px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold rounded-full ${getStatusColor(
+                            appointment.status
+                          )}`}
                         >
-                          <Eye className="w-3 h-3" />
-                          <span>View</span>
-                        </button>
-                        {appointment.status === "Pending" && (
+                          {appointment.status}
+                        </span>
+                        <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                           <button
-                            onClick={() =>
-                              handleConfirmAppointment(appointment)
-                            }
-                            className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                            onClick={() => handleViewAppointment(appointment)}
+                            className="flex items-center space-x-1 text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 text-xs sm:text-sm font-medium text-left transition-colors"
                           >
-                            <Check className="w-3 h-3" />
-                            <span>Confirm</span>
+                            <Eye className="w-3 h-3" />
+                            <span>View</span>
                           </button>
-                        )}
-                        {appointment.status !== "Cancelled" &&
-                          appointment.status !== "Completed" && (
+                          {appointment.status === "Pending" && (
                             <button
                               onClick={() =>
-                                handleCancelAppointment(appointment)
+                                handleConfirmAppointment(appointment)
                               }
-                              className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                              className="flex items-center space-x-1 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-xs sm:text-sm font-medium text-left transition-colors"
                             >
-                              <X className="w-3 h-3" />
-                              <span>Cancel</span>
+                              <Check className="w-3 h-3" />
+                              <span>Confirm</span>
                             </button>
                           )}
+                          {appointment.status !== "Cancelled" &&
+                            appointment.status !== "Completed" && (
+                              <button
+                                onClick={() =>
+                                  handleCancelAppointment(appointment)
+                                }
+                                className="flex items-center space-x-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs sm:text-sm font-medium text-left transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                                <span>Cancel</span>
+                              </button>
+                            )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

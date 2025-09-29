@@ -5,7 +5,7 @@ import {
   Search,
   Settings,
   Wrench,
-  X
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -13,7 +13,7 @@ import { technicianEquipmentAPI } from "../../services/api";
 
 const Equipment: React.FC = () => {
   const { t } = useLanguage();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
@@ -107,30 +107,59 @@ const Equipment: React.FC = () => {
     setShowCalibrateEquipmentModal(true);
   };
 
-  const handleCreateEquipment = () => {
-    const now = new Date();
-    const newEquipmentData = {
-      id: `EQP${String(equipment.length + 1).padStart(3, "0")}`,
-      ...newEquipment,
-      status: "operational",
-      lastMaintenance: now.toISOString().split("T")[0],
-      nextMaintenance: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0], // 30 days from now
-      technician: "Current Technician",
-    };
+  const handleCreateEquipment = async () => {
+    try {
+      // Prepare data for backend API
+      const equipmentData = {
+        name: newEquipment.name,
+        model: newEquipment.model,
+        serial_number: newEquipment.serialNumber,
+        department: newEquipment.type,
+        status: "operational",
+        priority: "medium",
+        location: newEquipment.location,
+        supplier: newEquipment.manufacturer,
+        notes: newEquipment.notes,
+        tenant: "1", // You can get this from context or props
+      };
 
-    setEquipment((prev) => [...prev, newEquipmentData]);
-    setNewEquipment({
-      name: "",
-      type: "",
-      manufacturer: "",
-      model: "",
-      serialNumber: "",
-      location: "",
-      notes: "",
-    });
-    setShowAddEquipmentModal(false);
+      // Send to backend
+      const response = await technicianEquipmentAPI.create(equipmentData);
+      console.log("Equipment created successfully:", response.data);
+
+      // Refresh equipment list from backend
+      const fetchResponse = await technicianEquipmentAPI.getAll();
+      const transformedEquipment = fetchResponse.data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name,
+        type: item.department || "Unknown",
+        manufacturer: item.supplier || "Unknown",
+        model: item.model,
+        serialNumber: item.serial_number,
+        status: item.status,
+        location: item.location || "Unknown",
+        lastMaintenance: item.last_maintenance?.maintenance_date || "N/A",
+        nextMaintenance: item.last_maintenance?.next_maintenance_due || "N/A",
+        technician: "System",
+        notes: item.notes || "",
+      }));
+      setEquipment(transformedEquipment);
+
+      // Reset form
+      setNewEquipment({
+        name: "",
+        type: "",
+        manufacturer: "",
+        model: "",
+        serialNumber: "",
+        location: "",
+        notes: "",
+      });
+      setShowAddEquipmentModal(false);
+    } catch (error) {
+      console.error("Error creating equipment:", error);
+      alert("Failed to create equipment. Please try again.");
+    }
   };
 
   const handleMaintainEquipmentAction = async () => {

@@ -164,41 +164,41 @@ export const doctorAPI = {
 
 // Equipment Management API (Tenant Admin)
 export const equipmentAPI = {
-  getAll: (tenantId?: string) => api.get(`/api/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/api/equipment/${id}/`),
-  create: (data: any) => api.post('/api/equipment/', data),
-  update: (id: string, data: any) => api.put(`/api/equipment/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/equipment/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/equipment/?tenant=${tenantId}`),
-  getByType: (type: string) => api.get(`/api/equipment/?type=${type}`),
-  getByStatus: (status: string) => api.get(`/api/equipment/?status=${status}`),
+  getAll: (tenantId?: string) => api.get(`/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/equipment/${id}/`),
+  create: (data: any) => api.post('/equipment/', data),
+  update: (id: string, data: any) => api.put(`/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/equipment/?status=${status}`),
 };
 
 // Technician Equipment Management API
 export const technicianEquipmentAPI = {
-  getAll: (tenantId?: string) => api.get(`/api/technician/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/api/technician/equipment/${id}/`),
-  create: (data: any) => api.post('/api/technician/equipment/', data),
-  update: (id: string, data: any) => api.put(`/api/technician/equipment/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/technician/equipment/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/technician/equipment/?tenant=${tenantId}`),
-  getByType: (type: string) => api.get(`/api/technician/equipment/?type=${type}`),
-  getByStatus: (status: string) => api.get(`/api/technician/equipment/?status=${status}`),
-  maintain: (id: number, data: any) => api.post(`/api/technician/equipment/${id}/maintain/`, data),
-  calibrate: (id: number, data: any) => api.post(`/api/technician/equipment/${id}/calibrate/`, data),
-  updateStatus: (id: number, status: string) => api.post(`/api/technician/equipment/${id}/update_status/`, { status }),
+  getAll: (tenantId?: string) => api.get(`/technician/equipment/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/technician/equipment/${id}/`),
+  create: (data: any) => api.post('/technician/equipment/', data),
+  update: (id: string, data: any) => api.put(`/technician/equipment/${id}/`, data),
+  delete: (id: string) => api.delete(`/technician/equipment/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/technician/equipment/?tenant=${tenantId}`),
+  getByType: (type: string) => api.get(`/technician/equipment/?type=${type}`),
+  getByStatus: (status: string) => api.get(`/technician/equipment/?status=${status}`),
+  maintain: (id: number, data: any) => api.post(`/technician/equipment/${id}/maintain/`, data),
+  calibrate: (id: number, data: any) => api.post(`/technician/equipment/${id}/calibrate/`, data),
+  updateStatus: (id: number, status: string) => api.post(`/technician/equipment/${id}/update_status/`, { status }),
 };
 
 // Branch Management API (Tenant Admin)
 export const branchAPI = {
-  getAll: (tenantId?: string) => api.get(`/api/branches/branches/?tenant=${tenantId || getCurrentTenantId()}`),
-  getById: (id: string) => api.get(`/api/branches/branches/${id}/`),
-  create: (data: any) => api.post('/api/branches/branches/', data),
-  update: (id: string, data: any) => api.put(`/api/branches/branches/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/branches/branches/${id}/`),
-  getByTenant: (tenantId: string) => api.get(`/api/branches/branches/?tenant=${tenantId}`),
-  getByStatus: (status: string) => api.get(`/api/branches/branches/?status=${status}`),
-  getByCity: (city: string) => api.get(`/api/branches/branches/?city=${city}`),
+  getAll: (tenantId?: string) => api.get(`/branches/branches/?tenant=${tenantId || getCurrentTenantId()}`),
+  getById: (id: string) => api.get(`/branches/branches/${id}/`),
+  create: (data: any) => api.post('/branches/branches/', data),
+  update: (id: string, data: any) => api.put(`/branches/branches/${id}/`, data),
+  delete: (id: string) => api.delete(`/branches/branches/${id}/`),
+  getByTenant: (tenantId: string) => api.get(`/branches/branches/?tenant=${tenantId}`),
+  getByStatus: (status: string) => api.get(`/branches/branches/?status=${status}`),
+  getByCity: (city: string) => api.get(`/branches/branches/?city=${city}`),
 };
 
 export const testPricingAPI = {

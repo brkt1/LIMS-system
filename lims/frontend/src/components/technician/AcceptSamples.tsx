@@ -1,10 +1,4 @@
-import {
-    Eye,
-    Plus,
-    Search,
-    TestTube,
-    X
-} from "lucide-react";
+import { Eye, Plus, RefreshCw, Search, TestTube, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { technicianSampleAPI, testRequestAPI } from "../../services/api";
 
@@ -35,6 +29,7 @@ const AcceptSamples: React.FC = () => {
   const [acceptedSamples, setAcceptedSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Load pending test requests and accepted samples from API
   useEffect(() => {
@@ -42,13 +37,15 @@ const AcceptSamples: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch pending test requests
         const pendingResponse = await testRequestAPI.getPending();
         setPendingTestRequests(pendingResponse.data || []);
-        
+
         // Fetch accepted samples
-        const acceptedResponse = await technicianSampleAPI.getByStatus('Received');
+        const acceptedResponse = await technicianSampleAPI.getByStatus(
+          "Received"
+        );
         setAcceptedSamples(acceptedResponse.data || []);
       } catch (error: any) {
         console.error("Error fetching data:", error);
@@ -63,6 +60,26 @@ const AcceptSamples: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Refresh data function to be called after accepting samples
+  const refreshData = async () => {
+    try {
+      setError(null);
+
+      // Fetch pending test requests
+      const pendingResponse = await testRequestAPI.getPending();
+      setPendingTestRequests(pendingResponse.data || []);
+
+      // Fetch accepted samples
+      const acceptedResponse = await technicianSampleAPI.getByStatus(
+        "Received"
+      );
+      setAcceptedSamples(acceptedResponse.data || []);
+    } catch (error: any) {
+      console.error("Error refreshing data:", error);
+      setError(error.message || "Failed to refresh data");
+    }
+  };
 
   // CRUD Functions
   const handleAcceptSample = () => {
@@ -83,20 +100,26 @@ const AcceptSamples: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+      setSuccessMessage(null);
+
       // Call the backend API to accept the test request
-      const response = await testRequestAPI.acceptRequest(testRequestId.toString());
-      
+      const response = await testRequestAPI.acceptRequest(
+        testRequestId.toString()
+      );
+
       if (response.data) {
-        // Add the newly created sample to accepted samples
-        setAcceptedSamples((prev) => [...prev, response.data]);
-        
-        // Remove the accepted test request from pending list
-        setPendingTestRequests((prev) => 
-          prev.filter(request => request.id !== testRequestId)
-        );
-        
         console.log("Test request accepted successfully:", response.data);
+
+        // Show success message
+        setSuccessMessage("Test request accepted successfully!");
+
+        // Refresh data from backend to ensure consistency
+        await refreshData();
+
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
       }
     } catch (error: any) {
       console.error("Error accepting test request:", error);
@@ -151,29 +174,35 @@ const AcceptSamples: React.FC = () => {
 
   // Combine pending test requests and accepted samples for display
   const allItems = [
-    ...pendingTestRequests.map(req => ({
+    ...pendingTestRequests.map((req) => ({
       ...req,
       id: req.id,
       patientName: req.patient_name,
       patientId: req.patient_id,
       testType: req.test_type,
-      status: 'Pending',
+      status: "Pending",
       priority: req.priority,
       dateRequested: req.date_requested,
-      isTestRequest: true
+      isTestRequest: true,
     })),
-    ...acceptedSamples.map(sample => ({
+    ...acceptedSamples.map((sample) => ({
       ...sample,
-      isTestRequest: false
-    }))
+      isTestRequest: false,
+    })),
   ];
 
   const filteredSamples = allItems.filter((item) => {
     const matchesSearch =
-      (item.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.patientId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.testType?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.id?.toString().toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (item.patientName?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (item.patientId?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (item.testType?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (item.id?.toString().toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      );
     const matchesStatus =
       filterStatus === "all" || item.status === filterStatus;
     const matchesPriority =
@@ -182,7 +211,7 @@ const AcceptSamples: React.FC = () => {
   });
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase() || '') {
+    switch (status?.toLowerCase() || "") {
       case "pending":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
       case "received":
@@ -199,7 +228,7 @@ const AcceptSamples: React.FC = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase() || '') {
+    switch (priority?.toLowerCase() || "") {
       case "critical":
       case "stat":
         return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
@@ -219,7 +248,9 @@ const AcceptSamples: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading samples...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading samples...
+            </p>
           </div>
         </div>
       </div>
@@ -250,6 +281,44 @@ const AcceptSamples: React.FC = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <div className="h-5 w-5 text-green-400">✓</div>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                Success
+              </h3>
+              <div className="mt-2 text-sm text-green-700 dark:text-green-300">
+                {successMessage}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -260,7 +329,14 @@ const AcceptSamples: React.FC = () => {
             Accept and process incoming samples
           </p>
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex space-x-2">
+          <button
+            onClick={refreshData}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors w-full sm:w-auto justify-center"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </button>
           <button
             onClick={handleAcceptSample}
             className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
@@ -357,7 +433,9 @@ const AcceptSamples: React.FC = () => {
                       </div>
                       <div className="ml-4 min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {sample.isTestRequest ? 'Test Request' : (sample.sampleType || 'Sample')}
+                          {sample.isTestRequest
+                            ? "Test Request"
+                            : sample.sampleType || "Sample"}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                           ID: {sample.id}
@@ -366,7 +444,10 @@ const AcceptSamples: React.FC = () => {
                           {sample.patientName} • {sample.testType}
                         </div>
                         <div className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block md:hidden">
-                          {sample.patientId} • {sample.isTestRequest ? sample.dateRequested : sample.receivedDate}
+                          {sample.patientId} •{" "}
+                          {sample.isTestRequest
+                            ? sample.dateRequested
+                            : sample.receivedDate}
                         </div>
                       </div>
                     </div>
@@ -403,7 +484,9 @@ const AcceptSamples: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white hidden md:table-cell">
-                    {sample.isTestRequest ? sample.dateRequested : sample.receivedDate}
+                    {sample.isTestRequest
+                      ? sample.dateRequested
+                      : sample.receivedDate}
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
