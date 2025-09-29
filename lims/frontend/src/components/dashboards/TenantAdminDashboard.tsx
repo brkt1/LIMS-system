@@ -177,7 +177,7 @@ const TenantAdminDashboard: React.FC = () => {
       const request = testRequests.find((r) => r.id === requestId);
       if (request) {
         const updatedRequest = { ...request, status: newStatus };
-        await testRequestAPI.update(requestId, updatedRequest);
+        await testRequestAPI.update(requestId.toString(), updatedRequest);
         await fetchAllTestRequests(); // Refresh the list
       }
     } catch (error) {
@@ -200,7 +200,7 @@ const TenantAdminDashboard: React.FC = () => {
         console.log("📦 All localStorage keys:", Object.keys(localStorage));
 
         // Use tenant from auth context if available, otherwise try to get/create a valid tenant
-        let tenantId = tenant?.id;
+        let tenantId = user?.tenant;
         if (!tenantId) {
           console.log(
             "🏢 No tenant in auth context, trying to get/create default tenant..."

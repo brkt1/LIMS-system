@@ -18,7 +18,7 @@ import BaseDashboard from "./BaseDashboard";
 
 const DoctorDashboard: React.FC = () => {
   const { t } = useLanguage();
-  
+
   // State for modals and CRUD operations
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -224,16 +224,15 @@ const DoctorDashboard: React.FC = () => {
 
     return [
       {
-        title: `${t('doctor.todaysAppointments')} - ${new Date().toLocaleDateString(
-          "en-US",
-          {
-            month: "short",
-            day: "numeric",
-            weekday: "long",
-          }
-        )}`,
+        title: `${t(
+          "doctor.todaysAppointments"
+        )} - ${new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          weekday: "long",
+        })}`,
         value: (approvedRequests + inProgressRequests).toString(),
-        change: `+2 ${t('doctor.thisWeek')}`,
+        change: `+2 ${t("doctor.thisWeek")}`,
         color: "bg-blue-500",
         chartData: [
           5,
@@ -246,23 +245,23 @@ const DoctorDashboard: React.FC = () => {
         ],
       },
       {
-        title: t('doctor.pendingTestRequests'),
+        title: t("doctor.pendingTestRequests"),
         value: pendingRequests.toString(),
-        change: `0 ${t('doctor.today')}`,
+        change: `0 ${t("doctor.today")}`,
         color: "bg-orange-500",
         chartData: [18, 20, 17, pendingRequests, 16, 18, pendingRequests],
       },
       {
-        title: t('doctor.completedTests'),
+        title: t("doctor.completedTests"),
         value: completedRequests.toString(),
-        change: `0 ${t('doctor.thisWeek')}`,
+        change: `0 ${t("doctor.thisWeek")}`,
         color: "bg-green-500",
         chartData: [30, 32, 35, 38, 40, 41, completedRequests],
       },
       {
-        title: t('doctor.activePatients'),
+        title: t("doctor.activePatients"),
         value: uniquePatients.toString(),
-        change: `0 ${t('doctor.thisMonth')}`,
+        change: `0 ${t("doctor.thisMonth")}`,
         color: "bg-purple-500",
         chartData: [110, 115, 120, 122, 125, 126, uniquePatients],
       },
@@ -321,7 +320,7 @@ const DoctorDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('doctor.todaysSchedule')} -{" "}
+              {t("doctor.todaysSchedule")} -{" "}
               {new Date().toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -345,7 +344,7 @@ const DoctorDashboard: React.FC = () => {
                     <div className="text-center">
                       <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('doctor.noAppointmentsScheduled')}
+                        {t("doctor.noAppointmentsScheduled")}
                       </p>
                     </div>
                   </div>
@@ -411,7 +410,7 @@ const DoctorDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('doctor.recentTestResults')}
+              {t("doctor.recentTestResults")}
             </h3>
             <ClipboardList className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -429,7 +428,9 @@ const DoctorDashboard: React.FC = () => {
               if (recentResults.length === 0) {
                 return (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 dark:text-gray-400">{t('doctor.noRecentTestResults')}</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {t("doctor.noRecentTestResults")}
+                    </p>
                   </div>
                 );
               }
@@ -439,24 +440,24 @@ const DoctorDashboard: React.FC = () => {
                 const getResultStatus = (status: string) => {
                   switch (status) {
                     case "Completed":
-                      return t('doctor.normal');
+                      return t("doctor.normal");
                     case "In Progress":
-                      return t('doctor.processing');
+                      return t("doctor.processing");
                     default:
-                      return t('doctor.pending');
+                      return t("doctor.pending");
                   }
                 };
 
                 const getPriorityLevel = (priority: string) => {
                   switch (priority) {
                     case "Critical":
-                      return t('doctor.high');
+                      return t("doctor.high");
                     case "Urgent":
-                      return t('doctor.medium');
+                      return t("doctor.medium");
                     case "Normal":
-                      return t('doctor.low');
+                      return t("doctor.low");
                     default:
-                      return t('doctor.low');
+                      return t("doctor.low");
                   }
                 };
 
@@ -519,7 +520,7 @@ const DoctorDashboard: React.FC = () => {
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {t('doctor.testRequestsQueue')}
+            {t("doctor.testRequestsQueue")}
           </h3>
           <div className="flex items-center space-x-2">
             <button
@@ -527,7 +528,7 @@ const DoctorDashboard: React.FC = () => {
               className="flex items-center space-x-2 px-3 py-1 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>{t('doctor.newRequest')}</span>
+              <span>{t("doctor.newRequest")}</span>
             </button>
             <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -537,22 +538,22 @@ const DoctorDashboard: React.FC = () => {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('doctor.patient')}
+                  {t("doctor.patient")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('doctor.testType')}
+                  {t("doctor.testType")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('doctor.priority')}
+                  {t("doctor.priority")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('doctor.requestedDate')}
+                  {t("doctor.requestedDate")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('doctor.status')}
+                  {t("doctor.status")}
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('doctor.actions')}
+                  {t("doctor.actions")}
                 </th>
               </tr>
             </thead>
@@ -563,7 +564,7 @@ const DoctorDashboard: React.FC = () => {
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
                       <span className="ml-2 text-gray-600 dark:text-gray-400">
-                        {t('doctor.loadingTestRequests')}
+                        {t("doctor.loadingTestRequests")}
                       </span>
                     </div>
                   </td>
@@ -583,7 +584,7 @@ const DoctorDashboard: React.FC = () => {
                     colSpan={6}
                     className="py-8 text-center text-gray-500 dark:text-gray-400"
                   >
-                    {t('doctor.noTestRequestsFound')}
+                    {t("doctor.noTestRequestsFound")}
                   </td>
                 </tr>
               ) : (
@@ -624,7 +625,7 @@ const DoctorDashboard: React.FC = () => {
                             className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
                           >
                             <Edit className="w-3 h-3" />
-                            <span>{t('doctor.review')}</span>
+                            <span>{t("doctor.review")}</span>
                           </button>
                         )}
                         {request.status === "Approved" && (
@@ -633,7 +634,7 @@ const DoctorDashboard: React.FC = () => {
                             className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
                           >
                             <Eye className="w-3 h-3" />
-                            <span>{t('doctor.view')}</span>
+                            <span>{t("doctor.view")}</span>
                           </button>
                         )}
                         {request.status === "In Progress" && (
@@ -642,7 +643,7 @@ const DoctorDashboard: React.FC = () => {
                             className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
                           >
                             <Search className="w-3 h-3" />
-                            <span>{t('doctor.track')}</span>
+                            <span>{t("doctor.track")}</span>
                           </button>
                         )}
                       </div>

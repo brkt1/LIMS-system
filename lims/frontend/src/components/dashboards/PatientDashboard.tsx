@@ -1,26 +1,26 @@
 import {
-    Calendar,
-    CheckCircle,
-    Clock,
-    FileText,
-    HelpCircle,
-    MessageSquare,
-    User,
-    X
+  Calendar,
+  CheckCircle,
+  Clock,
+  FileText,
+  HelpCircle,
+  MessageSquare,
+  User,
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
 import {
-    appointmentAPI,
-    messageAPI,
-    patientMessageAPI,
-    patientTestResultAPI
+  appointmentAPI,
+  messageAPI,
+  patientMessageAPI,
+  patientTestResultAPI,
 } from "../../services/api";
 import BaseDashboard from "./BaseDashboard";
 
 const PatientDashboard: React.FC = () => {
   const { t } = useLanguage();
-  
+
   // State management for modals
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
@@ -236,30 +236,30 @@ const PatientDashboard: React.FC = () => {
 
   const patientCards = [
     {
-      title: t('patient.upcomingAppointments'),
+      title: t("patient.upcomingAppointments"),
       value: "2",
-      change: `${t('patient.next')}: ${t('patient.tomorrow')} 10:00 AM`,
+      change: `${t("patient.next")}: ${t("patient.tomorrow")} 10:00 AM`,
       color: "bg-blue-500",
       chartData: [1, 2, 1, 3, 2, 2, 2],
     },
     {
-      title: t('patient.testResultsAvailable'),
+      title: t("patient.testResultsAvailable"),
       value: "5",
-      change: `3 ${t('patient.newThisWeek')}`,
+      change: `3 ${t("patient.newThisWeek")}`,
       color: "bg-green-500",
       chartData: [2, 3, 4, 4, 5, 5, 5],
     },
     {
-      title: t('patient.messagesFromDoctor'),
+      title: t("patient.messagesFromDoctor"),
       value: "3",
-      change: `1 ${t('patient.unread')}`,
+      change: `1 ${t("patient.unread")}`,
       color: "bg-purple-500",
       chartData: [1, 2, 2, 3, 3, 3, 3],
     },
     {
-      title: t('patient.healthScore'),
+      title: t("patient.healthScore"),
       value: "85%",
-      change: `+5% ${t('patient.thisMonth')}`,
+      change: `+5% ${t("patient.thisMonth")}`,
       color: "bg-emerald-500",
       chartData: [75, 78, 80, 82, 83, 84, 85],
     },
@@ -317,32 +317,32 @@ const PatientDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('patient.upcomingAppointments')}
+              {t("patient.upcomingAppointments")}
             </h3>
             <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
           <div className="space-y-4">
             {[
               {
-                date: `${t('patient.tomorrow')}, Jan 21`,
+                date: `${t("patient.tomorrow")}, Jan 21`,
                 time: "10:00 AM",
                 doctor: "Dr. Sarah Johnson",
-                type: t('patient.followUp'),
-                status: t('patient.confirmed'),
+                type: t("patient.followUp"),
+                status: t("patient.confirmed"),
               },
               {
                 date: "Friday, Jan 24",
                 time: "2:30 PM",
                 doctor: "Dr. Mike Chen",
-                type: t('patient.consultation'),
-                status: t('patient.confirmed'),
+                type: t("patient.consultation"),
+                status: t("patient.confirmed"),
               },
               {
                 date: "Next Monday, Jan 27",
                 time: "9:15 AM",
                 doctor: "Dr. Lisa Rodriguez",
-                type: t('patient.testReview'),
-                status: t('patient.pending'),
+                type: t("patient.testReview"),
+                status: t("patient.pending"),
               },
             ].map((appointment, index) => (
               <div
@@ -382,7 +382,7 @@ const PatientDashboard: React.FC = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('patient.recentTestResults')}
+              {t("patient.recentTestResults")}
             </h3>
             <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -392,7 +392,7 @@ const PatientDashboard: React.FC = () => {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('patient.loadingTestResults')}
+                    {t("patient.loadingTestResults")}
                   </p>
                 </div>
               </div>
@@ -410,7 +410,7 @@ const PatientDashboard: React.FC = () => {
                 <div className="text-center">
                   <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('patient.noTestResultsAvailable')}
+                    {t("patient.noTestResultsAvailable")}
                   </p>
                 </div>
               </div>

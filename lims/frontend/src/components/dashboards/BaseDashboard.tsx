@@ -16,56 +16,56 @@ const BaseDashboard: React.FC<BaseDashboardProps> = ({ children }) => {
   if (!user) return null;
 
   const getWelcomeMessage = () => {
-    if (user.role === 'superadmin') {
-      return t('superadmin.welcome');
+    if (user.role === "superadmin") {
+      return t("superadmin.welcome");
     }
-    
-    if (user.role === 'tenant-admin') {
-      return t('tenantAdmin.welcome');
+
+    if (user.role === "tenant-admin") {
+      return t("tenantAdmin.welcome");
     }
-    
-    if (user.role === 'doctor') {
-      return t('doctor.welcome');
+
+    if (user.role === "doctor") {
+      return t("doctor.welcome");
     }
-    
-    if (user.role === 'technician') {
-      return t('technician.welcome');
+
+    if (user.role === "technician") {
+      return t("technician.welcome");
     }
-    
-    if (user.role === 'support') {
-      return t('support.welcome');
+
+    if (user.role === "support") {
+      return t("support.welcome");
     }
-    
-    if (user.role === 'patient') {
-      return t('patient.welcome');
+
+    if (user.role === "patient") {
+      return t("patient.welcome");
     }
 
     return `Welcome ${user.role}!`;
   };
 
   const getDashboardDescription = () => {
-    if (user.role === 'superadmin') {
-      return t('superadmin.description');
+    if (user.role === "superadmin") {
+      return t("superadmin.description");
     }
-    
-    if (user.role === 'tenant-admin') {
-      return t('tenantAdmin.description');
+
+    if (user.role === "tenant-admin") {
+      return t("tenantAdmin.description");
     }
-    
-    if (user.role === 'doctor') {
-      return t('doctor.description');
+
+    if (user.role === "doctor") {
+      return t("doctor.description");
     }
-    
-    if (user.role === 'technician') {
-      return t('technician.description');
+
+    if (user.role === "technician") {
+      return t("technician.description");
     }
-    
-    if (user.role === 'support') {
-      return t('support.description');
+
+    if (user.role === "support") {
+      return t("support.description");
     }
-    
-    if (user.role === 'patient') {
-      return t('patient.description');
+
+    if (user.role === "patient") {
+      return t("patient.description");
     }
 
     return `Manage your ${user.role} activities`;
