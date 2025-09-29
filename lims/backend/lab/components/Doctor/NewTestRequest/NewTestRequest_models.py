@@ -26,6 +26,7 @@ class TestRequest(models.Model):
     notes = models.TextField(blank=True, null=True)
     date_requested = models.DateField(default=date.today)  # default today to avoid migration issues
     created_at = models.DateTimeField(auto_now_add=True)
+    accepted = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'lab'

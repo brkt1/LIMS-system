@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from lab.components.Technician.Sample.sample_model import Sample
+from lab.models import Sample
 from lab.components.Doctor.NewTestRequest.NewTestRequest_models import TestRequest
 from lab.components.Technician.Sample.accept_serializers import AcceptSampleSerializer
 

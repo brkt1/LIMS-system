@@ -24,7 +24,9 @@ class TestReportList(generics.ListCreateAPIView):
             # Set default values
             data.setdefault('status', 'Pending')
             data.setdefault('priority', 'Routine')
-            data.setdefault('category', 'General')
+            # Use a valid category choice instead of 'General'
+            if not data.get('category') or data.get('category') not in ['Hematology', 'Biochemistry', 'Immunology', 'Microbiology', 'Radiology', 'Pathology']:
+                data['category'] = 'Hematology'  # Default to a valid choice
         
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():

@@ -242,14 +242,7 @@ export const culturesAntibioticsAPI = {
 // TECHNICIAN APIs
 // ============================================================================
 
-// Test Request API (Technician)
-export const testRequestAPI = {
-  getAll: () => api.get('/test-requests/test-requests/'),
-  getById: (id: number) => api.get(`/test-requests/test-requests/${id}/`),
-  create: (data: any) => api.post('/test-requests/test-requests/', data),
-  update: (id: number, data: any) => api.put(`/test-requests/test-requests/${id}/`, data),
-  delete: (id: number) => api.delete(`/test-requests/test-requests/${id}/`),
-};
+// Test Request API (Technician) - moved to comprehensive version below
 
 // Test Report API
 export const testReportAPI = {
@@ -884,6 +877,20 @@ export const technicianSampleAPI = {
   updateStatus: (id: string, data: any) => api.post(`/samples/${id}/update_status/`, data),
   rejectSample: (id: string, data: any) => api.post(`/samples/${id}/reject_sample/`, data),
   getStatistics: (params?: any) => api.get('/samples/statistics/', { params }),
+};
+
+// Test Request Management API
+export const testRequestAPI = {
+  getAll: (params?: any) => api.get('/test-requests/test-requests/', { params }),
+  getById: (id: string) => api.get(`/test-requests/test-requests/${id}/`),
+  create: (data: any) => api.post('/test-requests/test-requests/', data),
+  update: (id: string, data: any) => api.put(`/test-requests/test-requests/${id}/`, data),
+  delete: (id: string) => api.delete(`/test-requests/test-requests/${id}/`),
+  getPending: () => api.get('/samples/pending-test-requests/'),
+  getByStatus: (status: string) => api.get(`/test-requests/test-requests/?status=${status}`),
+  getByPatient: (patientId: string) => api.get(`/test-requests/test-requests/?patient_id=${patientId}`),
+  getByPriority: (priority: string) => api.get(`/test-requests/test-requests/?priority=${priority}`),
+  acceptRequest: (id: string, data?: any) => api.post(`/accept/${id}/`, data || {}),
 };
 
 // Test Result Management API

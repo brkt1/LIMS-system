@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
-import { testRequestAPI } from "../../services/api";
+import { testRequestAPI, technicianSampleAPI } from "../../services/api";
 
 const Samples: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,40 +25,38 @@ const Samples: React.FC = () => {
 
   // Form states
   const [newSample, setNewSample] = useState({
-    patientName: "",
-    patientId: "",
-    testType: "",
-    sampleType: "",
-    priority: "normal",
-    notes: "",
+    patient_id: "",
+    test_request_id: "",
+    sample_type: "",
+    priority: "routine",
+    volume: "",
+    container_type: "",
+    storage_conditions: "",
+    collection_notes: "",
   });
 
-  // API Integration - Fetch test requests from backend
+  // API Integration - Fetch samples from backend
   const [samples, setSamples] = useState<any[]>([]);
   const [samplesLoading, setSamplesLoading] = useState(false);
   const [samplesError, setSamplesError] = useState<string | null>(null);
 
-  // Fetch test requests from backend
-  const fetchTestRequests = async () => {
+  // Fetch samples from backend
+  const fetchSamples = async () => {
     setSamplesLoading(true);
     setSamplesError(null);
     try {
-      const response = await testRequestAPI.getAll();
-      // Filter for approved test requests that technicians can process
-      const approvedRequests = response.data.filter(
-        (request: any) =>
-          request.status === "Approved" || request.status === "In Progress"
-      );
+      const response = await technicianSampleAPI.getAll();
+      const samplesData = response.data || response;
 
-      // Transform test requests to samples format
-      const transformedSamples = approvedRequests.map((request: any) => ({
-        id: `TR-${request.id}`,
-        patientName: request.patient_name,
-        patientId: request.patient_id,
-        testType: request.test_type,
-        sampleType: getSampleType(request.test_type),
-        collectionDate: request.date_requested,
-        collectionTime: new Date(request.created_at).toLocaleTimeString(
+      // Transform backend samples to frontend format
+      const transformedSamples = samplesData.map((sample: any) => ({
+        id: sample.id,
+        patientName: sample.patient_id, // Using patient_id as patient name for now
+        patientId: sample.patient_id,
+        testType: sample.test_type || "Unknown Test",
+        sampleType: sample.sample_type_display || sample.sample_type,
+        collectionDate: new Date(sample.collection_date).toLocaleDateString(),
+        collectionTime: new Date(sample.collection_date).toLocaleTimeString(
           "en-US",
           {
             hour: "2-digit",
@@ -66,21 +64,24 @@ const Samples: React.FC = () => {
             hour12: true,
           }
         ),
-        status: mapStatus(request.status),
-        priority: request.priority.toLowerCase(),
-        technician: "Current Technician",
+        status: mapBackendStatus(sample.status),
+        priority: mapBackendPriority(sample.priority),
+        technician: sample.technician_name || "Unassigned",
         expectedCompletion: getExpectedCompletion(
-          request.date_requested,
-          request.priority
+          sample.collection_date,
+          sample.priority
         ),
-        notes: request.notes || "No additional notes",
-        originalRequest: request, // Keep reference to original request
+        notes: sample.collection_notes || "No additional notes",
+        volume: sample.volume,
+        containerType: sample.container_type,
+        storageConditions: sample.storage_conditions,
+        originalSample: sample, // Keep reference to original sample
       }));
 
       setSamples(transformedSamples);
     } catch (error) {
-      console.error("Error fetching test requests:", error);
-      setSamplesError("Failed to load test requests");
+      console.error("Error fetching samples:", error);
+      setSamplesError("Failed to load samples");
     } finally {
       setSamplesLoading(false);
     }
@@ -102,6 +103,42 @@ const Samples: React.FC = () => {
     )
       return "Nasal Swab";
     return "Other";
+  };
+
+  const mapBackendStatus = (status: string) => {
+    switch (status) {
+      case "collected":
+        return "pending";
+      case "received":
+        return "pending";
+      case "processing":
+        return "processing";
+      case "analyzed":
+        return "processing";
+      case "completed":
+        return "completed";
+      case "rejected":
+        return "cancelled";
+      case "expired":
+        return "cancelled";
+      default:
+        return "pending";
+    }
+  };
+
+  const mapBackendPriority = (priority: string) => {
+    switch (priority) {
+      case "routine":
+        return "normal";
+      case "urgent":
+        return "urgent";
+      case "stat":
+        return "urgent";
+      case "emergency":
+        return "urgent";
+      default:
+        return "normal";
+    }
   };
 
   const mapStatus = (status: string) => {
@@ -135,9 +172,9 @@ const Samples: React.FC = () => {
     });
   };
 
-  // Load test requests on component mount
+  // Load samples on component mount
   useEffect(() => {
-    fetchTestRequests();
+    fetchSamples();
   }, []);
 
   // CRUD Functions
@@ -185,49 +222,99 @@ const Samples: React.FC = () => {
     }
   };
 
-  const handleCreateSample = () => {
-    const now = new Date();
-    const newSampleData = {
-      id: `SMP${String(samples.length + 1).padStart(3, "0")}`,
-      ...newSample,
-      status: "pending",
-      collectionDate: now.toISOString().split("T")[0],
-      collectionTime: now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      technician: "Current Technician",
-      expectedCompletion: `${
-        now.toISOString().split("T")[0]
-      } ${now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`,
-    };
+  const handleCreateSample = async () => {
+    try {
+      // Generate a unique sample ID
+      const sampleId = `SMP${Date.now()}`;
+      const now = new Date();
 
-    setSamples((prev) => [...prev, newSampleData]);
-    setNewSample({
-      patientName: "",
-      patientId: "",
-      testType: "",
-      sampleType: "",
-      priority: "normal",
-      notes: "",
-    });
-    setShowAddSampleModal(false);
+      // Prepare data for backend API
+      const sampleData = {
+        id: sampleId,
+        patient_id: newSample.patient_id,
+        test_request_id: newSample.test_request_id || null,
+        sample_type: newSample.sample_type,
+        collection_date: now.toISOString(),
+        priority: newSample.priority,
+        volume: newSample.volume ? parseFloat(newSample.volume) : null,
+        container_type: newSample.container_type || null,
+        storage_conditions: newSample.storage_conditions || null,
+        collection_notes: newSample.collection_notes || null,
+        status: "collected",
+        tenant_id: "default_tenant", // You might want to get this from context
+      };
+
+      // Create sample in backend
+      const response = await technicianSampleAPI.create(sampleData);
+
+      if (response.data) {
+        // Refresh the samples list to show the new sample
+        await fetchSamples();
+
+        // Reset form
+        setNewSample({
+          patient_id: "",
+          test_request_id: "",
+          sample_type: "",
+          priority: "routine",
+          volume: "",
+          container_type: "",
+          storage_conditions: "",
+          collection_notes: "",
+        });
+
+        setShowAddSampleModal(false);
+        console.log("Sample created successfully:", response.data);
+      }
+    } catch (error) {
+      console.error("Error creating sample:", error);
+      setSamplesError("Failed to create sample. Please try again.");
+    }
   };
 
   const handleUpdateSampleStatus = async (updatedData: any) => {
     try {
-      // Update the test request status in the backend
-      await handleUpdateTestRequestStatus(selectedSample, updatedData.status);
+      if (selectedSample && selectedSample.originalSample) {
+        // Map frontend status to backend status
+        const backendStatus = mapFrontendToBackendStatus(updatedData.status);
 
-      // Close the modal
-      setShowUpdateStatusModal(false);
-      setSelectedSample(null);
+        // Update the sample status in the backend
+        await technicianSampleAPI.updateStatus(selectedSample.id, {
+          status: backendStatus,
+          processing_notes:
+            updatedData.notes || selectedSample.originalSample.processing_notes,
+        });
+
+        // Refresh the samples list
+        await fetchSamples();
+
+        // Close the modal
+        setShowUpdateStatusModal(false);
+        setSelectedSample(null);
+
+        console.log(
+          `Sample ${selectedSample.id} status updated to ${backendStatus}`
+        );
+      }
     } catch (error) {
       console.error("Error updating sample status:", error);
       setSamplesError("Failed to update sample status");
+    }
+  };
+
+  // Helper function to map frontend status to backend status
+  const mapFrontendToBackendStatus = (frontendStatus: string) => {
+    switch (frontendStatus) {
+      case "pending":
+        return "collected";
+      case "processing":
+        return "processing";
+      case "completed":
+        return "completed";
+      case "cancelled":
+        return "rejected";
+      default:
+        return "collected";
     }
   };
 
@@ -666,81 +753,68 @@ const Samples: React.FC = () => {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Patient Name
+                  Patient ID *
                 </label>
                 <input
                   type="text"
-                  value={newSample.patientName}
+                  value={newSample.patient_id}
                   onChange={(e) =>
                     setNewSample((prev) => ({
                       ...prev,
-                      patientName: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter patient name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Patient ID
-                </label>
-                <input
-                  type="text"
-                  value={newSample.patientId}
-                  onChange={(e) =>
-                    setNewSample((prev) => ({
-                      ...prev,
-                      patientId: e.target.value,
+                      patient_id: e.target.value,
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Enter patient ID"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Test Type
+                  Test Request ID
                 </label>
                 <input
                   type="text"
-                  value={newSample.testType}
+                  value={newSample.test_request_id}
                   onChange={(e) =>
                     setNewSample((prev) => ({
                       ...prev,
-                      testType: e.target.value,
+                      test_request_id: e.target.value,
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter test type"
+                  placeholder="Enter test request ID (optional)"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sample Type
+                  Sample Type *
                 </label>
                 <select
-                  value={newSample.sampleType}
+                  value={newSample.sample_type}
                   onChange={(e) =>
                     setNewSample((prev) => ({
                       ...prev,
-                      sampleType: e.target.value,
+                      sample_type: e.target.value,
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  required
                 >
                   <option value="">Select sample type</option>
-                  <option value="Blood">Blood</option>
-                  <option value="Urine">Urine</option>
-                  <option value="Nasal Swab">Nasal Swab</option>
-                  <option value="Imaging">Imaging</option>
-                  <option value="Tissue">Tissue</option>
-                  <option value="Other">Other</option>
+                  <option value="blood">Blood</option>
+                  <option value="urine">Urine</option>
+                  <option value="tissue">Tissue</option>
+                  <option value="swab">Swab</option>
+                  <option value="fluid">Body Fluid</option>
+                  <option value="stool">Stool</option>
+                  <option value="sputum">Sputum</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Priority
+                  Priority *
                 </label>
                 <select
                   value={newSample.priority}
@@ -751,24 +825,80 @@ const Samples: React.FC = () => {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  required
                 >
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
+                  <option value="routine">Routine</option>
                   <option value="urgent">Urgent</option>
+                  <option value="stat">STAT</option>
+                  <option value="emergency">Emergency</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Notes
+                  Volume (ml)
                 </label>
-                <textarea
-                  value={newSample.notes}
+                <input
+                  type="number"
+                  step="0.1"
+                  value={newSample.volume}
                   onChange={(e) =>
-                    setNewSample((prev) => ({ ...prev, notes: e.target.value }))
+                    setNewSample((prev) => ({
+                      ...prev,
+                      volume: e.target.value,
+                    }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter any additional notes"
+                  placeholder="Enter sample volume"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Container Type
+                </label>
+                <input
+                  type="text"
+                  value={newSample.container_type}
+                  onChange={(e) =>
+                    setNewSample((prev) => ({
+                      ...prev,
+                      container_type: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="e.g., Vacutainer, Urine cup"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Storage Conditions
+                </label>
+                <input
+                  type="text"
+                  value={newSample.storage_conditions}
+                  onChange={(e) =>
+                    setNewSample((prev) => ({
+                      ...prev,
+                      storage_conditions: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="e.g., Room temperature, Refrigerated"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Collection Notes
+                </label>
+                <textarea
+                  value={newSample.collection_notes}
+                  onChange={(e) =>
+                    setNewSample((prev) => ({
+                      ...prev,
+                      collection_notes: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter any additional notes about sample collection"
                   rows={3}
                 />
               </div>

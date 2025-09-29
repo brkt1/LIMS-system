@@ -167,34 +167,9 @@ const TechnicianDashboard: React.FC = () => {
         high: "Urgent",
       };
 
-      // Get an available test request ID (find one that doesn't have a report yet)
-      let testRequestId = 11; // Default fallback - ID 11 is available
-      try {
-        const testRequestsResponse = await testRequestAPI.getAll();
-        const testRequests = testRequestsResponse.data;
-
-        // Find an approved test request that doesn't have a report yet
-        const availableRequest = testRequests.find(
-          (req: any) =>
-            req.status === "Approved" &&
-            !testReports.some((report) => report.test_request === req.id)
-        );
-
-        if (availableRequest) {
-          testRequestId = availableRequest.id;
-          console.log("Found available test request ID:", testRequestId);
-        } else {
-          console.log(
-            "No available test requests found, using default ID:",
-            testRequestId
-          );
-        }
-      } catch (err) {
-        console.warn("Could not fetch test requests, using default ID:", err);
-      }
-
+      // Create a standalone test report without requiring a test_request
       const reportData = {
-        test_request: testRequestId,
+        // Don't include test_request to create a standalone report
         test_name: newReport.testType || "General Test",
         category: newReport.category, // Use selected category
         status: "Pending", // Valid status choice
@@ -202,6 +177,9 @@ const TechnicianDashboard: React.FC = () => {
         result: newReport.description || "Report being generated",
         technician: "Current Technician",
         notes: newReport.description || "New test report created",
+        // Add required fields for standalone reports
+        patient_name: newReport.patientName || "Unknown Patient",
+        patient_id: "TECH-" + Date.now(), // Generate a unique patient ID
       };
 
       await testReportAPI.create(reportData);
