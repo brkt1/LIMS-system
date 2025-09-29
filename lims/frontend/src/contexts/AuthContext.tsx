@@ -141,13 +141,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: user?.email || "",
         password: "", // We'll use the token for authentication
       });
-      
+
       const data: AuthResponse = response.data;
-      
+
       // Update stored user data
       localStorage.setItem("user_data", JSON.stringify(data.user));
       setUser(data.user);
-      
+
       console.log("User data refreshed:", data.user);
     } catch (error) {
       console.error("Failed to refresh user data:", error);

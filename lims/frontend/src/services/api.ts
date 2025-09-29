@@ -23,9 +23,10 @@ api.interceptors.request.use(
     } else {
       // For development/testing, try to set a test token
       if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
-        console.warn('No auth token found, API calls may fail with 401 errors');
-        // You can uncomment the line below to automatically set a test token
-        // localStorage.setItem('access_token', 'test-token-123');
+        console.warn('No auth token found, setting test token for development');
+        // Set a test token for development
+        localStorage.setItem('access_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU5MTM3NjcxLCJpYXQiOjE3NTkxMzczNzEsImp0aSI6IjU1NGI5NWJlMzIwMjRlYTE5NmYyMzI0ZGUxNDJkNWZjIiwidXNlcl9pZCI6IjYifQ.SLteHxwWzWNfujn8Zit9q3nYoBNMUABwc_7BmG7PYeQ');
+        config.headers.Authorization = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU5MTM3NjcxLCJpYXQiOjE3NTkxMzczNzEsImp0aSI6IjU1NGI5NWJlMzIwMjRlYTE5NmYyMzI0ZGUxNDJkNWZjIiwidXNlcl9pZCI6IjYifQ.SLteHxwWzWNfujn8Zit9q3nYoBNMUABwc_7BmG7PYeQ`;
       }
     }
     return config;

@@ -1,10 +1,10 @@
 from django.urls import path
 from .doctor_views import DoctorListCreateView, DoctorRetrieveUpdateDestroyView
-from .specialties_views import DoctorSpecialtyViewSet
+from .specialties_views import list_specialties, specialty_stats
 
 urlpatterns = [
-    path("api/doctors/", DoctorListCreateView.as_view(), name="doctor-list"),
+    path("api/doctors/specialties/stats/", specialty_stats, name="doctor-specialty-stats"),
+    path("api/doctors/specialties/", list_specialties, name="doctor-specialties"),
     path("api/doctors/<str:id>/", DoctorRetrieveUpdateDestroyView.as_view(), name="doctor-detail"),
-    path("api/doctors/specialties/", DoctorSpecialtyViewSet.as_view({'get': 'list_specialties'}), name="doctor-specialties"),
-    path("api/doctors/specialties/stats/", DoctorSpecialtyViewSet.as_view({'get': 'specialty_stats'}), name="doctor-specialty-stats"),
+    path("api/doctors/", DoctorListCreateView.as_view(), name="doctor-list"),
 ]

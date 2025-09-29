@@ -71,6 +71,9 @@ def create_test_users():
         # Remove password and role from user_data for User creation
         user_creation_data = {k: v for k, v in user_data.items() if k not in ['password', 'role']}
         
+        # Add username field (required by Django's AbstractUser)
+        user_creation_data['username'] = email  # Use email as username
+        
         try:
             # Try to get existing user
             user = User.objects.get(email=email)
@@ -79,6 +82,8 @@ def create_test_users():
             # Update user data
             for key, value in user_creation_data.items():
                 setattr(user, key, value)
+            # Set the role explicitly
+            user.role = role
             user.set_password(password)
             user.save()
             updated_count += 1
@@ -86,6 +91,7 @@ def create_test_users():
         except User.DoesNotExist:
             # Create new user
             user = User.objects.create_user(**user_creation_data)
+            user.role = role
             user.set_password(password)
             user.save()
             print(f"Created user: {email} with role: {role}")

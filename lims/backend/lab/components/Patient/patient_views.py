@@ -9,7 +9,8 @@ from datetime import date, timedelta
 import uuid
 
 # Import the User model
-User = settings.AUTH_USER_MODEL
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 from .patient_models import (
     Patient, Appointment, TestResult, Message, 
