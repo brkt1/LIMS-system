@@ -22,7 +22,7 @@ class AcceptTestRequestAPIView(APIView):
             )
 
         # Prevent duplicate Sample creation
-        existing_sample = Sample.objects.filter(patient=test_request.patient_name, test=test_request.test_type).first()
+        existing_sample = Sample.objects.filter(test_request_id=str(test_request.id)).first()
         if existing_sample:
             return Response(
                 {"error": "Sample already exists for this request."},
@@ -30,19 +30,26 @@ class AcceptTestRequestAPIView(APIView):
             )
 
         priority_map = {
-            'Normal': 'Routine',
-            'Urgent': 'Urgent',
-            'Critical': 'STAT',
-            'STAT': 'STAT'
+            'Normal': 'routine',
+            'Urgent': 'urgent',
+            'Critical': 'stat',
+            'STAT': 'stat'
         }
 
+        # Generate a unique sample ID
+        sample_id = f"SMP{Sample.objects.count() + 1:04d}"
+
         sample = Sample.objects.create(
-            patient=test_request.patient_name,
-            test=test_request.test_type,
-            status='Received',
-            priority=priority_map.get(test_request.priority, 'Routine'),
-            assigned_to=None,
-            collection_date=timezone.now().date()
+            id=sample_id,
+            patient_id=test_request.patient_id,
+            test_request_id=str(test_request.id),
+            sample_type='blood',  # Default to blood, can be updated later
+            collection_date=timezone.now(),
+            received_date=timezone.now(),
+            status='received',
+            priority=priority_map.get(test_request.priority, 'routine'),
+            collection_notes=f"Accepted from test request: {test_request.test_type}",
+            tenant_id='default_tenant'
         )
 
         # Mark request as accepted to hide from frontend
