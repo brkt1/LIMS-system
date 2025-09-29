@@ -11,7 +11,7 @@ import {
   UserCheck,
   Users,
   UserX,
-  X
+  X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -38,8 +38,9 @@ const ManageTenants: React.FC = () => {
   const [newTenant, setNewTenant] = useState({
     name: "",
     domain: "",
+    email: "",
     status: "Active",
-    users: 0,
+    users: 10,
     plan: "Basic",
     created: "",
     lastActive: "",
@@ -48,6 +49,7 @@ const ManageTenants: React.FC = () => {
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Load tenants from backend API
   useEffect(() => {
@@ -56,15 +58,16 @@ const ManageTenants: React.FC = () => {
         setLoading(true);
         setError(null);
         const response = await superadminAPI.tenants.getAll();
-        
+
         // Validate and sanitize the response data
         const tenantsData = Array.isArray(response.data) ? response.data : [];
-        const validTenants = tenantsData.filter(tenant => 
-          tenant && 
-          typeof tenant === 'object' && 
-          (tenant.company_name || tenant.domain)
+        const validTenants = tenantsData.filter(
+          (tenant) =>
+            tenant &&
+            typeof tenant === "object" &&
+            (tenant.company_name || tenant.domain)
         );
-        
+
         setTenants(validTenants);
       } catch (error: any) {
         console.error("Error fetching tenants:", error);
@@ -80,11 +83,23 @@ const ManageTenants: React.FC = () => {
 
   // CRUD Functions
   const handleAddTenant = () => {
+    setError(null);
     setShowAddTenantModal(true);
   };
 
   const handleEditTenant = (tenant: any) => {
     setSelectedTenant(tenant);
+    // Populate the form with tenant data
+    setNewTenant({
+      name: tenant.company_name || "",
+      domain: tenant.domain || "",
+      email: tenant.email || "",
+      status: tenant.status || "Active",
+      users: tenant.max_users || 10,
+      plan: tenant.plan_name || tenant.billing_period || "Basic",
+      created: tenant.created_at || "",
+      lastActive: tenant.last_active || "",
+    });
     setShowEditTenantModal(true);
   };
 
@@ -104,56 +119,211 @@ const ManageTenants: React.FC = () => {
   };
 
   const handleCreateTenant = async () => {
+    setIsCreating(true);
+    setError(null);
+
     try {
+      // Validate required fields
+      if (!newTenant.name.trim()) {
+        setError("Tenant name is required");
+        setIsCreating(false);
+        return;
+      }
+      if (!newTenant.domain.trim()) {
+        setError("Domain is required");
+        setIsCreating(false);
+        return;
+      }
+      if (!newTenant.email.trim()) {
+        setError("Email is required");
+        setIsCreating(false);
+        return;
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newTenant.email)) {
+        setError("Please enter a valid email address");
+        setIsCreating(false);
+        return;
+      }
+
+      // Basic domain validation (alphanumeric and hyphens only)
+      const domainRegex = /^[a-zA-Z0-9-]+$/;
+      if (!domainRegex.test(newTenant.domain)) {
+        setError("Domain can only contain letters, numbers, and hyphens");
+        setIsCreating(false);
+        return;
+      }
+
       const tenantData = {
-        company_name: newTenant.name,
-        domain: newTenant.domain,
-        email: `${newTenant.domain}@${process.env.REACT_APP_DEFAULT_DOMAIN || 'lims.com'}`, // Generate email from domain
+        company_name: newTenant.name.trim(),
+        domain: newTenant.domain.trim().toLowerCase(),
+        email: newTenant.email.trim().toLowerCase(),
         password: generateSecurePassword(), // Generate secure password
         status: newTenant.status.toLowerCase(),
+        billing_period: "monthly",
         max_users: newTenant.users,
         created_by: "SuperAdmin", // You might want to get this from auth context
       };
 
+      console.log("Creating tenant with data:", tenantData);
       const response = await superadminAPI.tenants.create(tenantData);
-      setTenants((prev) => [...prev, response.data.tenant]);
+
+      // Handle different response formats
+      const createdTenant = response.data.tenant || response.data;
+      setTenants((prev) => [createdTenant, ...prev]);
+
+      // Reset form
       setNewTenant({
         name: "",
         domain: "",
+        email: "",
         status: "Active",
-        users: 0,
+        users: 10,
         plan: "Basic",
         created: "",
         lastActive: "",
       });
       setShowAddTenantModal(false);
+      setError(null);
     } catch (error: any) {
       console.error("Error creating tenant:", error);
-      setError(error.message || "Failed to create tenant");
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create tenant";
+      setError(errorMessage);
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleUpdateTenant = async () => {
     try {
-      const updateData = {
-        company_name: newTenant.name,
-        domain: newTenant.domain,
-        status: newTenant.status.toLowerCase(),
-        max_users: newTenant.users,
+      setError(null);
+
+      // Validate required fields
+      if (!newTenant.name?.trim()) {
+        setError("Tenant name is required");
+        return;
+      }
+      if (!newTenant.domain?.trim()) {
+        setError("Domain is required");
+        return;
+      }
+
+      // Basic domain validation (alphanumeric and hyphens only)
+      const domainRegex = /^[a-zA-Z0-9-]+$/;
+      if (!domainRegex.test(newTenant.domain)) {
+        setError("Domain can only contain letters, numbers, and hyphens");
+        return;
+      }
+
+      // Only include fields that have actually changed
+      const updateData: any = {};
+
+      if (newTenant.name.trim() !== selectedTenant.company_name) {
+        updateData.company_name = newTenant.name.trim();
+      }
+
+      if (newTenant.domain.trim().toLowerCase() !== selectedTenant.domain) {
+        updateData.domain = newTenant.domain.trim().toLowerCase();
+      }
+
+      // Map frontend status values to backend values
+      const statusMapping: { [key: string]: string } = {
+        Active: "active",
+        Suspended: "suspended",
+        Pending: "pending",
+        Inactive: "inactive",
       };
+
+      const backendStatus =
+        statusMapping[newTenant.status] || newTenant.status.toLowerCase();
+
+      if (backendStatus !== selectedTenant.status) {
+        updateData.status = backendStatus;
+      }
+
+      if (parseInt(newTenant.users) !== selectedTenant.max_users) {
+        updateData.max_users = parseInt(newTenant.users) || 10;
+      }
+
+      // Check if there are any changes to update
+      if (Object.keys(updateData).length === 0) {
+        setError("No changes detected to update");
+        return;
+      }
+
+      console.log("Updating tenant with data:", updateData);
+      console.log("Selected tenant ID:", selectedTenant.id);
+      console.log("Selected tenant data:", selectedTenant);
 
       const response = await superadminAPI.tenants.update(
         selectedTenant.id,
         updateData
       );
+
+      // Handle different response formats
+      const updatedTenant = response.data.tenant || response.data;
       setTenants((prev) =>
-        prev.map((t) => (t.id === selectedTenant.id ? response.data : t))
+        prev.map((t) => (t.id === selectedTenant.id ? updatedTenant : t))
       );
       setShowEditTenantModal(false);
       setSelectedTenant(null);
+      setError(null);
     } catch (error: any) {
       console.error("Error updating tenant:", error);
-      setError(error.message || "Failed to update tenant");
+      console.error("Error response:", error.response);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error response status:", error.response?.status);
+
+      // Log individual field errors
+      if (error.response?.data) {
+        Object.keys(error.response.data).forEach((field) => {
+          console.error(
+            `Field error for ${field}:`,
+            error.response.data[field]
+          );
+        });
+      }
+
+      // Handle field-specific errors
+      let errorMessage = "Failed to update tenant";
+
+      if (error.response?.data) {
+        const fieldErrors = [];
+
+        // Check for field-specific errors
+        Object.keys(error.response.data).forEach((field) => {
+          const fieldError = error.response.data[field];
+          if (Array.isArray(fieldError)) {
+            fieldErrors.push(`${field}: ${fieldError.join(", ")}`);
+          } else if (typeof fieldError === "string") {
+            fieldErrors.push(`${field}: ${fieldError}`);
+          }
+        });
+
+        if (fieldErrors.length > 0) {
+          errorMessage = fieldErrors.join("; ");
+        } else {
+          // Fallback to general error messages
+          errorMessage =
+            error.response?.data?.error ||
+            error.response?.data?.message ||
+            error.response?.data?.detail ||
+            error.response?.data?.non_field_errors ||
+            (Array.isArray(error.response?.data)
+              ? error.response.data.join(", ")
+              : null) ||
+            error.message ||
+            "Failed to update tenant";
+        }
+      }
+
+      setError(errorMessage);
     }
   };
 
@@ -203,12 +373,16 @@ const ManageTenants: React.FC = () => {
 
   const filteredTenants = tenants.filter((tenant) => {
     if (!tenant) return false;
-    
+
     const matchesSearch =
-      (tenant.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (tenant.domain || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (tenant.company_name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (tenant.domain || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "" || tenant.status === filterStatus;
-    const matchesPlan = filterPlan === "" || (tenant.plan_name || tenant.billing_period) === filterPlan;
+    const matchesPlan =
+      filterPlan === "" ||
+      (tenant.plan_name || tenant.billing_period) === filterPlan;
     return matchesSearch && matchesStatus && matchesPlan;
   });
 
@@ -247,10 +421,10 @@ const ManageTenants: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              {t('manageTenants.title')}
+              {t("manageTenants.title")}
             </h2>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              {t('manageTenants.description')}
+              {t("manageTenants.description")}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -259,7 +433,9 @@ const ManageTenants: React.FC = () => {
               className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
-              <span className="text-sm sm:text-base">{t('manageTenants.addNewTenant')}</span>
+              <span className="text-sm sm:text-base">
+                {t("manageTenants.addNewTenant")}
+              </span>
             </button>
             <button
               onClick={() => setShowDashboard(!showDashboard)}
@@ -268,12 +444,16 @@ const ManageTenants: React.FC = () => {
               {showDashboard ? (
                 <>
                   <ChevronUp className="w-4 h-4" />
-                  <span className="text-sm sm:text-base">{t('manageTenants.hideDashboard')}</span>
+                  <span className="text-sm sm:text-base">
+                    {t("manageTenants.hideDashboard")}
+                  </span>
                 </>
               ) : (
                 <>
                   <ChevronDown className="w-4 h-4" />
-                  <span className="text-sm sm:text-base">{t('manageTenants.showDashboard')}</span>
+                  <span className="text-sm sm:text-base">
+                    {t("manageTenants.showDashboard")}
+                  </span>
                 </>
               )}
             </button>
@@ -290,7 +470,7 @@ const ManageTenants: React.FC = () => {
               onClick={() => setError(null)}
               className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
             >
-              {t('manageTenants.dismiss')}
+              {t("manageTenants.dismiss")}
             </button>
           </div>
         )}
@@ -300,7 +480,7 @@ const ManageTenants: React.FC = () => {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-gray-600 dark:text-gray-300">
-              {t('manageTenants.loadingTenants')}
+              {t("manageTenants.loadingTenants")}
             </span>
           </div>
         )}
@@ -309,11 +489,11 @@ const ManageTenants: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 sm:p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('manageTenants.dashboardOverview')}
+                {t("manageTenants.dashboardOverview")}
               </h3>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('manageTenants.viewMode')}
+                  {t("manageTenants.viewMode")}
                 </span>
                 <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg">
                   <button
@@ -324,7 +504,7 @@ const ManageTenants: React.FC = () => {
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
                     }`}
                   >
-                    {t('manageTenants.grid')}
+                    {t("manageTenants.grid")}
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
@@ -334,7 +514,7 @@ const ManageTenants: React.FC = () => {
                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900"
                     }`}
                   >
-                    {t('manageTenants.list')}
+                    {t("manageTenants.list")}
                   </button>
                 </div>
               </div>
@@ -346,7 +526,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      {t('manageTenants.totalTenants')}
+                      {t("manageTenants.totalTenants")}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.length}
@@ -359,7 +539,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      {t('manageTenants.activeTenants')}
+                      {t("manageTenants.activeTenants")}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.filter((t) => t.status === "active").length}
@@ -372,7 +552,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      {t('manageTenants.totalUsers')}
+                      {t("manageTenants.totalUsers")}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.reduce(
@@ -388,7 +568,7 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 truncate">
-                      {t('manageTenants.suspended')}
+                      {t("manageTenants.suspended")}
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {tenants.filter((t) => t.status === "suspended").length}
@@ -408,7 +588,7 @@ const ManageTenants: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={t('manageTenants.searchTenants')}
+                placeholder={t("manageTenants.searchTenants")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
@@ -420,20 +600,26 @@ const ManageTenants: React.FC = () => {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
               >
-                <option value="">{t('manageTenants.allStatus')}</option>
-                <option value="Active">{t('manageTenants.active')}</option>
-                <option value="Suspended">{t('manageTenants.suspended')}</option>
-                <option value="Pending">{t('manageTenants.pending')}</option>
+                <option value="">{t("manageTenants.allStatus")}</option>
+                <option value="Active">{t("manageTenants.active")}</option>
+                <option value="Suspended">
+                  {t("manageTenants.suspended")}
+                </option>
+                <option value="Pending">{t("manageTenants.pending")}</option>
               </select>
               <select
                 value={filterPlan}
                 onChange={(e) => setFilterPlan(e.target.value)}
                 className="px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
               >
-                <option value="">{t('manageTenants.allPlans')}</option>
-                <option value="Basic">{t('manageTenants.basic')}</option>
-                <option value="Professional">{t('manageTenants.professional')}</option>
-                <option value="Enterprise">{t('manageTenants.enterprise')}</option>
+                <option value="">{t("manageTenants.allPlans")}</option>
+                <option value="Basic">{t("manageTenants.basic")}</option>
+                <option value="Professional">
+                  {t("manageTenants.professional")}
+                </option>
+                <option value="Enterprise">
+                  {t("manageTenants.enterprise")}
+                </option>
               </select>
             </div>
           </div>
@@ -448,25 +634,25 @@ const ManageTenants: React.FC = () => {
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.tenant')}
+                      {t("manageTenants.tenant")}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.status')}
+                      {t("manageTenants.status")}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.users')}
+                      {t("manageTenants.users")}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.plan')}
+                      {t("manageTenants.plan")}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.created')}
+                      {t("manageTenants.created")}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.lastActive')}
+                      {t("manageTenants.lastActive")}
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {t('manageTenants.actions')}
+                      {t("manageTenants.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -479,10 +665,11 @@ const ManageTenants: React.FC = () => {
                       <td className="py-4 px-4">
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {tenant.company_name || t('manageTenants.notAvailable')}
+                            {tenant.company_name ||
+                              t("manageTenants.notAvailable")}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {tenant.domain || t('manageTenants.notAvailable')}
+                            {tenant.domain || t("manageTenants.notAvailable")}
                           </p>
                         </div>
                       </td>
@@ -504,35 +691,41 @@ const ManageTenants: React.FC = () => {
                             tenant.plan_name || tenant.billing_period
                           )}`}
                         >
-                          {tenant.plan_name || tenant.billing_period || t('manageTenants.notAvailable')}
+                          {tenant.plan_name ||
+                            tenant.billing_period ||
+                            t("manageTenants.notAvailable")}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : t('manageTenants.notAvailable')}
+                        {tenant.created_at
+                          ? new Date(tenant.created_at).toLocaleDateString()
+                          : t("manageTenants.notAvailable")}
                       </td>
                       <td className="py-4 px-4 text-sm text-gray-900 dark:text-white">
-                        {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : t('manageTenants.notAvailable')}
+                        {tenant.last_active
+                          ? new Date(tenant.last_active).toLocaleDateString()
+                          : t("manageTenants.notAvailable")}
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditTenant(tenant)}
                             className="p-1 text-gray-400 hover:text-blue-600 dark:text-blue-400 transition-colors"
-                            title={t('manageTenants.editTenant')}
+                            title={t("manageTenants.editTenant")}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteTenant(tenant)}
                             className="p-1 text-gray-400 hover:text-red-600 dark:text-red-400 transition-colors"
-                            title={t('manageTenants.deleteTenant')}
+                            title={t("manageTenants.deleteTenant")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleMoreActions(tenant)}
                             className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
-                            title={t('manageTenants.moreActions')}
+                            title={t("manageTenants.moreActions")}
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
@@ -555,10 +748,10 @@ const ManageTenants: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
-                      {tenant.company_name || t('manageTenants.notAvailable')}
+                      {tenant.company_name || t("manageTenants.notAvailable")}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {tenant.domain || t('manageTenants.notAvailable')}
+                      {tenant.domain || t("manageTenants.notAvailable")}
                     </p>
                   </div>
                   <span
@@ -573,7 +766,7 @@ const ManageTenants: React.FC = () => {
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      {t('manageTenants.users')}
+                      {t("manageTenants.users")}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
                       {tenant.current_users || 0}
@@ -581,22 +774,26 @@ const ManageTenants: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      {t('manageTenants.plan')}
+                      {t("manageTenants.plan")}
                     </span>
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(
                         tenant.plan_name || tenant.billing_period
                       )}`}
                     >
-                      {tenant.plan_name || tenant.billing_period || t('manageTenants.notAvailable')}
+                      {tenant.plan_name ||
+                        tenant.billing_period ||
+                        t("manageTenants.notAvailable")}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      {t('manageTenants.created')}
+                      {t("manageTenants.created")}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : t('manageTenants.notAvailable')}
+                      {tenant.created_at
+                        ? new Date(tenant.created_at).toLocaleDateString()
+                        : t("manageTenants.notAvailable")}
                     </span>
                   </div>
                 </div>
@@ -628,7 +825,9 @@ const ManageTenants: React.FC = () => {
                     </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       Last active:{" "}
-                      {tenant.last_active ? new Date(tenant.last_active).toLocaleDateString() : 'N/A'}
+                      {tenant.last_active
+                        ? new Date(tenant.last_active).toLocaleDateString()
+                        : "N/A"}
                     </span>
                   </div>
                 </div>
@@ -647,16 +846,26 @@ const ManageTenants: React.FC = () => {
                 Add New Tenant
               </h3>
               <button
-                onClick={() => setShowAddTenantModal(false)}
+                onClick={() => {
+                  setShowAddTenantModal(false);
+                  setError(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-red-800 dark:text-red-200 text-sm">
+                    {error}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Tenant Name
+                  Tenant Name *
                 </label>
                 <input
                   type="text"
@@ -669,23 +878,48 @@ const ManageTenants: React.FC = () => {
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter tenant name"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Domain
+                  Domain *
+                </label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={newTenant.domain}
+                    onChange={(e) =>
+                      setNewTenant((prev) => ({
+                        ...prev,
+                        domain: e.target.value,
+                      }))
+                    }
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="tenant"
+                    required
+                  />
+                  <span className="px-3 py-2 bg-gray-100 dark:bg-gray-600 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-lg text-gray-500 dark:text-gray-300 text-sm">
+                    .lims.com
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Admin Email *
                 </label>
                 <input
-                  type="text"
-                  value={newTenant.domain}
+                  type="email"
+                  value={newTenant.email}
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
-                      domain: e.target.value,
+                      email: e.target.value,
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter domain (e.g., tenant.lims.com)"
+                  placeholder="admin@tenant.com"
+                  required
                 />
               </div>
               <div>
@@ -728,7 +962,7 @@ const ManageTenants: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Initial Users
+                  Max Users
                 </label>
                 <input
                   type="number"
@@ -736,27 +970,38 @@ const ManageTenants: React.FC = () => {
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
-                      users: parseInt(e.target.value) || 0,
+                      users: parseInt(e.target.value) || 10,
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter number of users"
-                  min="0"
+                  placeholder="Enter maximum number of users"
+                  min="1"
                 />
               </div>
             </div>
             <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
               <button
-                onClick={() => setShowAddTenantModal(false)}
+                onClick={() => {
+                  setShowAddTenantModal(false);
+                  setError(null);
+                }}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateTenant}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isCreating}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
               >
-                Create Tenant
+                {isCreating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <span>Create Tenant</span>
+                )}
               </button>
             </div>
           </div>
@@ -772,20 +1017,30 @@ const ManageTenants: React.FC = () => {
                 Edit Tenant
               </h3>
               <button
-                onClick={() => setShowEditTenantModal(false)}
+                onClick={() => {
+                  setShowEditTenantModal(false);
+                  setError(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-red-800 dark:text-red-200 text-sm">
+                    {error}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Tenant Name
                 </label>
                 <input
                   type="text"
-                  value={newTenant.name || selectedTenant.name}
+                  value={newTenant.name}
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
@@ -801,7 +1056,7 @@ const ManageTenants: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={newTenant.domain || selectedTenant.domain}
+                  value={newTenant.domain}
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
@@ -816,7 +1071,7 @@ const ManageTenants: React.FC = () => {
                   Status
                 </label>
                 <select
-                  value={newTenant.status || selectedTenant.status}
+                  value={newTenant.status}
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
@@ -835,7 +1090,7 @@ const ManageTenants: React.FC = () => {
                   Plan
                 </label>
                 <select
-                  value={newTenant.plan || selectedTenant.plan}
+                  value={newTenant.plan}
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
@@ -851,11 +1106,11 @@ const ManageTenants: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Users
+                  Max Users
                 </label>
                 <input
                   type="number"
-                  value={newTenant.users || selectedTenant.users}
+                  value={newTenant.users}
                   onChange={(e) =>
                     setNewTenant((prev) => ({
                       ...prev,
@@ -869,7 +1124,10 @@ const ManageTenants: React.FC = () => {
             </div>
             <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
               <button
-                onClick={() => setShowEditTenantModal(false)}
+                onClick={() => {
+                  setShowEditTenantModal(false);
+                  setError(null);
+                }}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel

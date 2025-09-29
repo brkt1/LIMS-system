@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Add request interceptor to include auth token
@@ -36,14 +37,39 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle token refresh
+// Add response interceptor to handle token refresh and network errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     
+    // Log error details for debugging
+    console.error('API Error:', {
+      url: originalRequest?.url,
+      method: originalRequest?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      message: error.message,
+      code: error.code,
+      timeout: error.code === 'ECONNABORTED'
+    });
+    
     if (originalRequest.url?.includes('/login/')) {
       return Promise.reject(error);
+    }
+    
+    // Handle timeout errors
+    if (error.code === 'ECONNABORTED') {
+      const timeoutError = new Error('Request timeout: The server took too long to respond. Please check your connection and try again.');
+      timeoutError.name = 'TimeoutError';
+      return Promise.reject(timeoutError);
+    }
+    
+    // Handle network errors
+    if (!error.response && error.request) {
+      const networkError = new Error('Network Error: Unable to connect to the server. Please check your internet connection and try again.');
+      networkError.name = 'NetworkError';
+      return Promise.reject(networkError);
     }
     
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -363,7 +389,7 @@ export const superadminAPI = {
     getAll: (params?: any) => api.get('/superadmin/tenants/', { params }),
     getById: (id: number) => api.get(`/superadmin/tenants/${id}/`),
     create: (data: any) => api.post('/superadmin/tenants/', data),
-    update: (id: number, data: any) => api.put(`/superadmin/tenants/${id}/`, data),
+    update: (id: number, data: any) => api.patch(`/superadmin/tenants/${id}/`, data),
     delete: (id: number) => api.delete(`/superadmin/tenants/${id}/`),
     getCount: () => api.get('/superadmin/tenants/count/'),
     suspend: (id: number) => api.post(`/superadmin/tenants/${id}/suspend/`),
@@ -422,6 +448,7 @@ export const superadminAPI = {
   sessions: {
     getAll: (params?: any) => api.get('/superadmin/sessions/', { params }),
     getStats: () => api.get('/superadmin/sessions/stats/'),
+    getRecentActivity: () => api.get('/superadmin/sessions/recent_activity/'),
   },
   
   // Database Backup Management

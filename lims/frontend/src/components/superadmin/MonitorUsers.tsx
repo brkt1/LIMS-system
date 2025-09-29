@@ -40,6 +40,7 @@ const MonitorUsers: React.FC = () => {
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   // Load online users from backend API
   useEffect(() => {
@@ -47,8 +48,16 @@ const MonitorUsers: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        // Use the new sessions API to get user sessions
+        console.log("Fetching online users from API...");
+
+        // Use the sessions API to get user sessions
         const response = await superadminAPI.sessions.getAll();
+        console.log("API response received:", response);
+
+        if (!response || !response.data) {
+          throw new Error("Invalid response format from API");
+        }
+
         const users = response.data.map((session: any) => ({
           id: session.user_id,
           name: session.user_name,
@@ -63,10 +72,48 @@ const MonitorUsers: React.FC = () => {
           sessionDuration: session.session_duration,
           actions: session.actions_count,
         }));
+
+        console.log("Processed users:", users);
         setOnlineUsers(users);
       } catch (error: any) {
         console.error("Error fetching online users:", error);
-        setError(error.message || "Failed to load online users");
+        console.error("Error details:", {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          config: error.config,
+        });
+
+        // Provide more detailed error messages
+        let errorMessage = "Failed to load online users";
+
+        if (error.name === "TimeoutError" || error.code === "ECONNABORTED") {
+          errorMessage =
+            "Request Timeout: The server took too long to respond. Please check your connection and try again.";
+        } else if (
+          error.name === "NetworkError" ||
+          error.code === "NETWORK_ERROR" ||
+          error.message.includes("Network Error")
+        ) {
+          errorMessage =
+            "Network Error: Unable to connect to the server. Please check your internet connection and try again.";
+        } else if (error.response?.status === 401) {
+          errorMessage = "Authentication Error: Please log in again.";
+        } else if (error.response?.status === 403) {
+          errorMessage =
+            "Access Denied: You don't have permission to view user sessions.";
+        } else if (error.response?.status === 404) {
+          errorMessage =
+            "API Endpoint Not Found: The sessions endpoint is not available.";
+        } else if (error.response?.status >= 500) {
+          errorMessage =
+            "Server Error: The server is experiencing issues. Please try again later.";
+        } else if (error.message) {
+          errorMessage = `Error: ${error.message}`;
+        }
+
+        setError(errorMessage);
         setOnlineUsers([]);
       } finally {
         setLoading(false);
@@ -76,31 +123,176 @@ const MonitorUsers: React.FC = () => {
     fetchOnlineUsers();
   }, []);
 
+  // Fetch recent activity from backend
+  useEffect(() => {
+    const fetchRecentActivity = async () => {
+      try {
+        console.log("Fetching recent activity from API...");
+        const response = await superadminAPI.sessions.getRecentActivity();
+        console.log("Recent activity response:", response);
+
+        if (!response || !response.data) {
+          console.warn("Invalid response format for recent activity");
+          setRecentActivity([]);
+          return;
+        }
+
+        const activities = response.data.slice(0, 4).map((activity: any) => {
+          // Map activity status to colors
+          const getActivityColor = (status: string, activityType: string) => {
+            if (
+              activityType.includes("logged in") ||
+              activityType.includes("came back online")
+            )
+              return "green";
+            if (
+              activityType.includes("created") ||
+              activityType.includes("completed")
+            )
+              return "blue";
+            if (activityType.includes("went idle")) return "yellow";
+            if (activityType.includes("went away")) return "orange";
+            return "purple";
+          };
+
+          return {
+            id: activity.id,
+            user: activity.user_name,
+            action: activity.activity_type,
+            time: activity.last_activity_ago,
+            tenant: activity.tenant_name,
+            color: getActivityColor(activity.status, activity.activity_type),
+          };
+        });
+
+        console.log("Processed activities:", activities);
+        setRecentActivity(activities);
+      } catch (error: any) {
+        console.error("Error fetching recent activity:", error);
+        console.error("Recent activity error details:", {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+        // Fallback to empty array if API fails
+        setRecentActivity([]);
+      }
+    };
+
+    fetchRecentActivity();
+  }, []);
+
   // Handler functions
   const handleRefresh = async () => {
     setIsRefreshing(true);
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      console.log("Refreshing data...");
 
-    // Add a new user entry to simulate refresh
-    const newUser = {
-      id: (onlineUsers.length + 1).toString(),
-      name: "New User",
-      email: "newuser@example.com",
-      role: "User",
-      tenant: "System",
-      status: "online",
-      lastActivity: "Just now",
-      ipAddress: getClientIP(),
-      location: "Unknown",
-      device: "Unknown",
-      sessionDuration: "0m",
-      actions: 0,
-    };
+      // Fetch fresh data from backend
+      const [sessionsResponse, activityResponse] = await Promise.all([
+        superadminAPI.sessions.getAll(),
+        superadminAPI.sessions.getRecentActivity(),
+      ]);
 
-    setOnlineUsers((prev: any) => [newUser, ...prev]);
-    setIsRefreshing(false);
+      console.log("Refresh responses:", { sessionsResponse, activityResponse });
+
+      // Update users data
+      if (sessionsResponse && sessionsResponse.data) {
+        const users = sessionsResponse.data.map((session: any) => ({
+          id: session.user_id,
+          name: session.user_name,
+          email: session.user_email,
+          role: session.user_role,
+          tenant: session.tenant_name || "System",
+          status: session.status,
+          lastActivity: session.last_activity_ago,
+          ipAddress: session.ip_address,
+          location: session.location || "Unknown",
+          device: session.device_info || "Unknown",
+          sessionDuration: session.session_duration,
+          actions: session.actions_count,
+        }));
+        setOnlineUsers(users);
+      }
+
+      // Update recent activity data
+      if (activityResponse && activityResponse.data) {
+        const activities = activityResponse.data
+          .slice(0, 4)
+          .map((activity: any) => {
+            const getActivityColor = (status: string, activityType: string) => {
+              if (
+                activityType.includes("logged in") ||
+                activityType.includes("came back online")
+              )
+                return "green";
+              if (
+                activityType.includes("created") ||
+                activityType.includes("completed")
+              )
+                return "blue";
+              if (activityType.includes("went idle")) return "yellow";
+              if (activityType.includes("went away")) return "orange";
+              return "purple";
+            };
+
+            return {
+              id: activity.id,
+              user: activity.user_name,
+              action: activity.activity_type,
+              time: activity.last_activity_ago,
+              tenant: activity.tenant_name,
+              color: getActivityColor(activity.status, activity.activity_type),
+            };
+          });
+        setRecentActivity(activities);
+      }
+
+      setError(null);
+      console.log("Data refreshed successfully");
+    } catch (error: any) {
+      console.error("Error refreshing data:", error);
+      console.error("Refresh error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+
+      // Provide more detailed error messages
+      let errorMessage = "Failed to refresh data";
+
+      if (error.name === "TimeoutError" || error.code === "ECONNABORTED") {
+        errorMessage =
+          "Request Timeout: The server took too long to respond. Please check your connection and try again.";
+      } else if (
+        error.name === "NetworkError" ||
+        error.code === "NETWORK_ERROR" ||
+        error.message.includes("Network Error")
+      ) {
+        errorMessage =
+          "Network Error: Unable to connect to the server. Please check your internet connection and try again.";
+      } else if (error.response?.status === 401) {
+        errorMessage = "Authentication Error: Please log in again.";
+      } else if (error.response?.status === 403) {
+        errorMessage =
+          "Access Denied: You don't have permission to view user sessions.";
+      } else if (error.response?.status === 404) {
+        errorMessage =
+          "API Endpoint Not Found: The sessions endpoint is not available.";
+      } else if (error.response?.status >= 500) {
+        errorMessage =
+          "Server Error: The server is experiencing issues. Please try again later.";
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleViewUser = (user: any) => {
@@ -202,13 +394,32 @@ const MonitorUsers: React.FC = () => {
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-          <button
-            onClick={() => setError(null)}
-            className="mt-2 text-red-600 dark:text-red-400 text-xs underline"
-          >
-            Dismiss
-          </button>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-red-800 dark:text-red-200 text-sm font-medium mb-2">
+                Network Error in Monitor Online Users
+              </p>
+              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            </div>
+            <div className="flex space-x-2 ml-4">
+              <button
+                onClick={() => {
+                  setError(null);
+                  // Retry the API calls
+                  window.location.reload();
+                }}
+                className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => setError(null)}
+                className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -510,50 +721,32 @@ const MonitorUsers: React.FC = () => {
               Recent Activity
             </h3>
             <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <div className="flex-1">
-                  <p className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    John Smith logged in
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    2 minutes ago • Research Institute
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                <div className="flex-1">
-                  <p className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    Sarah Johnson created new test request
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    5 minutes ago • City Hospital Lab
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                <div className="flex-1">
-                  <p className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    Mike Wilson went idle
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    15 minutes ago • MedLab Solutions
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start space-x-2 sm:space-x-3"
+                  >
+                    <div
+                      className={`w-2 h-2 bg-${activity.color}-500 rounded-full mt-2`}
+                    ></div>
+                    <div className="flex-1">
+                      <p className="text-xs sm:text-sm text-gray-900 dark:text-white">
+                        {activity.user} {activity.action}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {activity.time} • {activity.tenant}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                    No recent activity
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                <div className="flex-1">
-                  <p className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    Emily Davis completed test report
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    18 minutes ago • Private Clinic Network
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -562,50 +755,44 @@ const MonitorUsers: React.FC = () => {
               Geographic Distribution
             </h3>
             <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    United States
-                  </span>
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                  4 users
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    Canada
-                  </span>
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                  1 user
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    United Kingdom
-                  </span>
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                  0 users
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
-                    Australia
-                  </span>
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
-                  0 users
-                </span>
-              </div>
+              {(() => {
+                // Group users by location
+                const locationCounts = onlineUsers.reduce((acc, user) => {
+                  const location =
+                    user.location.split(",")[1]?.trim() || "Unknown";
+                  acc[location] = (acc[location] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>);
+
+                const locations = Object.entries(locationCounts)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 4);
+
+                return locations.length > 0 ? (
+                  locations.map(([location, count]) => (
+                    <div
+                      key={location}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Globe className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
+                          {location}
+                        </span>
+                      </div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                        {count} user{count !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      No location data available
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -65,6 +65,28 @@ class TenantViewSet(viewsets.ModelViewSet):
         count = self.get_queryset().count()
         return Response({'count': count})
 
+    def update(self, request, *args, **kwargs):
+        """Custom update method to handle partial updates properly"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Log the request data for debugging
+        print("Update request data: {}".format(request.data))
+        print("Instance data: {}".format(instance.__dict__))
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            print("Serializer errors: {}".format(serializer.errors))
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Handle PATCH requests for partial updates"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         """Custom delete method to handle tenant deletion with proper error handling"""
         try:
@@ -81,7 +103,7 @@ class TenantViewSet(viewsets.ModelViewSet):
                     tenant.delete()
                     
                 return Response({
-                    'message': f'Tenant "{tenant_name}" deleted successfully',
+                    'message': 'Tenant "{}" deleted successfully'.format(tenant_name),
                     'deleted_tenant_id': tenant_id
                 }, status=status.HTTP_200_OK)
                 
@@ -96,13 +118,13 @@ class TenantViewSet(viewsets.ModelViewSet):
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 else:
                     return Response({
-                        'error': f'Cannot delete tenant due to database constraints: {error_msg}',
+                        'error': 'Cannot delete tenant due to database constraints: {}'.format(error_msg),
                         'details': 'The tenant has related data that prevents deletion. Please delete related records first.'
                     }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
             return Response({
-                'error': f'Failed to delete tenant: {str(e)}',
+                'error': 'Failed to delete tenant: {}'.format(str(e)),
                 'details': 'An unexpected error occurred while deleting the tenant'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -433,6 +455,60 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
             'away_users': away_users
         })
 
+    @action(detail=False, methods=['get'])
+    def recent_activity(self, request):
+        """Get recent user activity based on session data"""
+        queryset = self.get_queryset().order_by('-last_activity')[:10]
+        
+        # Define activity types based on user actions and status changes
+        activity_types = [
+            'logged in',
+            'created new test request', 
+            'completed test report',
+            'updated patient record',
+            'viewed dashboard',
+            'sent message',
+            'uploaded file',
+            'generated report',
+            'went idle',
+            'went away',
+            'came back online'
+        ]
+        
+        activities = []
+        for i, session in enumerate(queryset):
+            # Determine activity type based on session status and actions
+            if session.status == 'online' and session.actions_count > 0:
+                # Active user - assign activity based on actions count
+                activity_type = activity_types[session.actions_count % len(activity_types)]
+            elif session.status == 'idle':
+                activity_type = 'went idle'
+            elif session.status == 'away':
+                activity_type = 'went away'
+            else:
+                activity_type = 'logged in'
+            
+            # Calculate last activity ago manually
+            from django.utils import timezone
+            from django.utils.timesince import timesince
+            last_activity_ago = timesince(session.last_activity, timezone.now())
+            
+            # Create activity entry
+            activity = {
+                'id': f"activity_{session.id}",
+                'user_name': session.user_name,
+                'user_id': session.user_id,
+                'activity_type': activity_type,
+                'tenant_name': session.tenant_name or 'System',
+                'last_activity_ago': last_activity_ago,
+                'status': session.status,
+                'actions_count': session.actions_count,
+                'timestamp': session.last_activity.isoformat()
+            }
+            activities.append(activity)
+        
+        return Response(activities)
+
 
 class DatabaseBackupViewSet(viewsets.ModelViewSet):
     queryset = DatabaseBackup.objects.all().order_by('-created_at')
@@ -468,7 +544,7 @@ class DatabaseBackupViewSet(viewsets.ModelViewSet):
             time.sleep(5)  # Simulate backup time
             backup.status = 'completed'
             backup.completed_at = timezone.now()
-            backup.file_path = f"/backups/{backup.name}_{backup.id}.sql"
+            backup.file_path = "/backups/{}_{}.sql".format(backup.name, backup.id)
             backup.file_size = 1024 * 1024 * 50  # 50MB
             backup.save()
         

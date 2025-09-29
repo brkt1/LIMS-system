@@ -7,7 +7,7 @@ from .models import (
 
 
 class TenantSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
     plan_name = serializers.CharField(source='plan.billing_plan.name', read_only=True)
     plan_price = serializers.DecimalField(source='plan.billing_plan.price', max_digits=10, decimal_places=2, read_only=True)
     revenue = serializers.SerializerMethodField()
@@ -21,12 +21,41 @@ class TenantSerializer(serializers.ModelSerializer):
             'created_by', 'created_at', 'last_active', 'is_paid',
             'plan_name', 'plan_price', 'revenue', 'growth'
         ]
-        read_only_fields = ['id', 'created_at', 'last_active', 'current_users']
+        read_only_fields = ['id', 'created_at', 'last_active', 'current_users', 'created_by']
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
+        if not password:
+            raise serializers.ValidationError({'password': 'Password is required for creating a tenant.'})
         tenant = Tenant.objects.create_user(password=password, **validated_data)
         return tenant
+
+    def update(self, instance, validated_data):
+        print("Serializer update called with validated_data: {}".format(validated_data))
+        print("Instance: {}".format(instance))
+        
+        # Remove password from validated_data if it exists (it shouldn't be in updates)
+        validated_data.pop('password', None)
+        
+        # Check for unique constraint violations before updating
+        if 'company_name' in validated_data:
+            if Tenant.objects.filter(company_name=validated_data['company_name']).exclude(id=instance.id).exists():
+                raise serializers.ValidationError({'company_name': 'A tenant with this company name already exists.'})
+        
+        if 'domain' in validated_data:
+            if Tenant.objects.filter(domain=validated_data['domain']).exclude(id=instance.id).exists():
+                raise serializers.ValidationError({'domain': 'A tenant with this domain already exists.'})
+        
+        if 'email' in validated_data:
+            if Tenant.objects.filter(email=validated_data['email']).exclude(id=instance.id).exists():
+                raise serializers.ValidationError({'email': 'A tenant with this email already exists.'})
+        
+        # Update the instance with validated data
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        return instance
 
     def get_revenue(self, obj):
         # Calculate monthly revenue based on plan
@@ -168,7 +197,7 @@ class SuperAdminUserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'last_login']
 
     def get_full_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}"
+        return "{} {}".format(obj.first_name, obj.last_name)
 
 
 class UserSessionSerializer(serializers.ModelSerializer):
@@ -190,7 +219,7 @@ class UserSessionSerializer(serializers.ModelSerializer):
         duration = timezone.now() - obj.session_start
         hours = duration.total_seconds() // 3600
         minutes = (duration.total_seconds() % 3600) // 60
-        return f"{int(hours)}h {int(minutes)}m"
+        return "{}h {}m".format(int(hours), int(minutes))
 
     def get_last_activity_ago(self, obj):
         from django.utils import timezone
